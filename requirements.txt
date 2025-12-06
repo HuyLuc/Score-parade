@@ -1,13 +1,16 @@
 # Core dependencies
 opencv-python>=4.8.0
-numpy>=1.24.0
+numpy>=1.24.0,<2.0  # Giới hạn <2.0 để tránh conflict với một số package
 scipy>=1.10.0
 matplotlib>=3.7.0
 
 # Pose estimation
-mmpose>=1.0.0
-mmcv>=2.0.0
-mmengine>=0.8.0
+# Option 1: RTMPose (phức tạp hơn, cần mmcv-full) - Đã comment vì có vấn đề với chumpy
+# mmpose>=1.0.0
+# mmcv-full>=2.0.0  # Sử dụng mmcv-full thay vì mmcv
+# mmengine>=0.8.0
+
+# Option 2: YOLOv8-Pose (đơn giản hơn, khuyến nghị) - Đang sử dụng
 ultralytics>=8.0.0  # For YOLOv8-Pose
 
 # Multi-person tracking
@@ -25,7 +28,7 @@ tqdm>=4.65.0
 pillow>=10.0.0
 pyyaml>=6.0
 
-# Optional: for better performance
-torch>=2.0.0
-torchvision>=0.15.0
+# Optional: for better performance (nếu chưa có)
+# torch>=2.0.0
+# torchvision>=0.15.0
 

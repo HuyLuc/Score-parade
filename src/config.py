@@ -29,9 +29,9 @@ VIDEO_CONFIG = {
 
 # Cấu hình pose estimation
 POSE_CONFIG = {
-    "model_type": "rtmpose",  # "rtmpose" or "yolov8"
+    "model_type": "yolov8",  # "rtmpose" or "yolov8" - mặc định dùng yolov8 (đơn giản hơn)
     "rtmpose_model": "rtmpose-m_8xb256-420e_aic-coco-256x192",  # RTMPose model name
-    "yolov8_model": "yolov8n-pose.pt",  # YOLOv8-Pose model
+    "yolov8_model": "yolov8n-pose.pt",  # YOLOv8-Pose model (n=nanos, s=small, m=medium, l=large, x=xlarge)
     "confidence_threshold": 0.5,
     "device": "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu",
 }

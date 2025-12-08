@@ -125,15 +125,23 @@ def validate_video(video_path: Path) -> Tuple[bool, Optional[str]]:
         cap.release()
         
         # Kiểm tra độ phân giải
-        # Kiểm tra tổng số pixel thay vì width/height riêng lẻ (để hỗ trợ cả video ngang và dọc)
+        # Hỗ trợ cả video ngang (1280x720) và dọc (1080x1920)
         min_w, min_h = config.VIDEO_CONFIG["min_resolution"]
+        width = metadata["width"]
+        height = metadata["height"]
         min_pixels = min_w * min_h  # 1280 * 720 = 921,600 pixels (720p)
-        video_pixels = metadata["width"] * metadata["height"]
+        video_pixels = width * height
         
-        # Hoặc kiểm tra chiều nhỏ hơn phải >= 720 (hỗ trợ video dọc)
-        min_dimension = min(metadata["width"], metadata["height"])
-        if video_pixels < min_pixels and min_dimension < 720:
-            return False, f"Độ phân giải quá thấp: {metadata['width']}x{metadata['height']} (tối thiểu 720p: {min_w}x{min_h} hoặc tổng {min_pixels:,} pixels)"
+        # Kiểm tra: video phải đạt ít nhất một trong các điều kiện:
+        # 1. Video ngang: width >= 1280 VÀ height >= 720
+        # 2. Video dọc: width >= 720 VÀ height >= 1280 (hoán đổi)
+        # 3. Tổng pixels >= 921,600 VÀ cả hai chiều đều >= 720
+        is_landscape_720p = width >= min_w and height >= min_h
+        is_portrait_720p = width >= min_h and height >= min_w  # Hoán đổi cho video dọc
+        is_high_res = video_pixels >= min_pixels and min(width, height) >= 720
+        
+        if not (is_landscape_720p or is_portrait_720p or is_high_res):
+            return False, f"Độ phân giải quá thấp: {width}x{height} (tối thiểu 720p: {min_w}x{min_h} hoặc {min_h}x{min_w} cho video dọc, hoặc tổng {min_pixels:,} pixels với cả hai chiều >= 720)"
         
         # Kiểm tra FPS
         min_fps = config.VIDEO_CONFIG["min_fps"]

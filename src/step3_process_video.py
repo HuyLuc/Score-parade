@@ -12,6 +12,7 @@ from src.utils.video_utils import load_video, get_frames, validate_video
 from src.utils.pose_estimation import PoseEstimator
 from src.utils.tracking import track_people_in_video
 from src.utils.smoothing import smooth_keypoints_sequence
+from src.utils.motion_filter import filter_people_by_motion
 
 
 def process_video(
@@ -65,6 +66,14 @@ def process_video(
     tracked_people = track_people_in_video(skeletons_per_frame)
     
     print(f"Đã track được {len(tracked_people)} người")
+    
+    # Filter người có động tác tương tự golden template
+    golden_skeleton_path = config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_SKELETON_NAME
+    tracked_people = filter_people_by_motion(tracked_people, golden_skeleton_path)
+    
+    if len(tracked_people) == 0:
+        print("\n⚠️  Cảnh báo: Không có người nào có động tác tương tự golden template!")
+        print("Có thể cần điều chỉnh MOTION_FILTER_CONFIG trong config.py")
     
     # Làm mượt skeleton cho từng người
     print("Đang làm mượt skeleton...")

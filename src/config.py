@@ -23,7 +23,8 @@ GOLDEN_VIS_NAME = "golden_skeleton_vis.mp4"
 # Cấu hình video
 VIDEO_CONFIG = {
     "min_resolution": (1280, 720),  # 720p minimum
-    "min_fps": 30,
+    "min_fps": 24,  # Giảm xuống 24fps để linh hoạt hơn (24fps là chuẩn phim, 25fps là PAL)
+    "strict_validation": False,  # True = reject nếu không đạt, False = chỉ cảnh báo
     "supported_formats": [".mp4", ".avi", ".mov", ".mkv"],
 }
 
@@ -42,6 +43,14 @@ TRACKING_CONFIG = {
     "min_hits": 3,  # Số frame tối đa để xác nhận một track mới
     "iou_threshold": 0.3,  # Ngưỡng IoU cho matching
     "max_people": 20,  # Số người tối đa trong một video
+}
+
+# Cấu hình filter động tác (để chỉ đánh giá người có động tác tương tự golden)
+MOTION_FILTER_CONFIG = {
+    "enabled": True,  # Bật/tắt filter động tác
+    "min_motion_variance": 50.0,  # Variance tối thiểu của vị trí keypoints (pixel^2)
+    "min_similarity_score": 0.3,  # Similarity score tối thiểu với golden template (0-1)
+    "motion_check_frames": 30,  # Số frame để kiểm tra motion
 }
 
 # Định nghĩa keypoints (theo COCO format)

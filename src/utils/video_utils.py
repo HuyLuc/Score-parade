@@ -125,13 +125,26 @@ def validate_video(video_path: Path) -> Tuple[bool, Optional[str]]:
         cap.release()
         
         # Kiểm tra độ phân giải
+        # Kiểm tra tổng số pixel thay vì width/height riêng lẻ (để hỗ trợ cả video ngang và dọc)
         min_w, min_h = config.VIDEO_CONFIG["min_resolution"]
-        if metadata["width"] < min_w or metadata["height"] < min_h:
-            return False, f"Độ phân giải quá thấp: {metadata['width']}x{metadata['height']}"
+        min_pixels = min_w * min_h  # 1280 * 720 = 921,600 pixels (720p)
+        video_pixels = metadata["width"] * metadata["height"]
+        
+        # Hoặc kiểm tra chiều nhỏ hơn phải >= 720 (hỗ trợ video dọc)
+        min_dimension = min(metadata["width"], metadata["height"])
+        if video_pixels < min_pixels and min_dimension < 720:
+            return False, f"Độ phân giải quá thấp: {metadata['width']}x{metadata['height']} (tối thiểu 720p: {min_w}x{min_h} hoặc tổng {min_pixels:,} pixels)"
         
         # Kiểm tra FPS
-        if metadata["fps"] < config.VIDEO_CONFIG["min_fps"]:
-            return False, f"FPS quá thấp: {metadata['fps']}"
+        min_fps = config.VIDEO_CONFIG["min_fps"]
+        strict = config.VIDEO_CONFIG.get("strict_validation", False)
+        
+        if metadata["fps"] < min_fps:
+            if strict:
+                return False, f"FPS quá thấp: {metadata['fps']} (tối thiểu: {min_fps})"
+            else:
+                # Chỉ cảnh báo, không reject
+                print(f"⚠️  Cảnh báo: FPS thấp ({metadata['fps']} < {min_fps}), nhưng vẫn tiếp tục xử lý...")
         
         return True, None
     except Exception as e:

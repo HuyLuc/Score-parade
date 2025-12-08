@@ -89,6 +89,22 @@ def compare_with_golden(
         'summary': summary_errors
     }
     
+    # Convert numpy types to Python native types for JSON serialization
+    def convert_to_python_types(obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {key: convert_to_python_types(value) for key, value in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_to_python_types(item) for item in obj]
+        return obj
+    
+    result = convert_to_python_types(result)
+    
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
     

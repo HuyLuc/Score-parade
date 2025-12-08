@@ -19,7 +19,15 @@ def calculate_motion_score(keypoints_sequence: np.ndarray) -> float:
     Returns:
         Motion score (variance tổng hợp)
     """
+    # Kiểm tra edge cases
+    if len(keypoints_sequence) == 0:
+        return 0.0
+    
     if len(keypoints_sequence) < 2:
+        return 0.0
+    
+    # Kiểm tra shape hợp lệ
+    if keypoints_sequence.ndim != 3 or keypoints_sequence.shape[1] == 0 or keypoints_sequence.shape[2] < 2:
         return 0.0
     
     # Tính variance của mỗi keypoint qua các frame
@@ -62,13 +70,25 @@ def calculate_similarity_with_golden(
     Returns:
         Similarity score (0-1)
     """
+    # Kiểm tra edge cases
+    if len(person_keypoints) == 0 or len(golden_keypoints) == 0:
+        return 0.0
+    
     # Lấy một số frame mẫu từ golden để so sánh
     n_samples = min(10, len(golden_keypoints))
-    golden_samples = golden_keypoints[::max(1, len(golden_keypoints) // n_samples)][:n_samples]
+    if n_samples == 0:
+        return 0.0
+    
+    stride_golden = max(1, len(golden_keypoints) // n_samples)
+    golden_samples = golden_keypoints[::stride_golden][:n_samples]
     
     # Lấy một số frame từ person
     n_person_samples = min(10, len(person_keypoints))
-    person_samples = person_keypoints[::max(1, len(person_keypoints) // n_person_samples)][:n_person_samples]
+    if n_person_samples == 0:
+        return 0.0
+    
+    stride_person = max(1, len(person_keypoints) // n_person_samples)
+    person_samples = person_keypoints[::stride_person][:n_person_samples]
     
     similarities = []
     
@@ -93,6 +113,14 @@ def calculate_skeleton_similarity(
     - Tỷ lệ chiều dài các đoạn xương
     - Góc giữa các đoạn xương
     """
+    # Kiểm tra edge cases
+    if keypoints1 is None or keypoints2 is None:
+        return 0.0
+    
+    if (keypoints1.shape[0] < 17 or keypoints2.shape[0] < 17 or
+        keypoints1.shape[1] < 2 or keypoints2.shape[1] < 2):
+        return 0.0
+    
     # Định nghĩa các đoạn xương quan trọng
     bone_pairs = [
         # Torso
@@ -178,13 +206,18 @@ def filter_people_by_motion(
     similarity_scores = {}
     
     for person_id, keypoints_sequence in tracked_people.items():
+        # Kiểm tra edge cases
+        if keypoints_sequence is None or len(keypoints_sequence) == 0:
+            print(f"✗ Người {person_id}: Không có dữ liệu keypoints - BỊ LOẠI")
+            continue
+        
         # Tính motion score
         motion_score = calculate_motion_score(keypoints_sequence)
         motion_scores[person_id] = motion_score
         
         # Tính similarity với golden nếu có
         similarity_score = 0.5  # Default nếu không có golden
-        if golden_keypoints is not None:
+        if golden_keypoints is not None and len(golden_keypoints) > 0:
             similarity_score = calculate_similarity_with_golden(
                 keypoints_sequence,
                 golden_keypoints

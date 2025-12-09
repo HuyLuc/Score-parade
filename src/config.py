@@ -33,23 +33,23 @@ POSE_CONFIG = {
     "model_type": "yolov8",  # "rtmpose" or "yolov8" - mặc định dùng yolov8 (đơn giản hơn)
     "rtmpose_model": "rtmpose-m_8xb256-420e_aic-coco-256x192",  # RTMPose model name
     "yolov8_model": "yolov8n-pose.pt",  # YOLOv8-Pose model (n=nanos, s=small, m=medium, l=large, x=xlarge)
-    "confidence_threshold": 0.6,  # Tăng confidence threshold để chỉ lấy detection chất lượng cao
-    "keypoint_confidence_threshold": 0.4,  # Confidence tối thiểu cho mỗi keypoint
+    "confidence_threshold": 0.3,  # Giảm xuống 0.3 để phát hiện được nhiều hơn
+    "keypoint_confidence_threshold": 0.2,  # Giảm xuống 0.2
     "device": "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu",
     "batch_size": 8,  # Số frame xử lý cùng lúc (nếu GPU đủ mạnh)
 }
 
 # Cấu hình tracking
 TRACKING_CONFIG = {
-    "max_age": 50,  # Tăng max_age để giữ track lâu hơn khi bị che khuất
-    "min_hits": 3,  # Tăng min_hits để tránh tạo track mới quá dễ
-    "iou_threshold": 0.3,  # Giảm IoU threshold để dễ match hơn
-    "pose_similarity_threshold": 0.4,  # Giảm pose similarity để dễ nhận diện cùng người
-    "pose_weight": 0.6,  # Tăng trọng số pose (60% pose, 40% IoU) - ưu tiên pose hơn
+    "max_age": 100,  # Tăng max_age lên 100 frames (1.7s @ 60fps) để giữ track lâu hơn
+    "min_hits": 1,  # GIẢM xuống 1 để confirm track ngay lập tức
+    "iou_threshold": 0.2,  # Giảm IoU threshold xuống 0.2 để dễ match hơn
+    "pose_similarity_threshold": 0.3,  # Giảm xuống 0.3 để dễ nhận diện cùng người
+    "pose_weight": 0.7,  # Tăng trọng số pose lên 70% - ưu tiên pose hơn IoU
     "max_people": 20,  # Số người tối đa trong một video
     "use_kalman": True,  # Sử dụng Kalman filter để dự đoán vị trí
     "merge_similar_tracks": True,  # Merge các track giống nhau
-    "merge_threshold": 0.7,  # Ngưỡng để merge 2 tracks
+    "merge_threshold": 0.6,  # Giảm xuống 0.6 để merge dễ hơn
 }
 
 # Cấu hình filter động tác (để chỉ đánh giá người có động tác tương tự golden)

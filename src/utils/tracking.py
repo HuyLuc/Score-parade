@@ -419,8 +419,8 @@ def track_people_in_video(
             tracked_people[person_id].append(keypoints)
             frame_presence[person_id].append(frame_idx)
     
-    # Lọc ra những người xuất hiện đủ lâu (ít nhất 5% số frame hoặc tối thiểu 20 frames)
-    min_frames = max(20, len(skeletons_per_frame) * 0.05)
+    # Lọc ra những người xuất hiện đủ lâu (ít nhất 2% số frame hoặc tối thiểu 10 frames)
+    min_frames = max(10, len(skeletons_per_frame) * 0.02)
     
     # Chuyển list thành numpy array cho mỗi người và thêm frame indices
     result = {}

@@ -1,0 +1,18 @@
+{
+  "video_path": "data\\input_videos\\video1.mp4",
+  "video_name": "video1",
+  "metadata": {
+    "fps": 60.010275732145914,
+    "width": 1072,
+    "height": 1904,
+    "frame_count": 584,
+    "duration": 9.731666666666667
+  },
+  "num_people": 1,
+  "person_ids": [
+    0
+  ],
+  "skeleton_files": {
+    "0": "F:\\Score-parade\\Score-parade\\data\\output\\video1\\person_0_skeleton.pkl"
+  }
+}

@@ -143,21 +143,52 @@ def create_annotated_video(
     
     # Tạo mapping từ frame_idx -> keypoint_idx
     frame_to_kpt = {}
-    if frame_indices is not None:
+    if frame_indices is not None and len(frame_indices) > 0:
         for kpt_idx, frame_idx in enumerate(frame_indices):
             frame_to_kpt[int(frame_idx)] = kpt_idx
+        
+        # Tìm frame đầu và cuối
+        min_frame = int(np.min(frame_indices))
+        max_frame = int(np.max(frame_indices))
+        print(f"Person xuất hiện từ frame {min_frame} đến {max_frame}")
     else:
-        # Fallback: giả sử keypoints bắt đầu từ frame 0
+        # Fallback: vẽ skeleton cho tất cả frames
+        min_frame = 0
+        max_frame = len(person_keypoints) - 1
         for kpt_idx in range(len(person_keypoints)):
             frame_to_kpt[kpt_idx] = kpt_idx
+        print(f"Không có frame_indices, vẽ skeleton cho {len(person_keypoints)} frames đầu")
+    
+    def find_nearest_keypoint(video_frame_idx):
+        """Tìm keypoint gần nhất với frame hiện tại"""
+        if video_frame_idx in frame_to_kpt:
+            return frame_to_kpt[video_frame_idx]
+        
+        # Tìm frame gần nhất trong frame_to_kpt
+        available_frames = sorted(frame_to_kpt.keys())
+        if not available_frames:
+            return None
+        
+        # Nếu frame hiện tại nằm ngoài range, không vẽ
+        if video_frame_idx < available_frames[0] or video_frame_idx > available_frames[-1]:
+            return None
+        
+        # Tìm frame gần nhất
+        closest_frame = min(available_frames, key=lambda x: abs(x - video_frame_idx))
+        
+        # Chỉ dùng nếu khoảng cách < 5 frames (tránh nhảy quá xa)
+        if abs(closest_frame - video_frame_idx) <= 5:
+            return frame_to_kpt[closest_frame]
+        
+        return None
     
     video_frame_idx = 0
     for frame in get_frames(cap):
         vis_frame = frame.copy()
         
-        # Vẽ skeleton person (màu xanh) NẾU người xuất hiện ở frame này
-        if video_frame_idx in frame_to_kpt:
-            kpt_idx = frame_to_kpt[video_frame_idx]
+        # Vẽ skeleton person (màu xanh)
+        kpt_idx = find_nearest_keypoint(video_frame_idx)
+        if kpt_idx is not None:
             draw_skeleton(
                 vis_frame,
                 person_keypoints[kpt_idx],

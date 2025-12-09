@@ -1,0 +1,5206 @@
+{
+  "person_id": 0,
+  "num_frames": 264,
+  "errors_per_frame": [
+    {
+      "frame_idx": 0,
+      "arm_angle_error": {
+        "left": 131.38337883756492,
+        "right": 11.48434260511766
+      },
+      "leg_angle_error": {
+        "left": 33.831523770206076,
+        "right": 3.0646502103523687
+      },
+      "arm_height_error": {
+        "left": 735.2105712890625,
+        "right": 699.1907958984375
+      },
+      "leg_height_error": {
+        "left": 83.0948486328125
+      },
+      "head_angle_error": 22.474392474371946,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 1,
+      "arm_angle_error": {
+        "left": 12.39143005937541,
+        "right": 1.0076143388964454
+      },
+      "leg_angle_error": {
+        "left": 29.704243437531744,
+        "right": 0.3342705014879641
+      },
+      "arm_height_error": {
+        "left": 718.3067626953125,
+        "right": 693.6533203125
+      },
+      "leg_height_error": {
+        "left": 98.69537353515625
+      },
+      "head_angle_error": 26.744176760166305,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 2,
+      "arm_angle_error": {
+        "left": 3.97490915794711,
+        "right": 17.183197897519165
+      },
+      "leg_angle_error": {
+        "left": 24.4731808960899,
+        "right": 7.826922853272066
+      },
+      "arm_height_error": {
+        "left": 709.2249755859375,
+        "right": 698.3599243164062
+      },
+      "leg_height_error": {
+        "left": 101.01239013671875
+      },
+      "head_angle_error": 23.942670479574552,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 3,
+      "arm_angle_error": {
+        "left": 4.814731817747969,
+        "right": 44.76148572046176
+      },
+      "leg_angle_error": {
+        "left": 25.836496529311262,
+        "right": 9.849166391783882
+      },
+      "arm_height_error": {
+        "left": 700.404541015625,
+        "right": 719.6608276367188
+      },
+      "leg_height_error": {
+        "left": 79.0367431640625
+      },
+      "head_angle_error": 24.848493683979058,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 4,
+      "arm_angle_error": {
+        "left": 8.835674601594292,
+        "right": 46.61296227260448
+      },
+      "leg_angle_error": {
+        "left": 24.25140052431783,
+        "right": 8.57255021788481
+      },
+      "arm_height_error": {
+        "left": 685.8267822265625,
+        "right": 722.3583984375
+      },
+      "leg_height_error": {
+        "left": 87.92730712890625
+      },
+      "head_angle_error": 26.27502899735617,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 5,
+      "arm_angle_error": {
+        "left": 3.5941640281525338,
+        "right": 54.16929831901048
+      },
+      "leg_angle_error": {
+        "left": 31.078873553525398,
+        "right": 15.16621962251358
+      },
+      "arm_height_error": {
+        "left": 693.8538208007812,
+        "right": 732.88818359375
+      },
+      "leg_height_error": {
+        "left": 96.3621826171875
+      },
+      "head_angle_error": 26.905604339825164,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 6,
+      "arm_angle_error": {
+        "left": 15.684100598324335,
+        "right": 22.100370443185653
+      },
+      "leg_angle_error": {
+        "left": 18.6415343051915,
+        "right": 7.566622952184332
+      },
+      "arm_height_error": {
+        "left": 672.8472900390625,
+        "right": 708.892333984375
+      },
+      "leg_height_error": {
+        "left": 84.40509033203125
+      },
+      "head_angle_error": 23.022130077071495,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 7,
+      "arm_angle_error": {
+        "left": 3.4537523585586314,
+        "right": 42.465728332642925
+      },
+      "leg_angle_error": {
+        "left": 17.88734145118181,
+        "right": 6.542220511253902
+      },
+      "arm_height_error": {
+        "left": 709.746826171875,
+        "right": 749.2645263671875
+      },
+      "leg_height_error": {
+        "left": 82.425537109375
+      },
+      "head_angle_error": 21.193638584281434,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 8,
+      "arm_angle_error": {
+        "left": 18.89393466876561,
+        "right": 48.898546470792425
+      },
+      "leg_angle_error": {
+        "left": 25.50970223110224,
+        "right": 10.500670852486337
+      },
+      "arm_height_error": {
+        "left": 720.323974609375,
+        "right": 760.1607055664062
+      },
+      "leg_height_error": {
+        "left": 87.89642333984375
+      },
+      "head_angle_error": 24.6839011433436,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 9,
+      "arm_angle_error": {
+        "left": 32.89401754399299,
+        "right": 52.39051658936354
+      },
+      "leg_angle_error": {
+        "left": 29.839717952170076,
+        "right": 11.955809008900303
+      },
+      "arm_height_error": {
+        "left": 721.74072265625,
+        "right": 767.3375854492188
+      },
+      "leg_height_error": {
+        "left": 94.81573486328125
+      },
+      "head_angle_error": 21.153835984743697,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 10,
+      "arm_angle_error": {
+        "left": 52.01734108848193,
+        "right": 51.7625736874902
+      },
+      "leg_angle_error": {
+        "left": 34.37237649820054,
+        "right": 16.75087847694232
+      },
+      "arm_height_error": {
+        "left": 724.4610595703125,
+        "right": 769.0960693359375
+      },
+      "leg_height_error": {
+        "left": 95.068603515625
+      },
+      "head_angle_error": 16.734830855936774,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 11,
+      "arm_angle_error": {
+        "left": 71.86419759650964,
+        "right": 47.63382197147732
+      },
+      "leg_angle_error": {
+        "left": 37.385944856096245,
+        "right": 21.031525535700524
+      },
+      "arm_height_error": {
+        "left": 733.3343505859375,
+        "right": 773.0186767578125
+      },
+      "leg_height_error": {
+        "left": 100.0401611328125
+      },
+      "head_angle_error": 13.232213221712712,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 12,
+      "arm_angle_error": {
+        "left": 83.8182126130626,
+        "right": 50.80436486513119
+      },
+      "leg_angle_error": {
+        "left": 42.19553178908512,
+        "right": 25.45419818035998
+      },
+      "arm_height_error": {
+        "left": 751.7205810546875,
+        "right": 783.8120727539062
+      },
+      "leg_height_error": {
+        "left": 98.537353515625
+      },
+      "head_angle_error": 11.762199280881745,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 13,
+      "arm_angle_error": {
+        "left": 76.07693512846862,
+        "right": 49.56237035902059
+      },
+      "leg_angle_error": {
+        "left": 42.401383187699736,
+        "right": 23.672659243251815
+      },
+      "arm_height_error": {
+        "left": 745.9074096679688,
+        "right": 785.5087280273438
+      },
+      "leg_height_error": {
+        "left": 98.13165283203125
+      },
+      "head_angle_error": 9.918455634057295,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 14,
+      "arm_angle_error": {
+        "left": 56.41437128176649,
+        "right": 29.120152291306
+      },
+      "leg_angle_error": {
+        "left": 42.09397800018897,
+        "right": 22.519553548248126
+      },
+      "arm_height_error": {
+        "left": 742.3314208984375,
+        "right": 776.4691162109375
+      },
+      "leg_height_error": {
+        "left": 100.28094482421875
+      },
+      "head_angle_error": 11.636636445959553,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 15,
+      "arm_angle_error": {
+        "left": 66.2254741880054,
+        "right": 42.24418157527032
+      },
+      "leg_angle_error": {
+        "left": 37.77328934765396,
+        "right": 16.44670461386599
+      },
+      "arm_height_error": {
+        "left": 741.44189453125,
+        "right": 777.6982421875
+      },
+      "leg_height_error": {
+        "left": 102.01519775390625
+      },
+      "head_angle_error": 5.700344703279441,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 16,
+      "arm_angle_error": {
+        "left": 66.64169285126133,
+        "right": 44.277027003949684
+      },
+      "leg_angle_error": {
+        "left": 33.04283388962395,
+        "right": 10.47543864223968
+      },
+      "arm_height_error": {
+        "left": 743.17236328125,
+        "right": 775.9172973632812
+      },
+      "leg_height_error": {},
+      "head_angle_error": 10.21131642877225,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 17,
+      "arm_angle_error": {
+        "left": 57.68683561038101,
+        "right": 37.32834045274598
+      },
+      "leg_angle_error": {
+        "left": 29.767349237793894,
+        "right": 8.596240676744458
+      },
+      "arm_height_error": {
+        "left": 725.48046875,
+        "right": 755.452392578125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 12.504738936195167,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 18,
+      "arm_angle_error": {
+        "left": 35.92968577285606,
+        "right": 30.467526987343376
+      },
+      "leg_angle_error": {
+        "left": 23.485971179728097,
+        "right": 2.494948905501957
+      },
+      "arm_height_error": {
+        "left": 699.6339111328125,
+        "right": 738.3631591796875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 15.299853543816251,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 19,
+      "arm_angle_error": {
+        "left": 31.772029938590634,
+        "right": 51.63438213774678
+      },
+      "leg_angle_error": {
+        "left": 15.85703624600339,
+        "right": 11.898520263016621
+      },
+      "arm_height_error": {
+        "left": 681.5396728515625,
+        "right": 730.30859375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 15.445603827490991,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 20,
+      "arm_angle_error": {
+        "left": 17.59882114160837,
+        "right": 51.09999056004963
+      },
+      "leg_angle_error": {
+        "left": 9.92180478149271,
+        "right": 18.304367363144507
+      },
+      "arm_height_error": {
+        "left": 679.220703125,
+        "right": 724.4921264648438
+      },
+      "leg_height_error": {},
+      "head_angle_error": 16.83148336078323,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 21,
+      "arm_angle_error": {
+        "left": 6.145629739529113,
+        "right": 35.484907300257845
+      },
+      "leg_angle_error": {
+        "left": 1.3937454807185077,
+        "right": 22.873341859572378
+      },
+      "arm_height_error": {
+        "left": 693.3720703125,
+        "right": 706.415283203125
+      },
+      "leg_height_error": {
+        "left": 91.5081787109375
+      },
+      "head_angle_error": 20.339979516969407,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 22,
+      "arm_angle_error": {
+        "left": 24.68940680000142,
+        "right": 21.538968002670202
+      },
+      "leg_angle_error": {
+        "left": 4.525199876535282,
+        "right": 20.556836085062173
+      },
+      "arm_height_error": {
+        "left": 709.2425537109375,
+        "right": 697.1219482421875
+      },
+      "leg_height_error": {
+        "left": 98.53326416015625
+      },
+      "head_angle_error": 20.614967178961084,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 23,
+      "arm_angle_error": {
+        "left": 27.187874256433474,
+        "right": 17.69651341075337
+      },
+      "leg_angle_error": {
+        "left": 19.45485453751752,
+        "right": 1.2042595621168743
+      },
+      "arm_height_error": {
+        "left": 719.765625,
+        "right": 696.6381225585938
+      },
+      "leg_height_error": {
+        "left": 91.51129150390625
+      },
+      "head_angle_error": 22.7563524899235,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 24,
+      "arm_angle_error": {
+        "left": 70.18156142243559,
+        "right": 11.74284668531189
+      },
+      "leg_angle_error": {
+        "left": 16.96444647586958,
+        "right": 7.651639364789418
+      },
+      "arm_height_error": {
+        "left": 734.172119140625,
+        "right": 696.3936767578125
+      },
+      "leg_height_error": {
+        "left": 100.22125244140625
+      },
+      "head_angle_error": 22.47707097170118,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 25,
+      "arm_angle_error": {
+        "left": 72.13105980414535,
+        "right": 9.200524867240574
+      },
+      "leg_angle_error": {
+        "left": 29.733913152145675,
+        "right": 0.5273322394305637
+      },
+      "arm_height_error": {
+        "left": 735.6455078125,
+        "right": 701.0653076171875
+      },
+      "leg_height_error": {
+        "left": 100.1302490234375
+      },
+      "head_angle_error": 19.276138448205355,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 26,
+      "arm_angle_error": {
+        "left": 80.57258315397877,
+        "right": 10.123295603209357
+      },
+      "leg_angle_error": {
+        "left": 35.137423155812144,
+        "right": 3.014402456413791
+      },
+      "arm_height_error": {
+        "left": 738.81298828125,
+        "right": 707.0745849609375
+      },
+      "leg_height_error": {
+        "left": 100.41339111328125
+      },
+      "head_angle_error": 18.678934352496242,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 27,
+      "arm_angle_error": {
+        "left": 94.79017410459468,
+        "right": 10.160904609622264
+      },
+      "leg_angle_error": {
+        "left": 41.123342029049326,
+        "right": 9.337014817318106
+      },
+      "arm_height_error": {
+        "left": 742.4222412109375,
+        "right": 704.3197631835938
+      },
+      "leg_height_error": {
+        "left": 96.65362548828125
+      },
+      "head_angle_error": 15.058441076962545,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 28,
+      "arm_angle_error": {
+        "left": 92.24029645783126,
+        "right": 8.717608308944932
+      },
+      "leg_angle_error": {
+        "left": 44.03176011623475,
+        "right": 14.945939143918679
+      },
+      "arm_height_error": {
+        "left": 744.2581787109375,
+        "right": 706.5574951171875
+      },
+      "leg_height_error": {
+        "left": 96.84332275390625
+      },
+      "head_angle_error": 13.602439697057772,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 29,
+      "arm_angle_error": {
+        "left": 97.54909451687926,
+        "right": 1.3046063491750033
+      },
+      "leg_angle_error": {
+        "left": 42.364173341597336,
+        "right": 19.54779585308185
+      },
+      "arm_height_error": {
+        "left": 745.6116943359375,
+        "right": 708.6395874023438
+      },
+      "leg_height_error": {
+        "left": 99.588134765625
+      },
+      "head_angle_error": 15.556685990175772,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 30,
+      "arm_angle_error": {
+        "left": 46.42095298828028,
+        "right": 1.868239094122913
+      },
+      "leg_angle_error": {
+        "left": 42.28145403652886,
+        "right": 22.572770964459494
+      },
+      "arm_height_error": {
+        "left": 734.3795166015625,
+        "right": 709.927490234375
+      },
+      "leg_height_error": {
+        "left": 100.6973876953125
+      },
+      "head_angle_error": 14.90150388605391,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 31,
+      "arm_angle_error": {
+        "left": 53.24213913112045,
+        "right": 5.901102803433446
+      },
+      "leg_angle_error": {
+        "left": 42.90837554426599,
+        "right": 22.43346372461457
+      },
+      "arm_height_error": {
+        "left": 738.4345703125,
+        "right": 707.2012329101562
+      },
+      "leg_height_error": {
+        "left": 100.9847412109375
+      },
+      "head_angle_error": 14.74795000234991,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 32,
+      "arm_angle_error": {
+        "left": 95.99312515443776,
+        "right": 4.356367286805806
+      },
+      "leg_angle_error": {
+        "left": 44.6910405850773,
+        "right": 19.81860561860111
+      },
+      "arm_height_error": {
+        "left": 753.1536865234375,
+        "right": 703.7472534179688
+      },
+      "leg_height_error": {
+        "left": 94.6993408203125
+      },
+      "head_angle_error": 16.74121624765637,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 33,
+      "arm_angle_error": {
+        "left": 80.25548195549652,
+        "right": 8.336834416238503
+      },
+      "leg_angle_error": {
+        "left": 39.19893762241293,
+        "right": 20.53296912433396
+      },
+      "arm_height_error": {
+        "left": 745.4437255859375,
+        "right": 697.227294921875
+      },
+      "leg_height_error": {
+        "left": 94.8681640625
+      },
+      "head_angle_error": 19.072826496105222,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 34,
+      "arm_angle_error": {
+        "left": 95.48872386568466,
+        "right": 5.765071874996039
+      },
+      "leg_angle_error": {
+        "left": 42.38513752862903,
+        "right": 14.532556971517494
+      },
+      "arm_height_error": {
+        "left": 750.8304443359375,
+        "right": 688.8633422851562
+      },
+      "leg_height_error": {
+        "left": 85.91802978515625
+      },
+      "head_angle_error": 20.30897466216141,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 35,
+      "arm_angle_error": {
+        "left": 94.6458624267859,
+        "right": 5.961723621831879
+      },
+      "leg_angle_error": {
+        "left": 28.892454931889006,
+        "right": 4.39331601955854
+      },
+      "arm_height_error": {
+        "left": 732.1028442382812,
+        "right": 686.7432861328125
+      },
+      "leg_height_error": {
+        "left": 81.34716796875
+      },
+      "head_angle_error": 25.301931423869824,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 36,
+      "arm_angle_error": {
+        "left": 12.012205222290845,
+        "right": 16.590364235981383
+      },
+      "leg_angle_error": {
+        "left": 22.486021877996535,
+        "right": 0.7844678864694572
+      },
+      "arm_height_error": {
+        "left": 710.76416015625,
+        "right": 690.911865234375
+      },
+      "leg_height_error": {
+        "left": 76.2886962890625
+      },
+      "head_angle_error": 24.51285922704882,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 37,
+      "arm_angle_error": {
+        "left": 3.9793124053483098,
+        "right": 30.941577869770498
+      },
+      "leg_angle_error": {
+        "left": 12.951075869171007,
+        "right": 13.107658748478741
+      },
+      "arm_height_error": {
+        "left": 698.1837158203125,
+        "right": 697.5335083007812
+      },
+      "leg_height_error": {
+        "left": 70.41119384765625
+      },
+      "head_angle_error": 20.422543260827315,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 38,
+      "arm_angle_error": {
+        "left": 1.3585294435048638,
+        "right": 38.3588086213808
+      },
+      "leg_angle_error": {
+        "left": 15.602743320181872,
+        "right": 6.064582830399615
+      },
+      "arm_height_error": {
+        "left": 677.9564208984375,
+        "right": 713.0267333984375
+      },
+      "leg_height_error": {
+        "left": 77.34844970703125
+      },
+      "head_angle_error": 21.826131290480014,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 39,
+      "arm_angle_error": {
+        "left": 26.673218162058674,
+        "right": 46.37279858359388
+      },
+      "leg_angle_error": {
+        "left": 13.57799340463697,
+        "right": 7.9952389610960495
+      },
+      "arm_height_error": {
+        "left": 682.6948852539062,
+        "right": 718.8671875
+      },
+      "leg_height_error": {
+        "left": 82.30169677734375
+      },
+      "head_angle_error": 19.201867549729783,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 40,
+      "arm_angle_error": {
+        "left": 20.48705666335556,
+        "right": 51.455330044553904
+      },
+      "leg_angle_error": {
+        "left": 22.029420981236512,
+        "right": 4.321074168664467
+      },
+      "arm_height_error": {
+        "left": 696.287841796875,
+        "right": 730.607666015625
+      },
+      "leg_height_error": {
+        "left": 100.3302001953125
+      },
+      "head_angle_error": 19.105139754417927,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 41,
+      "arm_angle_error": {
+        "left": 28.082821912503732,
+        "right": 54.74949382701787
+      },
+      "leg_angle_error": {
+        "left": 12.697142793922438,
+        "right": 12.237369214966606
+      },
+      "arm_height_error": {
+        "left": 716.3654174804688,
+        "right": 755.825439453125
+      },
+      "leg_height_error": {
+        "left": 98.89788818359375
+      },
+      "head_angle_error": 20.476215839012706,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 42,
+      "arm_angle_error": {
+        "left": 12.651172779713136,
+        "right": 44.55375570796079
+      },
+      "leg_angle_error": {
+        "left": 23.530875708246924,
+        "right": 6.0811553649085965
+      },
+      "arm_height_error": {
+        "left": 716.2862548828125,
+        "right": 761.5128784179688
+      },
+      "leg_height_error": {
+        "left": 82.1932373046875
+      },
+      "head_angle_error": 20.251923978936645,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 43,
+      "arm_angle_error": {
+        "left": 29.393235830140327,
+        "right": 39.06079540714117
+      },
+      "leg_angle_error": {
+        "left": 16.462127159726208,
+        "right": 6.517624436150669
+      },
+      "arm_height_error": {
+        "left": 724.4843139648438,
+        "right": 771.0899658203125
+      },
+      "leg_height_error": {
+        "left": 83.2283935546875
+      },
+      "head_angle_error": 19.19199473013549,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 44,
+      "arm_angle_error": {
+        "left": 50.44525706265941,
+        "right": 39.396547165531814
+      },
+      "leg_angle_error": {
+        "left": 30.54843623684434,
+        "right": 18.025965669419094
+      },
+      "arm_height_error": {
+        "left": 732.3245849609375,
+        "right": 774.0736083984375
+      },
+      "leg_height_error": {
+        "left": 91.10675048828125
+      },
+      "head_angle_error": 17.206419110712158,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 45,
+      "arm_angle_error": {
+        "left": 57.27520105326167,
+        "right": 39.08707312295738
+      },
+      "leg_angle_error": {
+        "left": 32.748750543543764,
+        "right": 17.290308956886292
+      },
+      "arm_height_error": {
+        "left": 734.9318237304688,
+        "right": 776.2738037109375
+      },
+      "leg_height_error": {
+        "left": 95.23712158203125
+      },
+      "head_angle_error": 13.811486518749781,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 46,
+      "arm_angle_error": {
+        "left": 61.05901620897994,
+        "right": 36.762791129675065
+      },
+      "leg_angle_error": {
+        "left": 33.743376155274035,
+        "right": 17.66367357625714
+      },
+      "arm_height_error": {
+        "left": 739.632080078125,
+        "right": 781.9617919921875
+      },
+      "leg_height_error": {
+        "left": 95.21881103515625
+      },
+      "head_angle_error": 15.248156151533259,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 47,
+      "arm_angle_error": {
+        "left": 60.831279529713214,
+        "right": 28.282820568545617
+      },
+      "leg_angle_error": {
+        "left": 45.417841610762395,
+        "right": 23.82311306929995
+      },
+      "arm_height_error": {
+        "left": 741.0428466796875,
+        "right": 783.05859375
+      },
+      "leg_height_error": {
+        "left": 92.178466796875
+      },
+      "head_angle_error": 13.257752314854866,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 48,
+      "arm_angle_error": {
+        "left": 66.10718092138971,
+        "right": 30.999479938183327
+      },
+      "leg_angle_error": {
+        "left": 40.92322481653659,
+        "right": 25.260536515777915
+      },
+      "arm_height_error": {
+        "left": 744.5218505859375,
+        "right": 784.7760620117188
+      },
+      "leg_height_error": {
+        "left": 97.1025390625
+      },
+      "head_angle_error": 11.284480757044424,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 49,
+      "arm_angle_error": {
+        "left": 67.21022981121286,
+        "right": 36.44566755498906
+      },
+      "leg_angle_error": {
+        "left": 41.07923561727603,
+        "right": 25.062622026596785
+      },
+      "arm_height_error": {
+        "left": 745.9503173828125,
+        "right": 785.5040283203125
+      },
+      "leg_height_error": {
+        "left": 100.0115966796875
+      },
+      "head_angle_error": 10.784789492510058,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 50,
+      "arm_angle_error": {
+        "left": 59.46010161388449,
+        "right": 30.98584500307652
+      },
+      "leg_angle_error": {
+        "left": 45.3024817315725,
+        "right": 17.811503866428296
+      },
+      "arm_height_error": {
+        "left": 743.9234008789062,
+        "right": 782.8776245117188
+      },
+      "leg_height_error": {
+        "left": 99.33782958984375
+      },
+      "head_angle_error": 7.652363672790415,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 51,
+      "arm_angle_error": {
+        "left": 55.63412749757428,
+        "right": 42.92222468806554
+      },
+      "leg_angle_error": {
+        "left": 41.09947106370382,
+        "right": 15.894284250569939
+      },
+      "arm_height_error": {
+        "left": 740.5484619140625,
+        "right": 778.2106323242188
+      },
+      "leg_height_error": {
+        "left": 98.73052978515625
+      },
+      "head_angle_error": 8.163440843312003,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 52,
+      "arm_angle_error": {
+        "left": 49.32512086180367,
+        "right": 51.0337233230445
+      },
+      "leg_angle_error": {
+        "left": 37.550830647381474,
+        "right": 9.650835164860553
+      },
+      "arm_height_error": {
+        "left": 729.6253662109375,
+        "right": 768.3123168945312
+      },
+      "leg_height_error": {
+        "left": 99.477783203125
+      },
+      "head_angle_error": 4.319784008902609,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 53,
+      "arm_angle_error": {
+        "left": 45.25377916132082,
+        "right": 41.16585930050999
+      },
+      "leg_angle_error": {
+        "left": 33.359446793511836,
+        "right": 3.3344003392277273
+      },
+      "arm_height_error": {
+        "left": 716.3441162109375,
+        "right": 752.9383544921875
+      },
+      "leg_height_error": {
+        "left": 103.5389404296875
+      },
+      "head_angle_error": 3.2537553198043696,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 54,
+      "arm_angle_error": {
+        "left": 28.930633439258486,
+        "right": 14.067528478476731
+      },
+      "leg_angle_error": {
+        "left": 29.239225106292395,
+        "right": 4.873243421321831
+      },
+      "arm_height_error": {
+        "left": 683.049560546875,
+        "right": 722.356201171875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 6.798284008068393,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 55,
+      "arm_angle_error": {
+        "left": 25.793995440826222,
+        "right": 23.779437535650544
+      },
+      "leg_angle_error": {
+        "left": 22.300674095068274,
+        "right": 13.624937280557418
+      },
+      "arm_height_error": {
+        "left": 692.5916137695312,
+        "right": 714.375732421875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 12.927545616039072,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 56,
+      "arm_angle_error": {
+        "left": 7.01212657771174,
+        "right": 31.352481196330302
+      },
+      "leg_angle_error": {
+        "left": 0.5379474117988821,
+        "right": 17.315444181800217
+      },
+      "arm_height_error": {
+        "left": 682.33740234375,
+        "right": 710.4102172851562
+      },
+      "leg_height_error": {
+        "left": 95.36920166015625
+      },
+      "head_angle_error": 10.576787864956664,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 57,
+      "arm_angle_error": {
+        "left": 31.331085716133998,
+        "right": 21.82435684096427
+      },
+      "leg_angle_error": {
+        "left": 14.02044879490839,
+        "right": 21.136239098116164
+      },
+      "arm_height_error": {
+        "left": 700.8692016601562,
+        "right": 707.7894897460938
+      },
+      "leg_height_error": {},
+      "head_angle_error": 16.041815556423444,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 58,
+      "arm_angle_error": {
+        "left": 16.913261141585565,
+        "right": 14.909910055857523
+      },
+      "leg_angle_error": {
+        "left": 17.204427561650505,
+        "right": 9.003788556943192
+      },
+      "arm_height_error": {
+        "left": 710.3458251953125,
+        "right": 686.7734375
+      },
+      "leg_height_error": {
+        "left": 96.74688720703125
+      },
+      "head_angle_error": 20.1113028354867,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 59,
+      "arm_angle_error": {
+        "left": 83.33181520596746,
+        "right": 11.629098719960979
+      },
+      "leg_angle_error": {
+        "left": 12.583508963827114,
+        "right": 14.838266129412688
+      },
+      "arm_height_error": {
+        "left": 735.1162109375,
+        "right": 684.58154296875
+      },
+      "leg_height_error": {
+        "left": 94.47705078125
+      },
+      "head_angle_error": 24.255345030459537,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 60,
+      "arm_angle_error": {
+        "left": 89.18276129685404,
+        "right": 8.574356276202934
+      },
+      "leg_angle_error": {
+        "left": 22.871650075272186,
+        "right": 7.498809341980376
+      },
+      "arm_height_error": {
+        "left": 739.0753784179688,
+        "right": 687.990234375
+      },
+      "leg_height_error": {
+        "left": 104.8519287109375
+      },
+      "head_angle_error": 22.330378990232916,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 61,
+      "arm_angle_error": {
+        "left": 94.8224944690008,
+        "right": 3.4177756194861217
+      },
+      "leg_angle_error": {
+        "left": 31.118611495326718,
+        "right": 0.4971216529646654
+      },
+      "arm_height_error": {
+        "left": 743.340087890625,
+        "right": 690.6689453125
+      },
+      "leg_height_error": {
+        "left": 103.4578857421875
+      },
+      "head_angle_error": 20.68676108129546,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 62,
+      "arm_angle_error": {
+        "left": 91.00855966325643,
+        "right": 0.42671706394776265
+      },
+      "leg_angle_error": {
+        "left": 29.5829965283894,
+        "right": 5.5091467255562065
+      },
+      "arm_height_error": {
+        "left": 749.6651611328125,
+        "right": 693.2124633789062
+      },
+      "leg_height_error": {
+        "left": 96.06243896484375
+      },
+      "head_angle_error": 17.331188347054372,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 63,
+      "arm_angle_error": {
+        "left": 84.9179629935964,
+        "right": 1.0335483368078258
+      },
+      "leg_angle_error": {
+        "left": 37.646382313484224,
+        "right": 2.8030733095085623
+      },
+      "arm_height_error": {
+        "left": 750.7385864257812,
+        "right": 697.2708740234375
+      },
+      "leg_height_error": {
+        "left": 93.630126953125
+      },
+      "head_angle_error": 15.591599155335043,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 64,
+      "arm_angle_error": {
+        "left": 68.38869040684759,
+        "right": 6.617583577381453
+      },
+      "leg_angle_error": {
+        "left": 43.52122302323821,
+        "right": 16.40534483754689
+      },
+      "arm_height_error": {
+        "left": 748.1090698242188,
+        "right": 700.40234375
+      },
+      "leg_height_error": {
+        "left": 90.5369873046875
+      },
+      "head_angle_error": 13.728181238538106,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 65,
+      "arm_angle_error": {
+        "left": 61.95549610263984,
+        "right": 1.0731061278058291
+      },
+      "leg_angle_error": {
+        "left": 44.57802850902817,
+        "right": 20.476741254173902
+      },
+      "arm_height_error": {
+        "left": 750.9930419921875,
+        "right": 701.5223388671875
+      },
+      "leg_height_error": {
+        "left": 94.742431640625
+      },
+      "head_angle_error": 13.847282009679056,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 66,
+      "arm_angle_error": {
+        "left": 64.04737014904097,
+        "right": 1.364913543574744
+      },
+      "leg_angle_error": {
+        "left": 42.222927770032896,
+        "right": 20.288174345215197
+      },
+      "arm_height_error": {
+        "left": 754.5543823242188,
+        "right": 699.287841796875
+      },
+      "leg_height_error": {
+        "left": 96.17120361328125
+      },
+      "head_angle_error": 15.25930500296582,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 67,
+      "arm_angle_error": {
+        "left": 46.907155072912886,
+        "right": 0.0853390348763412
+      },
+      "leg_angle_error": {
+        "left": 39.590214620930055,
+        "right": 16.73113970184349
+      },
+      "arm_height_error": {
+        "left": 751.62353515625,
+        "right": 697.6362915039062
+      },
+      "leg_height_error": {
+        "left": 92.8076171875
+      },
+      "head_angle_error": 19.916653075103508,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 68,
+      "arm_angle_error": {
+        "left": 40.722094704214385,
+        "right": 4.911101418048702
+      },
+      "leg_angle_error": {
+        "left": 37.20966022958936,
+        "right": 12.783677959327406
+      },
+      "arm_height_error": {
+        "left": 748.3690185546875,
+        "right": 688.0172119140625
+      },
+      "leg_height_error": {
+        "left": 87.82672119140625
+      },
+      "head_angle_error": 23.06965371565153,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 69,
+      "arm_angle_error": {
+        "left": 51.46150753695311,
+        "right": 8.602393706613526
+      },
+      "leg_angle_error": {
+        "left": 35.786084485912,
+        "right": 9.93525801855148
+      },
+      "arm_height_error": {
+        "left": 739.987060546875,
+        "right": 683.346435546875
+      },
+      "leg_height_error": {
+        "left": 84.9168701171875
+      },
+      "head_angle_error": 17.944394033101393,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 70,
+      "arm_angle_error": {
+        "left": 23.4180814717171,
+        "right": 12.799602791720304
+      },
+      "leg_angle_error": {
+        "left": 27.694218158863066,
+        "right": 1.7826301723622748
+      },
+      "arm_height_error": {
+        "left": 728.599365234375,
+        "right": 676.2845458984375
+      },
+      "leg_height_error": {
+        "left": 76.89447021484375
+      },
+      "head_angle_error": 20.111971848901614,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 71,
+      "arm_angle_error": {
+        "left": 16.094266516596804,
+        "right": 19.999072616551416
+      },
+      "leg_angle_error": {
+        "left": 25.846981422863138,
+        "right": 3.7268263918044227
+      },
+      "arm_height_error": {
+        "left": 711.2960205078125,
+        "right": 683.7660522460938
+      },
+      "leg_height_error": {
+        "left": 83.1444091796875
+      },
+      "head_angle_error": 22.085252471668955,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 72,
+      "arm_angle_error": {
+        "left": 12.565891247853216,
+        "right": 31.83367190549481
+      },
+      "leg_angle_error": {
+        "left": 11.973724614956325,
+        "right": 7.3793719525379515
+      },
+      "arm_height_error": {
+        "left": 696.941650390625,
+        "right": 689.1488037109375
+      },
+      "leg_height_error": {
+        "left": 76.8203125
+      },
+      "head_angle_error": 23.380930041909544,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 73,
+      "arm_angle_error": {
+        "left": 5.679445146212913,
+        "right": 39.42202737431455
+      },
+      "leg_angle_error": {
+        "left": 8.770850097366576,
+        "right": 14.068395307699035
+      },
+      "arm_height_error": {
+        "left": 674.1010131835938,
+        "right": 709.1072387695312
+      },
+      "leg_height_error": {
+        "left": 74.031005859375
+      },
+      "head_angle_error": 20.504313940997665,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 74,
+      "arm_angle_error": {
+        "left": 11.050895122498787,
+        "right": 40.81887229205245
+      },
+      "leg_angle_error": {
+        "left": 4.768678942145527,
+        "right": 13.586626842735285
+      },
+      "arm_height_error": {
+        "left": 677.7352294921875,
+        "right": 722.6731567382812
+      },
+      "leg_height_error": {
+        "left": 76.721923828125
+      },
+      "head_angle_error": 18.906782555745515,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 75,
+      "arm_angle_error": {
+        "left": 11.838927602591383,
+        "right": 36.64096401200584
+      },
+      "leg_angle_error": {
+        "left": 6.709056386927699,
+        "right": 7.676800765159328
+      },
+      "arm_height_error": {
+        "left": 686.7408447265625,
+        "right": 733.9541015625
+      },
+      "leg_height_error": {
+        "left": 74.702392578125
+      },
+      "head_angle_error": 18.651091996157618,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 76,
+      "arm_angle_error": {
+        "left": 43.6274271476947,
+        "right": 61.10760796158691
+      },
+      "leg_angle_error": {
+        "left": 14.71966303657473,
+        "right": 11.415939696873949
+      },
+      "arm_height_error": {
+        "left": 720.7164306640625,
+        "right": 756.7630615234375
+      },
+      "leg_height_error": {
+        "left": 99.2366943359375
+      },
+      "head_angle_error": 14.246722446819064,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 77,
+      "arm_angle_error": {
+        "left": 34.634751742264314,
+        "right": 52.235824561136255
+      },
+      "leg_angle_error": {
+        "left": 19.044632580348946,
+        "right": 7.488436688803688
+      },
+      "arm_height_error": {
+        "left": 720.6114501953125,
+        "right": 759.0638427734375
+      },
+      "leg_height_error": {
+        "left": 98.5736083984375
+      },
+      "head_angle_error": 15.670011917616648,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 78,
+      "arm_angle_error": {
+        "left": 72.17951337263366,
+        "right": 58.632086365792276
+      },
+      "leg_angle_error": {
+        "left": 20.36438741557805,
+        "right": 6.560678777196415
+      },
+      "arm_height_error": {
+        "left": 739.1370849609375,
+        "right": 774.5107421875
+      },
+      "leg_height_error": {
+        "left": 81.07208251953125
+      },
+      "head_angle_error": 16.305451983940426,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 79,
+      "arm_angle_error": {
+        "left": 61.009039037815,
+        "right": 44.001926162607134
+      },
+      "leg_angle_error": {
+        "left": 26.083203659089378,
+        "right": 8.327826167492304
+      },
+      "arm_height_error": {
+        "left": 735.1293334960938,
+        "right": 770.560302734375
+      },
+      "leg_height_error": {
+        "left": 86.2293701171875
+      },
+      "head_angle_error": 9.01654215032211,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 80,
+      "arm_angle_error": {
+        "left": 51.53948831058477,
+        "right": 43.173940755980794
+      },
+      "leg_angle_error": {
+        "left": 29.016109419706453,
+        "right": 12.779104656734404
+      },
+      "arm_height_error": {
+        "left": 725.97216796875,
+        "right": 765.4927368164062
+      },
+      "leg_height_error": {
+        "left": 87.37005615234375
+      },
+      "head_angle_error": 5.212712371087143,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 81,
+      "arm_angle_error": {
+        "left": 54.01793105406411,
+        "right": 39.069980133176045
+      },
+      "leg_angle_error": {
+        "left": 38.12506362381126,
+        "right": 19.270825568818765
+      },
+      "arm_height_error": {
+        "left": 730.5565185546875,
+        "right": 776.5328369140625
+      },
+      "leg_height_error": {
+        "left": 83.32958984375
+      },
+      "head_angle_error": 8.796911282026109,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 82,
+      "arm_angle_error": {
+        "left": 48.241162744236064,
+        "right": 33.442353961219084
+      },
+      "leg_angle_error": {
+        "left": 44.05393426939011,
+        "right": 18.95284179815522
+      },
+      "arm_height_error": {
+        "left": 729.2367553710938,
+        "right": 780.0367431640625
+      },
+      "leg_height_error": {
+        "left": 80.6170654296875
+      },
+      "head_angle_error": 10.581848093920414,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 83,
+      "arm_angle_error": {
+        "left": 45.87622466317325,
+        "right": 34.377444833194915
+      },
+      "leg_angle_error": {
+        "left": 44.68558989380179,
+        "right": 19.302250223863894
+      },
+      "arm_height_error": {
+        "left": 732.1588745117188,
+        "right": 782.6002807617188
+      },
+      "leg_height_error": {
+        "left": 80.50579833984375
+      },
+      "head_angle_error": 13.31806296513269,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 84,
+      "arm_angle_error": {
+        "left": 34.91693022195602,
+        "right": 42.232065702780545
+      },
+      "leg_angle_error": {
+        "left": 42.742747241769564,
+        "right": 14.998890074686273
+      },
+      "arm_height_error": {
+        "left": 738.448486328125,
+        "right": 785.6454467773438
+      },
+      "leg_height_error": {
+        "left": 90.84326171875
+      },
+      "head_angle_error": 14.698991776271285,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 85,
+      "arm_angle_error": {
+        "left": 21.25793193358703,
+        "right": 37.418967326643696
+      },
+      "leg_angle_error": {
+        "left": 35.53069561083541,
+        "right": 11.703665316884354
+      },
+      "arm_height_error": {
+        "left": 738.10498046875,
+        "right": 779.681640625
+      },
+      "leg_height_error": {
+        "left": 93.302490234375
+      },
+      "head_angle_error": 8.897363886991236,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 86,
+      "arm_angle_error": {
+        "left": 39.68950648670965,
+        "right": 47.57322250784998
+      },
+      "leg_angle_error": {
+        "left": 34.055609488566176,
+        "right": 12.296316679375565
+      },
+      "arm_height_error": {
+        "left": 736.7706298828125,
+        "right": 775.1029052734375
+      },
+      "leg_height_error": {
+        "left": 97.268310546875
+      },
+      "head_angle_error": 24.849966854181663,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 87,
+      "arm_angle_error": {
+        "left": 37.6791754819492,
+        "right": 47.61299346841447
+      },
+      "leg_angle_error": {
+        "left": 27.178600724100505,
+        "right": 5.952240448722733
+      },
+      "arm_height_error": {
+        "left": 725.436279296875,
+        "right": 766.7293701171875
+      },
+      "leg_height_error": {
+        "left": 100.22509765625
+      },
+      "head_angle_error": 23.576422124787104,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 88,
+      "arm_angle_error": {
+        "left": 44.323339513176236,
+        "right": 42.95425188657205
+      },
+      "leg_angle_error": {
+        "left": 23.316628512969316,
+        "right": 0.7687361409098514
+      },
+      "arm_height_error": {
+        "left": 706.4808349609375,
+        "right": 750.1767578125
+      },
+      "leg_height_error": {
+        "left": 100.40625
+      },
+      "head_angle_error": 22.689205106741245,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 89,
+      "arm_angle_error": {
+        "left": 24.134570888728717,
+        "right": 23.008082853065105
+      },
+      "leg_angle_error": {
+        "left": 15.91636546423149,
+        "right": 9.456850261955566
+      },
+      "arm_height_error": {
+        "left": 669.6878051757812,
+        "right": 721.650146484375
+      },
+      "leg_height_error": {
+        "left": 103.79937744140625
+      },
+      "head_angle_error": 20.352820197460332,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 90,
+      "arm_angle_error": {
+        "left": 26.198213025441362,
+        "right": 27.313347008104813
+      },
+      "leg_angle_error": {
+        "left": 11.426161560399919,
+        "right": 17.38935153583668
+      },
+      "arm_height_error": {
+        "left": 686.31787109375,
+        "right": 715.4716186523438
+      },
+      "leg_height_error": {},
+      "head_angle_error": 11.284500307769488,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 91,
+      "arm_angle_error": {
+        "left": 15.118986370712747,
+        "right": 24.78683915072085
+      },
+      "leg_angle_error": {
+        "left": 13.870360667526171,
+        "right": 21.13922421919486
+      },
+      "arm_height_error": {
+        "left": 687.3408203125,
+        "right": 708.0621337890625
+      },
+      "leg_height_error": {},
+      "head_angle_error": 30.909652167524627,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 92,
+      "arm_angle_error": {
+        "left": 24.14739651331459,
+        "right": 12.079687435390326
+      },
+      "leg_angle_error": {
+        "left": 25.118349858125242,
+        "right": 15.100544568983025
+      },
+      "arm_height_error": {
+        "left": 721.3201904296875,
+        "right": 696.981689453125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 28.732658993893708,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 93,
+      "arm_angle_error": {
+        "left": 28.618005984604537,
+        "right": 2.908153750004402
+      },
+      "leg_angle_error": {
+        "left": 16.535070442242784,
+        "right": 17.113339766415237
+      },
+      "arm_height_error": {
+        "left": 732.9558715820312,
+        "right": 685.1685791015625
+      },
+      "leg_height_error": {},
+      "head_angle_error": 22.241214047555157,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 94,
+      "arm_angle_error": {
+        "left": 21.88619456776169,
+        "right": 11.943112216730924
+      },
+      "leg_angle_error": {
+        "left": 7.935527282664793,
+        "right": 17.820960433400245
+      },
+      "arm_height_error": {
+        "left": 694.5362548828125,
+        "right": 684.0542602539062
+      },
+      "leg_height_error": {
+        "left": 96.2542724609375
+      },
+      "head_angle_error": 26.497144203791986,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 95,
+      "arm_angle_error": {
+        "left": 71.4833706460599,
+        "right": 8.761001058693381
+      },
+      "leg_angle_error": {
+        "left": 19.747093628245466,
+        "right": 14.153871269251397
+      },
+      "arm_height_error": {
+        "left": 770.469970703125,
+        "right": 688.0322265625
+      },
+      "leg_height_error": {
+        "left": 102.76715087890625
+      },
+      "head_angle_error": 32.7429792849083,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 96,
+      "arm_angle_error": {
+        "left": 61.5469548899047,
+        "right": 1.3340429670461162
+      },
+      "leg_angle_error": {
+        "left": 28.83924872134699,
+        "right": 7.0523243472715365
+      },
+      "arm_height_error": {
+        "left": 772.83251953125,
+        "right": 692.0269775390625
+      },
+      "leg_height_error": {},
+      "head_angle_error": 32.62065498010986,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 97,
+      "arm_angle_error": {
+        "left": 107.4795903463637,
+        "right": 0.13520436845817585
+      },
+      "leg_angle_error": {
+        "left": 40.59756323102505,
+        "right": 4.059233394220996
+      },
+      "arm_height_error": {
+        "left": 761.39501953125,
+        "right": 687.3865966796875
+      },
+      "leg_height_error": {
+        "left": 104.6585693359375
+      },
+      "head_angle_error": 34.25828242144841,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 98,
+      "arm_angle_error": {
+        "left": 5.988657882979652,
+        "right": 1.2364697699320288
+      },
+      "leg_angle_error": {
+        "left": 44.27118925964206,
+        "right": 14.694848834568006
+      },
+      "arm_height_error": {
+        "left": 673.0068359375,
+        "right": 693.389404296875
+      },
+      "leg_height_error": {
+        "left": 100.26873779296875
+      },
+      "head_angle_error": 32.75126230342991,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 99,
+      "arm_angle_error": {
+        "left": 12.361558108306497,
+        "right": 3.7377786336246004
+      },
+      "leg_angle_error": {
+        "left": 36.772283509914814,
+        "right": 20.559592196347808
+      },
+      "arm_height_error": {
+        "left": 724.4866943359375,
+        "right": 701.1732788085938
+      },
+      "leg_height_error": {
+        "left": 95.282958984375
+      },
+      "head_angle_error": 24.895438763089132,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 100,
+      "arm_angle_error": {
+        "left": 71.05929158471793,
+        "right": 1.7379984354873557
+      },
+      "leg_angle_error": {
+        "left": 33.99450182611997,
+        "right": 26.028840831242775
+      },
+      "arm_height_error": {
+        "left": 749.8261108398438,
+        "right": 699.9525756835938
+      },
+      "leg_height_error": {
+        "left": 92.78631591796875
+      },
+      "head_angle_error": 25.69292344939243,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 101,
+      "arm_angle_error": {
+        "left": 45.81515943896132,
+        "right": 2.2270182328879855
+      },
+      "leg_angle_error": {
+        "left": 38.67101137734829,
+        "right": 22.404756496822614
+      },
+      "arm_height_error": {
+        "left": 750.613525390625,
+        "right": 694.7105712890625
+      },
+      "leg_height_error": {
+        "left": 92.3623046875
+      },
+      "head_angle_error": 25.810366893166442,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 102,
+      "arm_angle_error": {
+        "left": 50.63408479150796,
+        "right": 5.941153091891465
+      },
+      "leg_angle_error": {
+        "left": 41.0575234545378,
+        "right": 18.901632867804295
+      },
+      "arm_height_error": {
+        "left": 761.4490966796875,
+        "right": 689.3848876953125
+      },
+      "leg_height_error": {
+        "left": 89.80078125
+      },
+      "head_angle_error": 26.43394805679896,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 103,
+      "arm_angle_error": {
+        "left": 55.670042150232604,
+        "right": 2.1451254524529304
+      },
+      "leg_angle_error": {
+        "left": 43.87583440231495,
+        "right": 17.38252331585531
+      },
+      "arm_height_error": {
+        "left": 774.6090087890625,
+        "right": 682.26611328125
+      },
+      "leg_height_error": {
+        "left": 84.3453369140625
+      },
+      "head_angle_error": 28.61472803482526,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 104,
+      "arm_angle_error": {
+        "left": 54.492751647063656,
+        "right": 5.830525470882321
+      },
+      "leg_angle_error": {
+        "left": 45.04687333923388,
+        "right": 13.052772667534555
+      },
+      "arm_height_error": {
+        "left": 754.1009521484375,
+        "right": 676.9893188476562
+      },
+      "leg_height_error": {
+        "left": 84.64141845703125
+      },
+      "head_angle_error": 32.3321713854983,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 105,
+      "arm_angle_error": {
+        "left": 32.87480397914507,
+        "right": 12.943267918613202
+      },
+      "leg_angle_error": {
+        "left": 32.3608286369371,
+        "right": 3.436586927977004
+      },
+      "arm_height_error": {
+        "left": 733.91796875,
+        "right": 676.1294555664062
+      },
+      "leg_height_error": {
+        "left": 78.25762939453125
+      },
+      "head_angle_error": 31.72659604936869,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 106,
+      "arm_angle_error": {
+        "left": 16.8024551479256,
+        "right": 12.097248156258416
+      },
+      "leg_angle_error": {
+        "left": 26.51900717345569,
+        "right": 1.7827102147900575
+      },
+      "arm_height_error": {
+        "left": 710.2936401367188,
+        "right": 686.966064453125
+      },
+      "leg_height_error": {
+        "left": 80.2755126953125
+      },
+      "head_angle_error": 32.95847194432741,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 107,
+      "arm_angle_error": {
+        "left": 12.444457796760304,
+        "right": 31.04740247635891
+      },
+      "leg_angle_error": {
+        "left": 26.749590012401626,
+        "right": 0.2694077352901729
+      },
+      "arm_height_error": {
+        "left": 689.7830200195312,
+        "right": 713.9446411132812
+      },
+      "leg_height_error": {
+        "left": 80.81597900390625
+      },
+      "head_angle_error": 31.017007945671864,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 108,
+      "arm_angle_error": {
+        "left": 19.425578994379407,
+        "right": 27.546357060258003
+      },
+      "leg_angle_error": {
+        "left": 21.037031047433516,
+        "right": 2.1596237129844553
+      },
+      "arm_height_error": {
+        "left": 679.1629638671875,
+        "right": 719.0081787109375
+      },
+      "leg_height_error": {
+        "left": 90.04400634765625
+      },
+      "head_angle_error": 31.134717597223833,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 109,
+      "arm_angle_error": {
+        "left": 26.597973928194364,
+        "right": 35.611169483571445
+      },
+      "leg_angle_error": {
+        "left": 16.039488697918188,
+        "right": 3.566835715295042
+      },
+      "arm_height_error": {
+        "left": 705.3101806640625,
+        "right": 748.0596923828125
+      },
+      "leg_height_error": {
+        "left": 74.641845703125
+      },
+      "head_angle_error": 30.08416873422931,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 110,
+      "arm_angle_error": {
+        "left": 85.13348589209053,
+        "right": 83.77297748038848
+      },
+      "leg_angle_error": {
+        "left": 19.23869382820098,
+        "right": 9.199495611454523
+      },
+      "arm_height_error": {
+        "left": 751.65087890625,
+        "right": 792.0220947265625
+      },
+      "leg_height_error": {
+        "left": 49.1829833984375
+      },
+      "head_angle_error": 31.084225330413126,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 111,
+      "arm_angle_error": {
+        "left": 73.72393583660865,
+        "right": 81.94094793083484
+      },
+      "leg_angle_error": {
+        "left": 23.87843958268627,
+        "right": 13.706683942053843
+      },
+      "arm_height_error": {
+        "left": 790.998046875,
+        "right": 830.4263916015625
+      },
+      "leg_height_error": {
+        "left": 41.2054443359375
+      },
+      "head_angle_error": 27.807582104175427,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 112,
+      "arm_angle_error": {
+        "left": 76.32237239642886,
+        "right": 78.68651085841489
+      },
+      "leg_angle_error": {
+        "left": 29.171244083395635,
+        "right": 19.932382899388358
+      },
+      "arm_height_error": {
+        "left": 804.6082763671875,
+        "right": 853.889404296875
+      },
+      "leg_height_error": {
+        "left": 24.22918701171875
+      },
+      "head_angle_error": 35.317034814099415,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 113,
+      "arm_angle_error": {
+        "left": 83.52212171813491,
+        "right": 75.07205454245108
+      },
+      "leg_angle_error": {
+        "left": 26.592809922747136,
+        "right": 9.276875674712528
+      },
+      "arm_height_error": {
+        "left": 708.9381103515625,
+        "right": 843.31494140625
+      },
+      "leg_height_error": {
+        "left": 27.64593505859375
+      },
+      "head_angle_error": 25.980537304726568,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 114,
+      "arm_angle_error": {
+        "left": 75.17172009254125,
+        "right": 69.29067274014457
+      },
+      "leg_angle_error": {
+        "left": 33.52961040175302,
+        "right": 16.46407063520647
+      },
+      "arm_height_error": {
+        "left": 711.8541870117188,
+        "right": 845.3779296875
+      },
+      "leg_height_error": {
+        "left": 27.2135009765625
+      },
+      "head_angle_error": 25.235000566323667,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 115,
+      "arm_angle_error": {
+        "left": 131.0419380572898,
+        "right": 71.5058181006666
+      },
+      "leg_angle_error": {
+        "left": 34.890477649709254,
+        "right": 10.163869703032674
+      },
+      "arm_height_error": {
+        "left": 725.12451171875,
+        "right": 844.0504150390625
+      },
+      "leg_height_error": {
+        "left": 3.03912353515625
+      },
+      "head_angle_error": 29.73118662978375,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 116,
+      "arm_angle_error": {
+        "left": 141.9508055501484,
+        "right": 66.91038461485174
+      },
+      "leg_angle_error": {
+        "left": 35.655036159900874,
+        "right": 13.97921228299154
+      },
+      "arm_height_error": {
+        "left": 727.4757080078125,
+        "right": 851.6910400390625
+      },
+      "leg_height_error": {
+        "left": 1.3126220703125
+      },
+      "head_angle_error": 30.321232038708846,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 117,
+      "arm_angle_error": {
+        "left": 55.80161210172169,
+        "right": 58.71627321194633
+      },
+      "leg_angle_error": {
+        "left": 30.77606510325768,
+        "right": 8.948217564926352
+      },
+      "arm_height_error": {
+        "left": 825.8113403320312,
+        "right": 891.6380615234375
+      },
+      "leg_height_error": {
+        "left": 13.37689208984375
+      },
+      "head_angle_error": 29.943779257831515,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 118,
+      "arm_angle_error": {
+        "left": 77.87706355926422,
+        "right": 83.5642400905191
+      },
+      "leg_angle_error": {
+        "left": 29.849134206727655,
+        "right": 16.550887473071185
+      },
+      "arm_height_error": {
+        "left": 789.361572265625,
+        "right": 840.958251953125
+      },
+      "leg_height_error": {
+        "left": 40.47998046875
+      },
+      "head_angle_error": 29.45412672433808,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 119,
+      "arm_angle_error": {
+        "left": 18.391040104275845,
+        "right": 83.45645679412027
+      },
+      "leg_angle_error": {
+        "left": 35.67033114448844,
+        "right": 13.802540581763424
+      },
+      "arm_height_error": {
+        "left": 846.87060546875,
+        "right": 852.856201171875
+      },
+      "leg_height_error": {
+        "left": 64.784423828125
+      },
+      "head_angle_error": 26.86214818009576,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 120,
+      "arm_angle_error": {
+        "left": 21.917093352270427,
+        "right": 101.91801368964501
+      },
+      "leg_angle_error": {
+        "left": 31.992101829236503,
+        "right": 14.969687569960286
+      },
+      "arm_height_error": {
+        "left": 841.4315185546875,
+        "right": 815.7555541992188
+      },
+      "leg_height_error": {
+        "left": 88.0838623046875
+      },
+      "head_angle_error": 24.38348338034247,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 121,
+      "arm_angle_error": {
+        "left": 32.42247816774605,
+        "right": 29.43001849993786
+      },
+      "leg_angle_error": {
+        "left": 32.27932307049079,
+        "right": 6.01065786733983
+      },
+      "arm_height_error": {
+        "left": 729.03662109375,
+        "right": 774.4874267578125
+      },
+      "leg_height_error": {
+        "left": 99.70367431640625
+      },
+      "head_angle_error": 26.587468091366922,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 122,
+      "arm_angle_error": {
+        "left": 32.35520110125506,
+        "right": 25.509897668342518
+      },
+      "leg_angle_error": {
+        "left": 26.675200223572404,
+        "right": 4.01261815498566
+      },
+      "arm_height_error": {
+        "left": 715.9003295898438,
+        "right": 755.892333984375
+      },
+      "leg_height_error": {
+        "left": 103.00213623046875
+      },
+      "head_angle_error": 24.9497034929625,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 123,
+      "arm_angle_error": {
+        "left": 31.590664474736997,
+        "right": 14.583509949031765
+      },
+      "leg_angle_error": {
+        "left": 18.645075506893505,
+        "right": 19.469710124897944
+      },
+      "arm_height_error": {
+        "left": 690.9700927734375,
+        "right": 725.609619140625
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.181569782553826,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 124,
+      "arm_angle_error": {
+        "left": 31.391334968052945,
+        "right": 21.018910114965195
+      },
+      "leg_angle_error": {
+        "left": 13.391910598058018,
+        "right": 18.041906659759974
+      },
+      "arm_height_error": {
+        "left": 688.3286743164062,
+        "right": 715.4300537109375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.55262145289062,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 125,
+      "arm_angle_error": {
+        "left": 30.974222654722013,
+        "right": 7.2288634246314984
+      },
+      "leg_angle_error": {
+        "left": 8.054928775010836,
+        "right": 20.32393704362329
+      },
+      "arm_height_error": {
+        "left": 709.5338134765625,
+        "right": 688.7057495117188
+      },
+      "leg_height_error": {
+        "left": 95.30242919921875
+      },
+      "head_angle_error": 26.136266372560154,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 126,
+      "arm_angle_error": {
+        "left": 28.20728013026462,
+        "right": 4.858391672837513
+      },
+      "leg_angle_error": {
+        "left": 16.4678895330768,
+        "right": 19.440711416994418
+      },
+      "arm_height_error": {
+        "left": 720.9412841796875,
+        "right": 668.0344848632812
+      },
+      "leg_height_error": {},
+      "head_angle_error": 25.76720590807737,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 127,
+      "arm_angle_error": {
+        "left": 53.36340515881061,
+        "right": 5.373438284595693
+      },
+      "leg_angle_error": {
+        "left": 19.77747850049107,
+        "right": 19.01772761254111
+      },
+      "arm_height_error": {
+        "left": 743.4132080078125,
+        "right": 675.3486328125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.975338048172343,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 128,
+      "arm_angle_error": {
+        "left": 74.74859173230962,
+        "right": 5.464591050955846
+      },
+      "leg_angle_error": {
+        "left": 32.70680044332957,
+        "right": 6.1574960235661536
+      },
+      "arm_height_error": {
+        "left": 748.6700439453125,
+        "right": 684.352783203125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.01514581874046,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 129,
+      "arm_angle_error": {
+        "left": 67.83989125799786,
+        "right": 2.1061008926621696
+      },
+      "leg_angle_error": {
+        "left": 36.56693121437837,
+        "right": 4.91152193139618
+      },
+      "arm_height_error": {
+        "left": 730.4613647460938,
+        "right": 689.284423828125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.661389126908528,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 130,
+      "arm_angle_error": {
+        "left": 49.42680415800365,
+        "right": 2.5953167094227467
+      },
+      "leg_angle_error": {
+        "left": 38.14177244314632,
+        "right": 10.888361450047057
+      },
+      "arm_height_error": {
+        "left": 743.4921875,
+        "right": 694.0989379882812
+      },
+      "leg_height_error": {},
+      "head_angle_error": 20.880729737659273,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 131,
+      "arm_angle_error": {
+        "left": 66.5697398813172,
+        "right": 5.081680261328842
+      },
+      "leg_angle_error": {
+        "left": 41.62253536053038,
+        "right": 16.157219265328422
+      },
+      "arm_height_error": {
+        "left": 748.8870849609375,
+        "right": 698.3453369140625
+      },
+      "leg_height_error": {},
+      "head_angle_error": 21.30194266131682,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 132,
+      "arm_angle_error": {
+        "left": 64.39093889037845,
+        "right": 8.555657046847955
+      },
+      "leg_angle_error": {
+        "left": 44.547679479876734,
+        "right": 18.170601340167337
+      },
+      "arm_height_error": {
+        "left": 747.1113891601562,
+        "right": 701.6839599609375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.255011053195926,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 133,
+      "arm_angle_error": {
+        "left": 53.41122765038274,
+        "right": 9.588059572998503
+      },
+      "leg_angle_error": {
+        "left": 45.234806782065334,
+        "right": 18.233531317783303
+      },
+      "arm_height_error": {
+        "left": 753.2803955078125,
+        "right": 702.0238647460938
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.172865392459308,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 134,
+      "arm_angle_error": {
+        "left": 84.41506949682193,
+        "right": 3.8035638002691314
+      },
+      "leg_angle_error": {
+        "left": 41.68557394768794,
+        "right": 18.655290802461963
+      },
+      "arm_height_error": {
+        "left": 748.0805053710938,
+        "right": 695.281005859375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 21.928540867597413,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 135,
+      "arm_angle_error": {
+        "left": 83.65999014442274,
+        "right": 5.035784482559933
+      },
+      "leg_angle_error": {
+        "left": 43.67223504791056,
+        "right": 18.516090750811003
+      },
+      "arm_height_error": {
+        "left": 751.1641845703125,
+        "right": 689.7752075195312
+      },
+      "leg_height_error": {},
+      "head_angle_error": 21.064560395982316,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 136,
+      "arm_angle_error": {
+        "left": 73.70095544168692,
+        "right": 1.8941436253429629
+      },
+      "leg_angle_error": {
+        "left": 41.954653857301395,
+        "right": 21.8459219141632
+      },
+      "arm_height_error": {
+        "left": 744.4701538085938,
+        "right": 680.3577880859375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.227993754758153,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 137,
+      "arm_angle_error": {
+        "left": 82.90913352528761,
+        "right": 5.231731691841759
+      },
+      "leg_angle_error": {
+        "left": 39.82939655857675,
+        "right": 22.397728980518565
+      },
+      "arm_height_error": {
+        "left": 749.5636596679688,
+        "right": 677.9598388671875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 27.214331817949663,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 138,
+      "arm_angle_error": {
+        "left": 80.16444186537454,
+        "right": 5.753418477667253
+      },
+      "leg_angle_error": {
+        "left": 42.44306695133895,
+        "right": 15.21254078418923
+      },
+      "arm_height_error": {
+        "left": 744.0699462890625,
+        "right": 670.199462890625
+      },
+      "leg_height_error": {
+        "left": 96.635986328125
+      },
+      "head_angle_error": 28.547295009561857,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 139,
+      "arm_angle_error": {
+        "left": 64.64030744872397,
+        "right": 0.553335889708336
+      },
+      "leg_angle_error": {
+        "left": 43.69045496204615,
+        "right": 3.191555757330349
+      },
+      "arm_height_error": {
+        "left": 736.7769165039062,
+        "right": 671.2252197265625
+      },
+      "leg_height_error": {
+        "left": 83.449951171875
+      },
+      "head_angle_error": 29.80650205264216,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 140,
+      "arm_angle_error": {
+        "left": 42.352878828460845,
+        "right": 4.541875197337447
+      },
+      "leg_angle_error": {
+        "left": 42.895353729451585,
+        "right": 8.608282680173204
+      },
+      "arm_height_error": {
+        "left": 739.629150390625,
+        "right": 681.7310791015625
+      },
+      "leg_height_error": {
+        "left": 84.094482421875
+      },
+      "head_angle_error": 31.904642322003795,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 141,
+      "arm_angle_error": {
+        "left": 24.708544593024072,
+        "right": 8.071225477726898
+      },
+      "leg_angle_error": {
+        "left": 18.729812363269446,
+        "right": 0.2670896288017275
+      },
+      "arm_height_error": {
+        "left": 722.0732421875,
+        "right": 691.1961059570312
+      },
+      "leg_height_error": {
+        "left": 85.558837890625
+      },
+      "head_angle_error": 30.002705916460386,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 142,
+      "arm_angle_error": {
+        "left": 7.819422688254747,
+        "right": 20.09245747829212
+      },
+      "leg_angle_error": {
+        "left": 13.438880027752049,
+        "right": 1.0014710191533425
+      },
+      "arm_height_error": {
+        "left": 683.6080932617188,
+        "right": 712.6177368164062
+      },
+      "leg_height_error": {
+        "left": 78.70257568359375
+      },
+      "head_angle_error": 27.345057294861782,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 143,
+      "arm_angle_error": {
+        "left": 0.719642712698743,
+        "right": 5.977619554089586
+      },
+      "leg_angle_error": {
+        "left": 22.801622644521046,
+        "right": 0.3570152279037586
+      },
+      "arm_height_error": {
+        "left": 684.14599609375,
+        "right": 721.0714111328125
+      },
+      "leg_height_error": {
+        "left": 81.7330322265625
+      },
+      "head_angle_error": 24.874796459244415,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 144,
+      "arm_angle_error": {
+        "left": 13.383192048628047,
+        "right": 24.07329869947364
+      },
+      "leg_angle_error": {
+        "left": 7.832583113319458,
+        "right": 10.022439187691674
+      },
+      "arm_height_error": {
+        "left": 710.8548583984375,
+        "right": 761.482666015625
+      },
+      "leg_height_error": {
+        "left": 84.613525390625
+      },
+      "head_angle_error": 25.613395436344458,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 145,
+      "arm_angle_error": {
+        "left": 41.7754838261251,
+        "right": 51.13036169994092
+      },
+      "leg_angle_error": {
+        "left": 8.023647475148096,
+        "right": 4.92339628131694
+      },
+      "arm_height_error": {
+        "left": 737.0614624023438,
+        "right": 781.7823486328125
+      },
+      "leg_height_error": {
+        "left": 72.188232421875
+      },
+      "head_angle_error": 28.50031510553189,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 146,
+      "arm_angle_error": {
+        "left": 71.13313596324468,
+        "right": 75.10063507018556
+      },
+      "leg_angle_error": {
+        "left": 18.99722998218786,
+        "right": 9.508840677867227
+      },
+      "arm_height_error": {
+        "left": 751.135009765625,
+        "right": 802.5206298828125
+      },
+      "leg_height_error": {
+        "left": 56.8370361328125
+      },
+      "head_angle_error": 28.82309348629543,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 147,
+      "arm_angle_error": {
+        "left": 83.58227043733403,
+        "right": 74.86392268070509
+      },
+      "leg_angle_error": {
+        "left": 27.736782214463602,
+        "right": 11.865535497119112
+      },
+      "arm_height_error": {
+        "left": 749.48828125,
+        "right": 811.076171875
+      },
+      "leg_height_error": {
+        "left": 44.9473876953125
+      },
+      "head_angle_error": 28.003541072215704,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 148,
+      "arm_angle_error": {
+        "left": 5.895413027629274,
+        "right": 77.92882157802346
+      },
+      "leg_angle_error": {
+        "left": 36.53680270186729,
+        "right": 16.235201290458747
+      },
+      "arm_height_error": {
+        "left": 680.6561279296875,
+        "right": 811.2499389648438
+      },
+      "leg_height_error": {
+        "left": 94.42333984375
+      },
+      "head_angle_error": 26.82796523346002,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 149,
+      "arm_angle_error": {
+        "left": 5.706734923108684,
+        "right": 84.32059271505464
+      },
+      "leg_angle_error": {
+        "left": 35.56621388584679,
+        "right": 15.363346766365197
+      },
+      "arm_height_error": {
+        "left": 673.256103515625,
+        "right": 807.967041015625
+      },
+      "leg_height_error": {
+        "left": 95.04766845703125
+      },
+      "head_angle_error": 27.078641592492048,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 150,
+      "arm_angle_error": {
+        "left": 4.670117630317151,
+        "right": 90.15903630716453
+      },
+      "leg_angle_error": {
+        "left": 39.067219646477525,
+        "right": 17.478798734924595
+      },
+      "arm_height_error": {
+        "left": 680.5892333984375,
+        "right": 801.01318359375
+      },
+      "leg_height_error": {
+        "left": 75.9500732421875
+      },
+      "head_angle_error": 24.87333053498415,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 151,
+      "arm_angle_error": {
+        "left": 70.15867656578534,
+        "right": 100.96538405506666
+      },
+      "leg_angle_error": {
+        "left": 22.358574293723905,
+        "right": 8.492727456842573
+      },
+      "arm_height_error": {
+        "left": 705.6433715820312,
+        "right": 800.9464111328125
+      },
+      "leg_height_error": {
+        "left": 25.5186767578125
+      },
+      "head_angle_error": 27.591117465714277,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 152,
+      "arm_angle_error": {
+        "left": 73.81870255614304,
+        "right": 86.95718409292674
+      },
+      "leg_angle_error": {
+        "left": 20.059870621561515,
+        "right": 6.430165037413957
+      },
+      "arm_height_error": {
+        "left": 707.5443115234375,
+        "right": 795.294677734375
+      },
+      "leg_height_error": {
+        "left": 31.5450439453125
+      },
+      "head_angle_error": 30.159833979731857,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 153,
+      "arm_angle_error": {
+        "left": 92.03271050137862,
+        "right": 78.45131307617835
+      },
+      "leg_angle_error": {
+        "left": 15.598126711419098,
+        "right": 3.1149849512532626
+      },
+      "arm_height_error": {
+        "left": 718.7106323242188,
+        "right": 798.01708984375
+      },
+      "leg_height_error": {
+        "left": 40.7423095703125
+      },
+      "head_angle_error": 29.130626361575054,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 154,
+      "arm_angle_error": {
+        "left": 108.95221677594031,
+        "right": 71.87981773036334
+      },
+      "leg_angle_error": {
+        "left": 29.922011229755896,
+        "right": 8.964965175330832
+      },
+      "arm_height_error": {
+        "left": 744.3186645507812,
+        "right": 797.1809692382812
+      },
+      "leg_height_error": {
+        "left": 40.9495849609375
+      },
+      "head_angle_error": 23.9199620079587,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 155,
+      "arm_angle_error": {
+        "left": 150.60643353953748,
+        "right": 98.4347941977665
+      },
+      "leg_angle_error": {
+        "left": 32.90912367579003,
+        "right": 1.5103242326271697
+      },
+      "arm_height_error": {
+        "left": 737.9754028320312,
+        "right": 791.6652221679688
+      },
+      "leg_height_error": {
+        "left": 61.93170166015625
+      },
+      "head_angle_error": 23.89048570234695,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 156,
+      "arm_angle_error": {
+        "left": 50.11883134589115,
+        "right": 64.3643923055177
+      },
+      "leg_angle_error": {
+        "left": 45.19029016154582,
+        "right": 18.090280334914326
+      },
+      "arm_height_error": {
+        "left": 740.163330078125,
+        "right": 791.4300537109375
+      },
+      "leg_height_error": {
+        "left": 78.97235107421875
+      },
+      "head_angle_error": 24.542537371759753,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 157,
+      "arm_angle_error": {
+        "left": 26.96102384605021,
+        "right": 40.990075410385515
+      },
+      "leg_angle_error": {
+        "left": 35.01782793844282,
+        "right": 13.071835274939048
+      },
+      "arm_height_error": {
+        "left": 733.206298828125,
+        "right": 778.8294677734375
+      },
+      "leg_height_error": {
+        "left": 93.74462890625
+      },
+      "head_angle_error": 24.569432582400204,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 158,
+      "arm_angle_error": {
+        "left": 34.75372938750749,
+        "right": 25.167695640893044
+      },
+      "leg_angle_error": {
+        "left": 43.45028425688514,
+        "right": 13.4832649739879
+      },
+      "arm_height_error": {
+        "left": 724.1004638671875,
+        "right": 759.7952880859375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.482709442941125,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 159,
+      "arm_angle_error": {
+        "left": 36.9178311265393,
+        "right": 30.2036561718227
+      },
+      "leg_angle_error": {
+        "left": 22.681394995735303,
+        "right": 9.075006815591053
+      },
+      "arm_height_error": {
+        "left": 686.4775390625,
+        "right": 739.6303100585938
+      },
+      "leg_height_error": {},
+      "head_angle_error": 21.036327565941342,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 160,
+      "arm_angle_error": {
+        "left": 26.89037834447646,
+        "right": 12.137985919434016
+      },
+      "leg_angle_error": {
+        "left": 20.45678557496683,
+        "right": 25.707343862428445
+      },
+      "arm_height_error": {
+        "left": 682.6366577148438,
+        "right": 717.73876953125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 18.402243568978413,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 161,
+      "arm_angle_error": {
+        "left": 33.82199047451519,
+        "right": 14.57871572864417
+      },
+      "leg_angle_error": {
+        "left": 9.484857817447335,
+        "right": 22.0041666848484
+      },
+      "arm_height_error": {
+        "left": 699.894287109375,
+        "right": 694.8827514648438
+      },
+      "leg_height_error": {},
+      "head_angle_error": 30.331218833669695,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 162,
+      "arm_angle_error": {
+        "left": 41.20633709522491,
+        "right": 1.6160116870690047
+      },
+      "leg_angle_error": {
+        "left": 2.787905079400815,
+        "right": 30.708047198863966
+      },
+      "arm_height_error": {
+        "left": 724.3748779296875,
+        "right": 670.98291015625
+      },
+      "leg_height_error": {
+        "left": 102.0936279296875
+      },
+      "head_angle_error": 32.82049769702407,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 163,
+      "arm_angle_error": {
+        "left": 24.195740900181704,
+        "right": 4.306785116370406
+      },
+      "leg_angle_error": {
+        "left": 6.357726406710242,
+        "right": 29.598636767145962
+      },
+      "arm_height_error": {
+        "left": 740.6707153320312,
+        "right": 678.533203125
+      },
+      "leg_height_error": {
+        "left": 102.283447265625
+      },
+      "head_angle_error": 31.301029522164036,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 164,
+      "arm_angle_error": {
+        "left": 47.14546497210324,
+        "right": 0.5481957215112914
+      },
+      "leg_angle_error": {
+        "left": 34.75621100416231,
+        "right": 5.860713675965371
+      },
+      "arm_height_error": {
+        "left": 747.7138671875,
+        "right": 688.3634643554688
+      },
+      "leg_height_error": {},
+      "head_angle_error": 30.608063446842586,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 165,
+      "arm_angle_error": {
+        "left": 35.587892482250396,
+        "right": 1.3261497371297821
+      },
+      "leg_angle_error": {
+        "left": 38.928217557615085,
+        "right": 4.473480187933006
+      },
+      "arm_height_error": {
+        "left": 743.890380859375,
+        "right": 688.9907836914062
+      },
+      "leg_height_error": {},
+      "head_angle_error": 29.351356810672925,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 166,
+      "arm_angle_error": {
+        "left": 47.31868328818648,
+        "right": 2.8652875843194465
+      },
+      "leg_angle_error": {
+        "left": 42.042735915919025,
+        "right": 11.710716590333448
+      },
+      "arm_height_error": {
+        "left": 746.7276611328125,
+        "right": 691.9863891601562
+      },
+      "leg_height_error": {},
+      "head_angle_error": 27.513302994210886,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 167,
+      "arm_angle_error": {
+        "left": 61.57715678220087,
+        "right": 6.474778583778516
+      },
+      "leg_angle_error": {
+        "left": 43.50580233171772,
+        "right": 17.04986059490554
+      },
+      "arm_height_error": {
+        "left": 751.4002685546875,
+        "right": 694.2219848632812
+      },
+      "leg_height_error": {},
+      "head_angle_error": 27.799407637987215,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 168,
+      "arm_angle_error": {
+        "left": 61.4454431516189,
+        "right": 9.697120022974104
+      },
+      "leg_angle_error": {
+        "left": 44.16154692155882,
+        "right": 16.208540638298814
+      },
+      "arm_height_error": {
+        "left": 748.4981689453125,
+        "right": 704.30615234375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 27.85878697483986,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 169,
+      "arm_angle_error": {
+        "left": 63.39838706158004,
+        "right": 6.942634890515251
+      },
+      "leg_angle_error": {
+        "left": 41.28476428145831,
+        "right": 16.67232718116054
+      },
+      "arm_height_error": {
+        "left": 755.1555786132812,
+        "right": 698.3543701171875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 27.729505563100993,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 170,
+      "arm_angle_error": {
+        "left": 51.88835555464017,
+        "right": 7.564332024245886
+      },
+      "leg_angle_error": {
+        "left": 41.05456372204418,
+        "right": 19.457904694518618
+      },
+      "arm_height_error": {
+        "left": 754.414306640625,
+        "right": 696.502197265625
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.029016003707348,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 171,
+      "arm_angle_error": {
+        "left": 54.57819711703512,
+        "right": 7.181122654470613
+      },
+      "leg_angle_error": {
+        "left": 43.866215711514855,
+        "right": 19.526168553168475
+      },
+      "arm_height_error": {
+        "left": 753.23193359375,
+        "right": 695.9337768554688
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.12972874721604,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 172,
+      "arm_angle_error": {
+        "left": 67.62964545692073,
+        "right": 8.014162658527454
+      },
+      "leg_angle_error": {
+        "left": 40.3255464230227,
+        "right": 19.212213047304743
+      },
+      "arm_height_error": {
+        "left": 750.7119140625,
+        "right": 691.9186401367188
+      },
+      "leg_height_error": {},
+      "head_angle_error": 21.009786196873918,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 173,
+      "arm_angle_error": {
+        "left": 62.3353032757076,
+        "right": 2.8946182173354202
+      },
+      "leg_angle_error": {
+        "left": 40.16895151958812,
+        "right": 21.75476236792437
+      },
+      "arm_height_error": {
+        "left": 753.487060546875,
+        "right": 688.2717895507812
+      },
+      "leg_height_error": {},
+      "head_angle_error": 18.9536229827174,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 174,
+      "arm_angle_error": {
+        "left": 56.2386069800375,
+        "right": 4.120730130488681
+      },
+      "leg_angle_error": {
+        "left": 42.48983602764787,
+        "right": 23.40805458644499
+      },
+      "arm_height_error": {
+        "left": 755.672607421875,
+        "right": 688.0467529296875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 20.533595669482086,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 175,
+      "arm_angle_error": {
+        "left": 52.520614663640956,
+        "right": 2.6395101149095126
+      },
+      "leg_angle_error": {
+        "left": 42.87032860232375,
+        "right": 22.53911004771382
+      },
+      "arm_height_error": {
+        "left": 753.5557250976562,
+        "right": 686.8806762695312
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.48966974668014,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 176,
+      "arm_angle_error": {
+        "left": 59.80734464199418,
+        "right": 4.630962669580413
+      },
+      "leg_angle_error": {
+        "left": 41.29760233170148,
+        "right": 15.343568962501507
+      },
+      "arm_height_error": {
+        "left": 756.7647705078125,
+        "right": 680.6026611328125
+      },
+      "leg_height_error": {
+        "left": 96.6881103515625
+      },
+      "head_angle_error": 27.893542555853642,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 177,
+      "arm_angle_error": {
+        "left": 60.11016002668198,
+        "right": 1.4293340595595794
+      },
+      "leg_angle_error": {
+        "left": 43.915860451611195,
+        "right": 6.855475793416133
+      },
+      "arm_height_error": {
+        "left": 743.985595703125,
+        "right": 666.3646240234375
+      },
+      "leg_height_error": {
+        "left": 88.7490234375
+      },
+      "head_angle_error": 26.736730502681528,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 178,
+      "arm_angle_error": {
+        "left": 41.38983347728404,
+        "right": 2.427026748890796
+      },
+      "leg_angle_error": {
+        "left": 30.39887203768768,
+        "right": 4.55065809062927
+      },
+      "arm_height_error": {
+        "left": 731.6287841796875,
+        "right": 672.704833984375
+      },
+      "leg_height_error": {
+        "left": 84.6510009765625
+      },
+      "head_angle_error": 28.058163948448957,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 179,
+      "arm_angle_error": {
+        "left": 17.917851879167358,
+        "right": 11.848140640990977
+      },
+      "leg_angle_error": {
+        "left": 18.89876014965907,
+        "right": 1.6552990098599878
+      },
+      "arm_height_error": {
+        "left": 708.46533203125,
+        "right": 688.5177001953125
+      },
+      "leg_height_error": {
+        "left": 80.053466796875
+      },
+      "head_angle_error": 28.06113780463177,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 180,
+      "arm_angle_error": {
+        "left": 11.694824358175367,
+        "right": 17.231296001024077
+      },
+      "leg_angle_error": {
+        "left": 24.27570315976712,
+        "right": 1.1222974439393738
+      },
+      "arm_height_error": {
+        "left": 674.8663330078125,
+        "right": 713.3115234375
+      },
+      "leg_height_error": {
+        "left": 78.168212890625
+      },
+      "head_angle_error": 29.34143981583213,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 181,
+      "arm_angle_error": {
+        "left": 27.23121236536565,
+        "right": 20.637774173251927
+      },
+      "leg_angle_error": {
+        "left": 12.991346371787955,
+        "right": 9.899399197867126
+      },
+      "arm_height_error": {
+        "left": 691.3009033203125,
+        "right": 729.78564453125
+      },
+      "leg_height_error": {
+        "left": 95.61224365234375
+      },
+      "head_angle_error": 29.34557264141445,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 182,
+      "arm_angle_error": {
+        "left": 22.536828273485213,
+        "right": 23.426123646895604
+      },
+      "leg_angle_error": {
+        "left": 3.702357826142645,
+        "right": 10.610809832000058
+      },
+      "arm_height_error": {
+        "left": 717.5975341796875,
+        "right": 751.14404296875
+      },
+      "leg_height_error": {
+        "left": 75.81842041015625
+      },
+      "head_angle_error": 28.642124843610382,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 183,
+      "arm_angle_error": {
+        "left": 34.97017090795447,
+        "right": 40.56942441541298
+      },
+      "leg_angle_error": {
+        "left": 17.495402327585452,
+        "right": 4.927961168387611
+      },
+      "arm_height_error": {
+        "left": 735.4599609375,
+        "right": 780.9078369140625
+      },
+      "leg_height_error": {
+        "left": 64.500244140625
+      },
+      "head_angle_error": 31.645382803946095,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 184,
+      "arm_angle_error": {
+        "left": 147.2824374860127,
+        "right": 68.49230439752702
+      },
+      "leg_angle_error": {
+        "left": 23.242649751230516,
+        "right": 7.770436478592927
+      },
+      "arm_height_error": {
+        "left": 733.9290771484375,
+        "right": 803.9198608398438
+      },
+      "leg_height_error": {
+        "left": 50.93402099609375
+      },
+      "head_angle_error": 29.642669748802867,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 185,
+      "arm_angle_error": {
+        "left": 78.05113362029708,
+        "right": 85.29534773177778
+      },
+      "leg_angle_error": {
+        "left": 28.97653930637668,
+        "right": 12.394233823066912
+      },
+      "arm_height_error": {
+        "left": 711.203125,
+        "right": 819.9739990234375
+      },
+      "leg_height_error": {
+        "left": 35.21514892578125
+      },
+      "head_angle_error": 27.398379727169463,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 186,
+      "arm_angle_error": {
+        "left": 59.282594817726604,
+        "right": 71.83898866684298
+      },
+      "leg_angle_error": {
+        "left": 41.104950428966276,
+        "right": 19.451798297410164
+      },
+      "arm_height_error": {
+        "left": 703.669189453125,
+        "right": 810.4222412109375
+      },
+      "leg_height_error": {
+        "left": 43.801025390625
+      },
+      "head_angle_error": 20.277261930779652,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 187,
+      "arm_angle_error": {
+        "left": 27.205223936947533,
+        "right": 70.08156214382102
+      },
+      "leg_angle_error": {
+        "left": 40.398717515899335,
+        "right": 10.174161497762839
+      },
+      "arm_height_error": {
+        "left": 680.7303466796875,
+        "right": 805.212646484375
+      },
+      "leg_height_error": {
+        "left": 41.8953857421875
+      },
+      "head_angle_error": 20.087524748819593,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 188,
+      "arm_angle_error": {
+        "left": 27.13485383992179,
+        "right": 81.41448757169945
+      },
+      "leg_angle_error": {
+        "left": 41.80893113601442,
+        "right": 6.909616060632004
+      },
+      "arm_height_error": {
+        "left": 677.0474853515625,
+        "right": 805.8829956054688
+      },
+      "leg_height_error": {
+        "left": 17.93463134765625
+      },
+      "head_angle_error": 23.941500687009224,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 189,
+      "arm_angle_error": {
+        "left": 38.51604194968341,
+        "right": 87.9293453992332
+      },
+      "leg_angle_error": {
+        "left": 39.490441036860744,
+        "right": 2.9193179462864975
+      },
+      "arm_height_error": {
+        "left": 686.9652099609375,
+        "right": 806.6322021484375
+      },
+      "leg_height_error": {
+        "left": 14.85284423828125
+      },
+      "head_angle_error": 22.80195418758217,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 190,
+      "arm_angle_error": {
+        "left": 17.976006231778996,
+        "right": 74.68836708222022
+      },
+      "leg_angle_error": {
+        "left": 43.54299063512374,
+        "right": 10.646685692669536
+      },
+      "arm_height_error": {
+        "left": 674.9601440429688,
+        "right": 810.7526245117188
+      },
+      "leg_height_error": {
+        "left": 42.01025390625
+      },
+      "head_angle_error": 20.65824929015092,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 191,
+      "arm_angle_error": {
+        "left": 15.165523484255317,
+        "right": 66.85341593006778
+      },
+      "leg_angle_error": {
+        "left": 45.06506669100588,
+        "right": 5.597360888922623
+      },
+      "arm_height_error": {
+        "left": 675.6054077148438,
+        "right": 819.9951171875
+      },
+      "leg_height_error": {
+        "left": 23.47723388671875
+      },
+      "head_angle_error": 21.89392808004407,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 192,
+      "arm_angle_error": {
+        "left": 1.3767360802264932,
+        "right": 66.73703349630499
+      },
+      "leg_angle_error": {
+        "left": 44.80655460851813,
+        "right": 7.708972962840022
+      },
+      "arm_height_error": {
+        "left": 673.6048583984375,
+        "right": 821.5325317382812
+      },
+      "leg_height_error": {
+        "left": 33.9600830078125
+      },
+      "head_angle_error": 19.961994281541802,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 193,
+      "arm_angle_error": {
+        "left": 4.518454316888381,
+        "right": 56.2375988582682
+      },
+      "leg_angle_error": {
+        "left": 39.203650277826426,
+        "right": 7.022324877721502
+      },
+      "arm_height_error": {
+        "left": 677.7727661132812,
+        "right": 822.0557250976562
+      },
+      "leg_height_error": {
+        "left": 62.991943359375
+      },
+      "head_angle_error": 21.983058930136714,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 194,
+      "arm_angle_error": {
+        "left": 49.0400635266184,
+        "right": 63.35569670336358
+      },
+      "leg_angle_error": {
+        "left": 33.55614958201397,
+        "right": 5.904352709112743
+      },
+      "arm_height_error": {
+        "left": 751.3043212890625,
+        "right": 814.5603637695312
+      },
+      "leg_height_error": {
+        "left": 81.06927490234375
+      },
+      "head_angle_error": 20.743866232545404,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 195,
+      "arm_angle_error": {
+        "left": 45.07687280167741,
+        "right": 27.29234156836762
+      },
+      "leg_angle_error": {
+        "left": 36.13018075334031,
+        "right": 9.271089218554664
+      },
+      "arm_height_error": {
+        "left": 736.6362915039062,
+        "right": 779.0068969726562
+      },
+      "leg_height_error": {
+        "left": 88.93341064453125
+      },
+      "head_angle_error": 17.98533855539735,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 196,
+      "arm_angle_error": {
+        "left": 44.48140076663584,
+        "right": 35.445030371965316
+      },
+      "leg_angle_error": {
+        "left": 26.70438279816932,
+        "right": 4.55248717701528
+      },
+      "arm_height_error": {
+        "left": 725.9404296875,
+        "right": 765.139892578125
+      },
+      "leg_height_error": {
+        "left": 98.38543701171875
+      },
+      "head_angle_error": 21.21531597518337,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 197,
+      "arm_angle_error": {
+        "left": 22.93440170584165,
+        "right": 34.03898859312852
+      },
+      "leg_angle_error": {
+        "left": 16.41857357293324,
+        "right": 6.279942213332674
+      },
+      "arm_height_error": {
+        "left": 685.1785278320312,
+        "right": 729.5111694335938
+      },
+      "leg_height_error": {
+        "left": 95.531494140625
+      },
+      "head_angle_error": 21.55985720630211,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 198,
+      "arm_angle_error": {
+        "left": 31.64479105581549,
+        "right": 15.18667794881614
+      },
+      "leg_angle_error": {
+        "left": 19.624537647195297,
+        "right": 22.70870402797084
+      },
+      "arm_height_error": {
+        "left": 675.1499633789062,
+        "right": 716.5462646484375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 20.02256524083473,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 199,
+      "arm_angle_error": {
+        "left": 39.52018513317519,
+        "right": 3.3497266952421967
+      },
+      "leg_angle_error": {
+        "left": 9.01554250821755,
+        "right": 16.37072342566981
+      },
+      "arm_height_error": {
+        "left": 713.0384521484375,
+        "right": 681.35498046875
+      },
+      "leg_height_error": {
+        "left": 96.625732421875
+      },
+      "head_angle_error": 26.498150170382615,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 200,
+      "arm_angle_error": {
+        "left": 30.187699244504472,
+        "right": 3.7845687832001715
+      },
+      "leg_angle_error": {
+        "left": 5.979749610647104,
+        "right": 31.418073574051107
+      },
+      "arm_height_error": {
+        "left": 733.0164794921875,
+        "right": 666.9505615234375
+      },
+      "leg_height_error": {
+        "left": 90.3421630859375
+      },
+      "head_angle_error": 27.609631555077055,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 201,
+      "arm_angle_error": {
+        "left": 29.023077149336842,
+        "right": 11.890004240012104
+      },
+      "leg_angle_error": {
+        "left": 22.024309111763756,
+        "right": 11.073371257343496
+      },
+      "arm_height_error": {
+        "left": 753.1531372070312,
+        "right": 676.154052734375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.488648233218985,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 202,
+      "arm_angle_error": {
+        "left": 43.71080312164305,
+        "right": 2.172853769410551
+      },
+      "leg_angle_error": {
+        "left": 28.995290433652315,
+        "right": 7.001285558572931
+      },
+      "arm_height_error": {
+        "left": 751.6912841796875,
+        "right": 685.9560546875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 25.36501426928458,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 203,
+      "arm_angle_error": {
+        "left": 49.61062851884881,
+        "right": 5.0607212901347225
+      },
+      "leg_angle_error": {
+        "left": 37.365459899825,
+        "right": 3.5026961502249776
+      },
+      "arm_height_error": {
+        "left": 755.0067138671875,
+        "right": 689.4332885742188
+      },
+      "leg_height_error": {},
+      "head_angle_error": 22.600257748377807,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 204,
+      "arm_angle_error": {
+        "left": 26.639199612913814,
+        "right": 5.89756768441211
+      },
+      "leg_angle_error": {
+        "left": 43.11443604236874,
+        "right": 15.248276856551598
+      },
+      "arm_height_error": {
+        "left": 750.368408203125,
+        "right": 697.1175537109375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.516124453209436,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 205,
+      "arm_angle_error": {
+        "left": 18.673648381056466,
+        "right": 18.033585660766192
+      },
+      "leg_angle_error": {
+        "left": 45.144102024630826,
+        "right": 20.097911552465746
+      },
+      "arm_height_error": {
+        "left": 745.90869140625,
+        "right": 709.1302490234375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 26.473477918294034,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 206,
+      "arm_angle_error": {
+        "left": 8.178354381344917,
+        "right": 14.611747598997681
+      },
+      "leg_angle_error": {
+        "left": 44.25046674777656,
+        "right": 17.949727676167328
+      },
+      "arm_height_error": {
+        "left": 749.3152465820312,
+        "right": 710.9281005859375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 27.86739897006528,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 207,
+      "arm_angle_error": {
+        "left": 26.75352294430209,
+        "right": 9.797882432694678
+      },
+      "leg_angle_error": {
+        "left": 42.97788383360577,
+        "right": 17.66306460866133
+      },
+      "arm_height_error": {
+        "left": 749.7601318359375,
+        "right": 709.3621826171875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 27.372877615331028,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 208,
+      "arm_angle_error": {
+        "left": 7.740243377134448,
+        "right": 7.887002079729001
+      },
+      "leg_angle_error": {
+        "left": 42.94932808434487,
+        "right": 19.887563629750332
+      },
+      "arm_height_error": {
+        "left": 835.2113037109375,
+        "right": 703.2794189453125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 22.242820162764595,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 209,
+      "arm_angle_error": {
+        "left": 8.844538072412774,
+        "right": 5.69622299130549
+      },
+      "leg_angle_error": {
+        "left": 42.589417219606105,
+        "right": 20.407693153615554
+      },
+      "arm_height_error": {
+        "left": 842.227294921875,
+        "right": 699.6964111328125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 18.78584838905101,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 210,
+      "arm_angle_error": {
+        "left": 5.556513058614598,
+        "right": 10.426457895390826
+      },
+      "leg_angle_error": {
+        "left": 44.53845048152277,
+        "right": 21.569929134924223
+      },
+      "arm_height_error": {
+        "left": 754.9732666015625,
+        "right": 689.6917114257812
+      },
+      "leg_height_error": {},
+      "head_angle_error": 21.23494264482143,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 211,
+      "arm_angle_error": {
+        "left": 8.228558838015317,
+        "right": 8.19165097355119
+      },
+      "leg_angle_error": {
+        "left": 42.821998978749605,
+        "right": 19.705152220238375
+      },
+      "arm_height_error": {
+        "left": 750.9725341796875,
+        "right": 687.36865234375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 20.49841343412175,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 212,
+      "arm_angle_error": {
+        "left": 26.694031849455456,
+        "right": 3.745030043943814
+      },
+      "leg_angle_error": {
+        "left": 44.64564169111239,
+        "right": 19.896348248208795
+      },
+      "arm_height_error": {
+        "left": 759.5064697265625,
+        "right": 682.2135009765625
+      },
+      "leg_height_error": {},
+      "head_angle_error": 20.369588617200456,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 213,
+      "arm_angle_error": {
+        "left": 26.4278641557801,
+        "right": 0.4407854532956037
+      },
+      "leg_angle_error": {
+        "left": 44.75291180349245,
+        "right": 14.615749142027
+      },
+      "arm_height_error": {
+        "left": 748.4837646484375,
+        "right": 676.202880859375
+      },
+      "leg_height_error": {
+        "left": 88.13714599609375
+      },
+      "head_angle_error": 24.036110136600062,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 214,
+      "arm_angle_error": {
+        "left": 30.854631445785714,
+        "right": 0.33506529335727464
+      },
+      "leg_angle_error": {
+        "left": 35.177446100918786,
+        "right": 8.675489009130985
+      },
+      "arm_height_error": {
+        "left": 743.0068359375,
+        "right": 663.620361328125
+      },
+      "leg_height_error": {
+        "left": 71.6416015625
+      },
+      "head_angle_error": 23.78935184380986,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 215,
+      "arm_angle_error": {
+        "left": 29.1485986297713,
+        "right": 4.971322395326155
+      },
+      "leg_angle_error": {
+        "left": 28.49186478539025,
+        "right": 4.422239465961127
+      },
+      "arm_height_error": {
+        "left": 734.708984375,
+        "right": 668.9130249023438
+      },
+      "leg_height_error": {
+        "left": 78.94793701171875
+      },
+      "head_angle_error": 24.7700524743085,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 216,
+      "arm_angle_error": {
+        "left": 23.23142854991238,
+        "right": 3.6145149755528507
+      },
+      "leg_angle_error": {
+        "left": 21.203912900637363,
+        "right": 0.20865168436782255
+      },
+      "arm_height_error": {
+        "left": 709.346923828125,
+        "right": 674.0136108398438
+      },
+      "leg_height_error": {
+        "left": 74.79986572265625
+      },
+      "head_angle_error": 26.254159797077197,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 217,
+      "arm_angle_error": {
+        "left": 21.733980570503377,
+        "right": 22.839830066182202
+      },
+      "leg_angle_error": {
+        "left": 25.045162511365504,
+        "right": 4.767337926627334
+      },
+      "arm_height_error": {
+        "left": 685.064453125,
+        "right": 709.1235961914062
+      },
+      "leg_height_error": {
+        "left": 68.67950439453125
+      },
+      "head_angle_error": 25.22675860501797,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 218,
+      "arm_angle_error": {
+        "left": 15.906767073452727,
+        "right": 14.040746450028479
+      },
+      "leg_angle_error": {
+        "left": 22.225329926443123,
+        "right": 2.9310208528587225
+      },
+      "arm_height_error": {
+        "left": 693.3431396484375,
+        "right": 717.02685546875
+      },
+      "leg_height_error": {
+        "left": 78.5308837890625
+      },
+      "head_angle_error": 27.15865923333211,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 219,
+      "arm_angle_error": {
+        "left": 35.499042824747306,
+        "right": 34.91284057504748
+      },
+      "leg_angle_error": {
+        "left": 10.327036934610021,
+        "right": 4.657873098579813
+      },
+      "arm_height_error": {
+        "left": 729.307861328125,
+        "right": 760.2779541015625
+      },
+      "leg_height_error": {
+        "left": 79.07666015625
+      },
+      "head_angle_error": 27.792523577380106,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 220,
+      "arm_angle_error": {
+        "left": 24.93003630248154,
+        "right": 31.574281543603092
+      },
+      "leg_angle_error": {
+        "left": 12.166904120983844,
+        "right": 3.1759794144850275
+      },
+      "arm_height_error": {
+        "left": 734.6516723632812,
+        "right": 771.86962890625
+      },
+      "leg_height_error": {
+        "left": 48.73193359375
+      },
+      "head_angle_error": 25.944639425985027,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 221,
+      "arm_angle_error": {
+        "left": 22.89507657489989,
+        "right": 22.933072632345358
+      },
+      "leg_angle_error": {
+        "left": 27.73704008998186,
+        "right": 13.103541524957535
+      },
+      "arm_height_error": {
+        "left": 738.9136352539062,
+        "right": 782.0291748046875
+      },
+      "leg_height_error": {
+        "left": 41.0252685546875
+      },
+      "head_angle_error": 23.431726135889313,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 222,
+      "arm_angle_error": {
+        "left": 4.892148133950343,
+        "right": 14.69226729036572
+      },
+      "leg_angle_error": {
+        "left": 34.91994226554695,
+        "right": 21.06705748566455
+      },
+      "arm_height_error": {
+        "left": 697.730224609375,
+        "right": 785.1707763671875
+      },
+      "leg_height_error": {
+        "left": 30.02972412109375
+      },
+      "head_angle_error": 27.43568838873017,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 223,
+      "arm_angle_error": {
+        "left": 16.6229256728289,
+        "right": 6.735286280697352
+      },
+      "leg_angle_error": {
+        "left": 31.65871859601711,
+        "right": 8.142113141344538
+      },
+      "arm_height_error": {
+        "left": 705.634765625,
+        "right": 792.4391479492188
+      },
+      "leg_height_error": {
+        "left": 21.65673828125
+      },
+      "head_angle_error": 29.371153784321322,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 224,
+      "arm_angle_error": {
+        "left": 5.773481365372817,
+        "right": 7.825939597103172
+      },
+      "leg_angle_error": {
+        "left": 29.536780101571225,
+        "right": 4.733074496805614
+      },
+      "arm_height_error": {
+        "left": 724.0978393554688,
+        "right": 757.102294921875
+      },
+      "leg_height_error": {
+        "left": 84.91314697265625
+      },
+      "head_angle_error": 29.730664486227475,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 225,
+      "arm_angle_error": {
+        "left": 11.414402558513586,
+        "right": 33.55562140394804
+      },
+      "leg_angle_error": {
+        "left": 30.607881255708918,
+        "right": 11.316550686374569
+      },
+      "arm_height_error": {
+        "left": 664.3656005859375,
+        "right": 813.96435546875
+      },
+      "leg_height_error": {
+        "left": 91.4287109375
+      },
+      "head_angle_error": 24.877200271793157,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 226,
+      "arm_angle_error": {
+        "left": 7.701303126457191,
+        "right": 44.817149379004945
+      },
+      "leg_angle_error": {
+        "left": 35.492024768986,
+        "right": 15.132709515078204
+      },
+      "arm_height_error": {
+        "left": 660.216064453125,
+        "right": 807.8978881835938
+      },
+      "leg_height_error": {
+        "left": 92.001953125
+      },
+      "head_angle_error": 24.120728830243827,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 227,
+      "arm_angle_error": {
+        "left": 9.332205654397285,
+        "right": 18.469053788555613
+      },
+      "leg_angle_error": {
+        "left": 9.934132012680607,
+        "right": 5.642857866585899
+      },
+      "arm_height_error": {
+        "left": 728.6389770507812,
+        "right": 798.892578125
+      },
+      "leg_height_error": {
+        "left": 28.17315673828125
+      },
+      "head_angle_error": 30.934619970685723,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 228,
+      "arm_angle_error": {
+        "left": 18.52197842600154,
+        "right": 17.410575212862256
+      },
+      "leg_angle_error": {
+        "left": 20.52515924856482,
+        "right": 6.024927999348591
+      },
+      "arm_height_error": {
+        "left": 705.8028564453125,
+        "right": 800.9053955078125
+      },
+      "leg_height_error": {
+        "left": 43.9920654296875
+      },
+      "head_angle_error": 29.776224372688276,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 229,
+      "arm_angle_error": {
+        "left": 6.8482145141594515,
+        "right": 32.610127018280735
+      },
+      "leg_angle_error": {
+        "left": 37.11377922460568,
+        "right": 3.9787377025124897
+      },
+      "arm_height_error": {
+        "left": 704.0643310546875,
+        "right": 807.3280029296875
+      },
+      "leg_height_error": {
+        "left": 32.98046875
+      },
+      "head_angle_error": 26.759146474398513,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 230,
+      "arm_angle_error": {
+        "left": 10.338462756019368,
+        "right": 21.957233477647122
+      },
+      "leg_angle_error": {
+        "left": 27.03430180295973,
+        "right": 2.337865776899008
+      },
+      "arm_height_error": {
+        "left": 696.98974609375,
+        "right": 792.0548095703125
+      },
+      "leg_height_error": {
+        "left": 74.33441162109375
+      },
+      "head_angle_error": 20.51685161603077,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 231,
+      "arm_angle_error": {
+        "left": 43.204707820221756,
+        "right": 59.80224418272674
+      },
+      "leg_angle_error": {
+        "left": 34.69606896770395,
+        "right": 11.119637137680286
+      },
+      "arm_height_error": {
+        "left": 756.6432495117188,
+        "right": 798.8877563476562
+      },
+      "leg_height_error": {
+        "left": 87.1402587890625
+      },
+      "head_angle_error": 20.061613854098812,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 232,
+      "arm_angle_error": {
+        "left": 43.08923225218747,
+        "right": 86.89076086800522
+      },
+      "leg_angle_error": {
+        "left": 29.721711056611383,
+        "right": 7.105932957959823
+      },
+      "arm_height_error": {
+        "left": 753.3479614257812,
+        "right": 792.0795288085938
+      },
+      "leg_height_error": {
+        "left": 93.80712890625
+      },
+      "head_angle_error": 19.28197651286435,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 233,
+      "arm_angle_error": {
+        "left": 31.081018303907285,
+        "right": 42.43694348187594
+      },
+      "leg_angle_error": {
+        "left": 33.37917625641796,
+        "right": 1.2764473810362063
+      },
+      "arm_height_error": {
+        "left": 740.2782592773438,
+        "right": 776.1439208984375
+      },
+      "leg_height_error": {
+        "left": 94.350830078125
+      },
+      "head_angle_error": 20.137599045759828,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 234,
+      "arm_angle_error": {
+        "left": 42.00226000539807,
+        "right": 35.689176044754845
+      },
+      "leg_angle_error": {
+        "left": 24.995293242999793,
+        "right": 11.530876595121839
+      },
+      "arm_height_error": {
+        "left": 721.3229370117188,
+        "right": 754.3047485351562
+      },
+      "leg_height_error": {
+        "left": 104.64703369140625
+      },
+      "head_angle_error": 20.652467559990647,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 235,
+      "arm_angle_error": {
+        "left": 19.372181501735895,
+        "right": 33.0262922027276
+      },
+      "leg_angle_error": {
+        "left": 12.387812431033865,
+        "right": 6.437475688036955
+      },
+      "arm_height_error": {
+        "left": 677.1255493164062,
+        "right": 720.0514526367188
+      },
+      "leg_height_error": {
+        "left": 85.74658203125
+      },
+      "head_angle_error": 23.02996031464401,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 236,
+      "arm_angle_error": {
+        "left": 30.919124392291735,
+        "right": 27.091789239728172
+      },
+      "leg_angle_error": {
+        "left": 8.25593235096406,
+        "right": 22.372463242865194
+      },
+      "arm_height_error": {
+        "left": 674.7811279296875,
+        "right": 709.0626220703125
+      },
+      "leg_height_error": {
+        "left": 102.9619140625
+      },
+      "head_angle_error": 26.464449153075456,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 237,
+      "arm_angle_error": {
+        "left": 29.627830146834782,
+        "right": 0.9886546740623885
+      },
+      "leg_angle_error": {
+        "left": 0.8676630536148195,
+        "right": 27.062149903208237
+      },
+      "arm_height_error": {
+        "left": 704.1942138671875,
+        "right": 684.5277099609375
+      },
+      "leg_height_error": {
+        "left": 93.572509765625
+      },
+      "head_angle_error": 26.514109185573066,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 238,
+      "arm_angle_error": {
+        "left": 42.27316903395524,
+        "right": 1.7687311281539735
+      },
+      "leg_angle_error": {
+        "left": 5.867271198402534,
+        "right": 30.6968456420539
+      },
+      "arm_height_error": {
+        "left": 721.7742919921875,
+        "right": 662.866943359375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 25.369714158855174,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 239,
+      "arm_angle_error": {
+        "left": 48.48822405569764,
+        "right": 2.813518127073962
+      },
+      "leg_angle_error": {
+        "left": 16.685163841409178,
+        "right": 22.77055126850422
+      },
+      "arm_height_error": {
+        "left": 716.256103515625,
+        "right": 765.710205078125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 22.747046982014492,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 240,
+      "arm_angle_error": {
+        "left": 28.15308955977457,
+        "right": 5.681917379853104
+      },
+      "leg_angle_error": {
+        "left": 34.88848262275755,
+        "right": 4.247065620510369
+      },
+      "arm_height_error": {
+        "left": 743.001220703125,
+        "right": 677.72607421875
+      },
+      "leg_height_error": {},
+      "head_angle_error": 22.80512218376135,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 241,
+      "arm_angle_error": {
+        "left": 46.658417873686275,
+        "right": 5.224737097487576
+      },
+      "leg_angle_error": {
+        "left": 43.66188215728417,
+        "right": 8.570872657174021
+      },
+      "arm_height_error": {
+        "left": 743.5277099609375,
+        "right": 680.1033325195312
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.593954838543837,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 242,
+      "arm_angle_error": {
+        "left": 52.45539838153425,
+        "right": 10.757963283753242
+      },
+      "leg_angle_error": {
+        "left": 42.8816220038409,
+        "right": 13.21629415825268
+      },
+      "arm_height_error": {
+        "left": 737.3853759765625,
+        "right": 690.87939453125
+      },
+      "leg_height_error": {},
+      "head_angle_error": 22.669265059363216,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 243,
+      "arm_angle_error": {
+        "left": 41.60713608300691,
+        "right": 10.52237215179494
+      },
+      "leg_angle_error": {
+        "left": 44.580221342721416,
+        "right": 14.950402205903458
+      },
+      "arm_height_error": {
+        "left": 757.888916015625,
+        "right": 692.8927612304688
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.794514469400706,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 244,
+      "arm_angle_error": {
+        "left": 45.91390557671599,
+        "right": 8.004901755604294
+      },
+      "leg_angle_error": {
+        "left": 43.900636931468995,
+        "right": 15.214219647126782
+      },
+      "arm_height_error": {
+        "left": 758.0538940429688,
+        "right": 696.6553344726562
+      },
+      "leg_height_error": {},
+      "head_angle_error": 24.660431261206814,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 245,
+      "arm_angle_error": {
+        "left": 23.88556652850508,
+        "right": 10.766612366850978
+      },
+      "leg_angle_error": {
+        "left": 42.403601964073744,
+        "right": 15.385870974881414
+      },
+      "arm_height_error": {
+        "left": 758.638916015625,
+        "right": 695.0858764648438
+      },
+      "leg_height_error": {},
+      "head_angle_error": 22.959577375977947,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 246,
+      "arm_angle_error": {
+        "left": 25.36365000536685,
+        "right": 11.345231172773936
+      },
+      "leg_angle_error": {
+        "left": 45.07963030659246,
+        "right": 20.21284338023642
+      },
+      "arm_height_error": {
+        "left": 753.8641967773438,
+        "right": 692.048583984375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 21.101433329654295,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 247,
+      "arm_angle_error": {
+        "left": 12.718182735771734,
+        "right": 9.59604757444518
+      },
+      "leg_angle_error": {
+        "left": 43.08518579118302,
+        "right": 18.99844542926465
+      },
+      "arm_height_error": {
+        "left": 753.8104248046875,
+        "right": 691.56396484375
+      },
+      "leg_height_error": {},
+      "head_angle_error": 22.674248737802255,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 248,
+      "arm_angle_error": {
+        "left": 27.059030813148865,
+        "right": 4.291025268175844
+      },
+      "leg_angle_error": {
+        "left": 44.495970476820304,
+        "right": 22.635121947244357
+      },
+      "arm_height_error": {
+        "left": 761.41064453125,
+        "right": 683.55322265625
+      },
+      "leg_height_error": {},
+      "head_angle_error": 19.394609921827453,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 249,
+      "arm_angle_error": {
+        "left": 28.939712132549744,
+        "right": 0.13078321594738895
+      },
+      "leg_angle_error": {
+        "left": 43.27151141034062,
+        "right": 24.822581608501025
+      },
+      "arm_height_error": {
+        "left": 761.8695678710938,
+        "right": 678.2594604492188
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.754268880146537,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 250,
+      "arm_angle_error": {
+        "left": 32.37478322222921,
+        "right": 4.014701327790448
+      },
+      "leg_angle_error": {
+        "left": 41.36344239620843,
+        "right": 13.296285824064512
+      },
+      "arm_height_error": {
+        "left": 755.6974487304688,
+        "right": 673.7721557617188
+      },
+      "leg_height_error": {},
+      "head_angle_error": 23.222127020913938,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 251,
+      "arm_angle_error": {
+        "left": 43.334926799929335,
+        "right": 0.0538886926739508
+      },
+      "leg_angle_error": {
+        "left": 43.37982556324772,
+        "right": 8.122899017291559
+      },
+      "arm_height_error": {
+        "left": 753.5126953125,
+        "right": 666.3304443359375
+      },
+      "leg_height_error": {
+        "left": 99.84600830078125
+      },
+      "head_angle_error": 25.50859198475752,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 252,
+      "arm_angle_error": {
+        "left": 37.78688614982818,
+        "right": 2.12117698610885
+      },
+      "leg_angle_error": {
+        "left": 41.87201200974994,
+        "right": 8.92243351544613
+      },
+      "arm_height_error": {
+        "left": 744.5418701171875,
+        "right": 660.34033203125
+      },
+      "leg_height_error": {
+        "left": 87.1068115234375
+      },
+      "head_angle_error": 27.925297342145683,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 253,
+      "arm_angle_error": {
+        "left": 33.53544371100725,
+        "right": 5.012786218332536
+      },
+      "leg_angle_error": {
+        "left": 30.06678864531156,
+        "right": 1.2362056928421907
+      },
+      "arm_height_error": {
+        "left": 729.3134765625,
+        "right": 664.1029052734375
+      },
+      "leg_height_error": {
+        "left": 86.4827880859375
+      },
+      "head_angle_error": 29.369603232793136,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 254,
+      "arm_angle_error": {
+        "left": 22.348155692371165,
+        "right": 19.473541511705577
+      },
+      "leg_angle_error": {
+        "left": 15.571722833236407,
+        "right": 12.507314181135484
+      },
+      "arm_height_error": {
+        "left": 694.6524047851562,
+        "right": 694.2489013671875
+      },
+      "leg_height_error": {
+        "left": 89.65869140625
+      },
+      "head_angle_error": 22.986226263289254,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 255,
+      "arm_angle_error": {
+        "left": 17.230886478295304,
+        "right": 18.081569981990583
+      },
+      "leg_angle_error": {
+        "left": 13.020750307556312,
+        "right": 8.784321368798743
+      },
+      "arm_height_error": {
+        "left": 670.54736328125,
+        "right": 705.6934814453125
+      },
+      "leg_height_error": {
+        "left": 86.96453857421875
+      },
+      "head_angle_error": 22.064371899027552,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 256,
+      "arm_angle_error": {
+        "left": 13.966533603241373,
+        "right": 10.137924412449564
+      },
+      "leg_angle_error": {
+        "left": 21.31869911183918,
+        "right": 3.0965580319020773
+      },
+      "arm_height_error": {
+        "left": 681.6060791015625,
+        "right": 715.6248779296875
+      },
+      "leg_height_error": {
+        "left": 91.668701171875
+      },
+      "head_angle_error": 21.327435700765804,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 257,
+      "arm_angle_error": {
+        "left": 26.156275390642293,
+        "right": 31.685464615666803
+      },
+      "leg_angle_error": {
+        "left": 16.006097731647742,
+        "right": 1.4209371238526955
+      },
+      "arm_height_error": {
+        "left": 721.4398193359375,
+        "right": 748.1212158203125
+      },
+      "leg_height_error": {
+        "left": 87.57373046875
+      },
+      "head_angle_error": 22.287241703684415,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 258,
+      "arm_angle_error": {
+        "left": 89.84512496196012,
+        "right": 93.39541700673269
+      },
+      "leg_angle_error": {
+        "left": 19.676543227064315,
+        "right": 6.609233857735205
+      },
+      "arm_height_error": {
+        "left": 755.7716064453125,
+        "right": 791.243896484375
+      },
+      "leg_height_error": {
+        "left": 71.2503662109375
+      },
+      "head_angle_error": 22.854754506723495,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 259,
+      "arm_angle_error": {
+        "left": 81.42009097580647,
+        "right": 92.42882561672434
+      },
+      "leg_angle_error": {
+        "left": 12.332355600204977,
+        "right": 5.061017247004884
+      },
+      "arm_height_error": {
+        "left": 770.5665283203125,
+        "right": 809.0532836914062
+      },
+      "leg_height_error": {
+        "left": 54.75555419921875
+      },
+      "head_angle_error": 24.512280937427988,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 260,
+      "arm_angle_error": {
+        "left": 63.828707675290715,
+        "right": 93.2326527668538
+      },
+      "leg_angle_error": {
+        "left": 25.563499720796102,
+        "right": 8.999673191696672
+      },
+      "arm_height_error": {
+        "left": 711.1697998046875,
+        "right": 817.5120849609375
+      },
+      "leg_height_error": {
+        "left": 34.1865234375
+      },
+      "head_angle_error": 25.315857301545137,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 261,
+      "arm_angle_error": {
+        "left": 5.574169720971128,
+        "right": 91.99840082581203
+      },
+      "leg_angle_error": {
+        "left": 41.08004352502087,
+        "right": 22.501518385052265
+      },
+      "arm_height_error": {
+        "left": 668.2950439453125,
+        "right": 817.47705078125
+      },
+      "leg_height_error": {
+        "left": 33.2386474609375
+      },
+      "head_angle_error": 20.834200006147512,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 262,
+      "arm_angle_error": {
+        "left": 12.738606004528663,
+        "right": 115.13034222854205
+      },
+      "leg_angle_error": {
+        "left": 29.609477863770422,
+        "right": 10.497804034869858
+      },
+      "arm_height_error": {
+        "left": 660.85205078125,
+        "right": 820.014404296875
+      },
+      "leg_height_error": {
+        "left": 89.2723388671875
+      },
+      "head_angle_error": 19.18176427093395,
+      "torso_stability_error": null
+    },
+    {
+      "frame_idx": 263,
+      "arm_angle_error": {
+        "left": 2.2087079422886973,
+        "right": 124.17147789616966
+      },
+      "leg_angle_error": {
+        "left": 25.84998608950437,
+        "right": 10.83351470876724
+      },
+      "arm_height_error": {
+        "left": 659.1591186523438,
+        "right": 818.4105834960938
+      },
+      "leg_height_error": {
+        "left": 91.15203857421875
+      },
+      "head_angle_error": 18.83824593559579,
+      "torso_stability_error": null
+    }
+  ],
+  "summary": {
+    "arm_angle": {
+      "left": {
+        "mean": 42.70721608352441,
+        "std": 28.828049309029538,
+        "max": 150.60643353953748,
+        "min": 0.719642712698743
+      },
+      "right": {
+        "mean": 28.870983759636935,
+        "std": 27.541444643995895,
+        "max": 124.17147789616966,
+        "min": 0.0538886926739508
+      }
+    },
+    "leg_angle": {
+      "left": {
+        "mean": 29.673634732457323,
+        "std": 12.068835860523494,
+        "max": 45.417841610762395,
+        "min": 0.5379474117988821
+      },
+      "right": {
+        "mean": 12.33371920497624,
+        "std": 7.22354135463993,
+        "max": 31.418073574051107,
+        "min": 0.20865168436782255
+      }
+    },
+    "arm_height": {
+      "left": {
+        "mean": 726.7998046875,
+        "std": 32.15276336669922,
+        "max": 846.87060546875,
+        "min": 659.1591186523438
+      },
+      "right": {
+        "mean": 733.67529296875,
+        "std": 50.8764762878418,
+        "max": 891.6380615234375,
+        "min": 660.34033203125
+      }
+    },
+    "leg_height": {
+      "left": {
+        "mean": 79.78301239013672,
+        "std": 23.681705474853516,
+        "max": 104.8519287109375,
+        "min": 1.3126220703125
+      }
+    },
+    "head_angle": {
+      "mean": 22.575592223240598,
+      "std": 6.051309681122472,
+      "max": 35.317034814099415,
+      "min": 3.2537553198043696
+    }
+  }
+}

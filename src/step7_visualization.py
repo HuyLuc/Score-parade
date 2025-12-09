@@ -40,6 +40,7 @@ def create_visualization(
         aligned_data = pickle.load(f)
     person_id = aligned_data['person_id']
     aligned_keypoints = aligned_data['aligned_keypoints']
+    frame_indices = aligned_data.get('frame_indices', None)  # Lấy frame indices nếu có
     
     with open(errors_path, 'r', encoding='utf-8') as f:
         errors_data = json.load(f)
@@ -61,6 +62,7 @@ def create_visualization(
     create_annotated_video(
         video_path,
         aligned_keypoints,
+        frame_indices,  # Truyền frame indices
         golden_keypoints,
         errors_data['errors_per_frame'],
         score_data,
@@ -100,6 +102,7 @@ def create_visualization(
 def create_annotated_video(
     video_path: Path,
     person_keypoints: np.ndarray,
+    frame_indices: np.ndarray,
     golden_keypoints: np.ndarray,
     errors_per_frame: List[Dict],
     score_data: Dict,
@@ -107,6 +110,14 @@ def create_annotated_video(
 ):
     """
     Tạo video với skeleton và annotations
+    
+    Args:
+        person_keypoints: Keypoints của người [n_tracked_frames, 17, 3]
+        frame_indices: Frame indices tương ứng với keypoints [n_tracked_frames]
+        golden_keypoints: Golden skeleton
+        errors_per_frame: Lỗi từng frame
+        score_data: Điểm số
+        output_path: Đường dẫn output
     """
     cap, metadata = load_video(video_path)
     
@@ -130,44 +141,55 @@ def create_annotated_video(
         (12, 14), (14, 16),
     ]
     
-    frame_idx = 0
+    # Tạo mapping từ frame_idx -> keypoint_idx
+    frame_to_kpt = {}
+    if frame_indices is not None:
+        for kpt_idx, frame_idx in enumerate(frame_indices):
+            frame_to_kpt[int(frame_idx)] = kpt_idx
+    else:
+        # Fallback: giả sử keypoints bắt đầu từ frame 0
+        for kpt_idx in range(len(person_keypoints)):
+            frame_to_kpt[kpt_idx] = kpt_idx
+    
+    video_frame_idx = 0
     for frame in get_frames(cap):
         vis_frame = frame.copy()
         
-        # Vẽ skeleton person (màu xanh)
-        if frame_idx < len(person_keypoints):
+        # Vẽ skeleton person (màu xanh) NẾU người xuất hiện ở frame này
+        if video_frame_idx in frame_to_kpt:
+            kpt_idx = frame_to_kpt[video_frame_idx]
             draw_skeleton(
                 vis_frame,
-                person_keypoints[frame_idx],
+                person_keypoints[kpt_idx],
                 connections,
                 (0, 255, 0),
                 2
             )
+            
+            # Vẽ annotations lỗi
+            if kpt_idx < len(errors_per_frame):
+                draw_error_annotations(
+                    vis_frame,
+                    errors_per_frame[kpt_idx],
+                    person_keypoints[kpt_idx]
+                )
         
-        # Vẽ skeleton golden (màu vàng, mờ)
-        if frame_idx < len(golden_keypoints):
-            draw_skeleton(
-                vis_frame,
-                golden_keypoints[frame_idx],
-                connections,
-                (0, 255, 255),
-                1,
-                alpha=0.3
-            )
-        
-        # Vẽ annotations lỗi
-        if frame_idx < len(errors_per_frame):
-            draw_error_annotations(
-                vis_frame,
-                errors_per_frame[frame_idx],
-                person_keypoints[frame_idx] if frame_idx < len(person_keypoints) else None
-            )
+        # Vẽ skeleton golden (màu vàng, mờ) - repeat nếu golden ngắn hơn
+        golden_idx = video_frame_idx % len(golden_keypoints)
+        draw_skeleton(
+            vis_frame,
+            golden_keypoints[golden_idx],
+            connections,
+            (0, 255, 255),
+            1,
+            alpha=0.3
+        )
         
         # Vẽ điểm số ở góc trên
         draw_score(vis_frame, score_data)
         
         out.write(vis_frame)
-        frame_idx += 1
+        video_frame_idx += 1
     
     cap.release()
     out.release()

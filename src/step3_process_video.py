@@ -78,24 +78,32 @@ def process_video(
     # Làm mượt skeleton cho từng người
     print("Đang làm mượt skeleton...")
     smoothed_people = {}
-    for person_id, keypoints_sequence in tracked_people.items():
-        # keypoints_sequence: [n_frames, 17, 3]
+    for person_id, person_data in tracked_people.items():
+        # person_data: {'keypoints': [n_frames, 17, 3], 'frame_indices': [n_frames]}
+        keypoints_sequence = person_data['keypoints']
+        frame_indices = person_data['frame_indices']
+        
         smoothed = smooth_keypoints_sequence(keypoints_sequence)
-        smoothed_people[person_id] = smoothed
+        smoothed_people[person_id] = {
+            'keypoints': smoothed,
+            'frame_indices': frame_indices
+        }
     
     # Lưu skeleton data cho từng người
     saved_files = {}
-    for person_id, smoothed_keypoints in smoothed_people.items():
+    for person_id, person_data in smoothed_people.items():
         output_file = output_dir / f"person_{person_id}_skeleton.pkl"
         with open(output_file, 'wb') as f:
             pickle.dump({
                 'person_id': person_id,
-                'keypoints': smoothed_keypoints,
+                'keypoints': person_data['keypoints'],
+                'frame_indices': person_data['frame_indices'],  # QUAN TRỌNG: Lưu frame indices
                 'metadata': metadata,
                 'video_path': str(video_path)
             }, f)
         saved_files[person_id] = output_file
-        print(f"Đã lưu skeleton cho người {person_id}: {output_file}")
+        print(f"Đã lưu skeleton cho người {person_id}: {output_file} ({len(person_data['keypoints'])} frames)")
+
     
     # Lưu metadata tổng hợp
     summary = {

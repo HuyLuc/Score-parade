@@ -37,6 +37,7 @@ def align_temporal(
     with open(person_skeleton_path, 'rb') as f:
         person_data = pickle.load(f)
     person_keypoints = person_data['keypoints']  # [n_frames, 17, 3]
+    person_frame_indices = person_data.get('frame_indices', None)  # Lấy frame indices nếu có
     
     print(f"Golden template: {len(golden_skeletons)} frames")
     print(f"Person video: {len(person_keypoints)} frames")
@@ -72,12 +73,14 @@ def align_temporal(
             'person_id': person_data['person_id'],
             'mapping': mapping,
             'aligned_keypoints': aligned_person_keypoints,
+            'frame_indices': person_frame_indices,  # QUAN TRỌNG: Truyền frame indices
             'dtw_distance': alignment.distance,
             'dtw_normalized_distance': alignment.normalizedDistance,
             'golden_length': len(golden_skeletons),
             'original_length': len(person_keypoints),
             'aligned_length': len(aligned_person_keypoints)
         }, f)
+
     
     print(f"Đã lưu alignment: {output_path}")
     print(f"DTW distance: {alignment.distance:.2f}")

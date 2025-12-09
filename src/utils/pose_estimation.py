@@ -106,31 +106,73 @@ class PoseEstimator:
     
     def _predict_yolov8(self, frame: np.ndarray) -> List[np.ndarray]:
         """Dự đoán bằng YOLOv8-Pose"""
-        results = self.model(frame, verbose=False)
+        conf_threshold = config.POSE_CONFIG["confidence_threshold"]
+        kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.3)
+        
+        results = self.model(frame, verbose=False, conf=conf_threshold)
         
         keypoints_list = []
         for result in results:
-            if result.keypoints is not None:
+            if result.keypoints is not None and len(result.boxes) > 0:
                 keypoints = result.keypoints.data.cpu().numpy()  # [n_people, 17, 3]
-                for kpts in keypoints:
-                    keypoints_list.append(kpts)
+                boxes = result.boxes.data.cpu().numpy()  # [n_people, 6] (x1,y1,x2,y2,conf,cls)
+                
+                for i, kpts in enumerate(keypoints):
+                    # Lọc theo box confidence
+                    if boxes[i, 4] < conf_threshold:
+                        continue
+                    
+                    # Đếm số keypoints có confidence cao
+                    valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
+                    
+                    # Chỉ giữ người có ít nhất 10 keypoints rõ ràng
+                    if valid_kpts >= 10:
+                        keypoints_list.append(kpts)
         
         return keypoints_list
     
-    def predict_batch(self, frames: List[np.ndarray]) -> List[List[np.ndarray]]:
+    def predict_batch(self, frames: List[np.ndarray], batch_size: int = None) -> List[List[np.ndarray]]:
         """
-        Dự đoán pose cho nhiều frames
+        Dự đoán pose cho nhiều frames với batch processing
         
         Args:
             frames: List các frame
+            batch_size: Số frame xử lý cùng lúc
             
         Returns:
             List các kết quả, mỗi phần tử là list keypoints cho frame đó
         """
+        if batch_size is None:
+            batch_size = config.POSE_CONFIG.get("batch_size", 1)
+        
         results = []
-        for frame in frames:
-            keypoints = self.predict(frame)
-            results.append(keypoints)
+        
+        # Xử lý theo batch nếu model là YOLOv8
+        if self.model_type == "yolov8" and batch_size > 1:
+            for i in range(0, len(frames), batch_size):
+                batch_frames = frames[i:i+batch_size]
+                batch_results = self.model(batch_frames, verbose=False, 
+                                          conf=config.POSE_CONFIG["confidence_threshold"])
+                
+                for result in batch_results:
+                    keypoints_list = []
+                    if result.keypoints is not None and len(result.boxes) > 0:
+                        keypoints = result.keypoints.data.cpu().numpy()
+                        boxes = result.boxes.data.cpu().numpy()
+                        kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.3)
+                        
+                        for j, kpts in enumerate(keypoints):
+                            if boxes[j, 4] >= config.POSE_CONFIG["confidence_threshold"]:
+                                valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
+                                if valid_kpts >= 10:
+                                    keypoints_list.append(kpts)
+                    results.append(keypoints_list)
+        else:
+            # Xử lý từng frame
+            for frame in frames:
+                keypoints = self.predict(frame)
+                results.append(keypoints)
+        
         return results
 
 

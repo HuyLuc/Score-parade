@@ -33,21 +33,28 @@ POSE_CONFIG = {
     "model_type": "yolov8",  # "rtmpose" or "yolov8" - mặc định dùng yolov8 (đơn giản hơn)
     "rtmpose_model": "rtmpose-m_8xb256-420e_aic-coco-256x192",  # RTMPose model name
     "yolov8_model": "yolov8n-pose.pt",  # YOLOv8-Pose model (n=nanos, s=small, m=medium, l=large, x=xlarge)
-    "confidence_threshold": 0.5,
+    "confidence_threshold": 0.6,  # Tăng confidence threshold để chỉ lấy detection chất lượng cao
+    "keypoint_confidence_threshold": 0.4,  # Confidence tối thiểu cho mỗi keypoint
     "device": "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu",
+    "batch_size": 8,  # Số frame xử lý cùng lúc (nếu GPU đủ mạnh)
 }
 
 # Cấu hình tracking
 TRACKING_CONFIG = {
-    "max_age": 30,  # Số frame tối đa một track có thể bị mất
-    "min_hits": 3,  # Số frame tối đa để xác nhận một track mới
-    "iou_threshold": 0.3,  # Ngưỡng IoU cho matching
+    "max_age": 50,  # Tăng max_age để giữ track lâu hơn khi bị che khuất
+    "min_hits": 3,  # Tăng min_hits để tránh tạo track mới quá dễ
+    "iou_threshold": 0.3,  # Giảm IoU threshold để dễ match hơn
+    "pose_similarity_threshold": 0.4,  # Giảm pose similarity để dễ nhận diện cùng người
+    "pose_weight": 0.6,  # Tăng trọng số pose (60% pose, 40% IoU) - ưu tiên pose hơn
     "max_people": 20,  # Số người tối đa trong một video
+    "use_kalman": True,  # Sử dụng Kalman filter để dự đoán vị trí
+    "merge_similar_tracks": True,  # Merge các track giống nhau
+    "merge_threshold": 0.7,  # Ngưỡng để merge 2 tracks
 }
 
 # Cấu hình filter động tác (để chỉ đánh giá người có động tác tương tự golden)
 MOTION_FILTER_CONFIG = {
-    "enabled": True,  # Bật/tắt filter động tác
+    "enabled": False,  # Tắt filter động tác - đánh giá tất cả người được phát hiện
     "min_motion_variance": 50.0,  # Variance tối thiểu của vị trí keypoints (pixel^2)
     "min_similarity_score": 0.3,  # Similarity score tối thiểu với golden template (0-1)
     "motion_check_frames": 30,  # Số frame để kiểm tra motion

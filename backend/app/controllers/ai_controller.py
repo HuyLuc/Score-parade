@@ -1,0 +1,317 @@
+"""
+AIController - Phát hiện lỗi của người thí sinh
+"""
+import numpy as np
+from typing import List, Dict, Optional, Tuple
+from pathlib import Path
+from backend.app.services.pose_service import PoseService
+from backend.app.services.geometry import (
+    calculate_arm_angle,
+    calculate_leg_angle,
+    calculate_arm_height,
+    calculate_leg_height,
+    calculate_head_angle,
+    calculate_torso_stability
+)
+from backend.app.config import GOLDEN_TEMPLATE_DIR, GOLDEN_TEMPLATE_CONFIG
+import pickle
+import json
+
+
+class AIController:
+    """Controller cho AI phát hiện lỗi"""
+    
+    def __init__(self, pose_service: PoseService):
+        self.pose_service = pose_service
+        self.golden_profile = None
+        self.golden_keypoints = None
+    
+    def load_golden_template(self, template_name: str = None, camera_angle: str = None):
+        """
+        Load golden template để so sánh
+        
+        Args:
+            template_name: Tên template (None = dùng default)
+            camera_angle: Góc quay (None = auto select)
+        """
+        # TODO: Implement auto-select profile logic từ step5
+        # Tạm thời: load profile mặc định
+        if template_name:
+            template_dir = GOLDEN_TEMPLATE_DIR / template_name
+            profile_path = template_dir / "combined_profile.json"
+        else:
+            profile_path = GOLDEN_TEMPLATE_DIR / "golden_profile.json"
+        
+        if profile_path.exists():
+            with open(profile_path, 'r', encoding='utf-8') as f:
+                self.golden_profile = json.load(f)
+        
+        # Load golden keypoints
+        skeleton_path = GOLDEN_TEMPLATE_DIR / "golden_skeleton.pkl"
+        if skeleton_path.exists():
+            with open(skeleton_path, 'rb') as f:
+                golden_data = pickle.load(f)
+            if 'valid_skeletons' in golden_data:
+                self.golden_keypoints = np.array(golden_data['valid_skeletons'])
+    
+    def detect_posture_errors(
+        self,
+        keypoints: np.ndarray,
+        frame_number: int = 0,
+        timestamp: float = 0.0
+    ) -> List[Dict]:
+        """
+        Phát hiện lỗi tư thế (Local Mode)
+        
+        Args:
+            keypoints: Keypoints [17, 3]
+            frame_number: Số frame
+            timestamp: Timestamp (giây)
+            
+        Returns:
+            List các dict chứa thông tin lỗi:
+            {
+                "type": "arm_angle",
+                "description": "Tay trái quá cao",
+                "severity": 2.0,
+                "deduction": 2.0,
+                "body_part": "arm",
+                "side": "left"
+            }
+        """
+        errors = []
+        
+        if keypoints.shape[0] < 17 or keypoints.shape[1] < 3:
+            return errors
+        
+        # So sánh với golden template nếu có
+        if self.golden_profile is None:
+            self.load_golden_template()
+        
+        # Kiểm tra từng bộ phận
+        # 1. Tay (Arm)
+        arm_errors = self._check_arm_posture(keypoints)
+        errors.extend(arm_errors)
+        
+        # 2. Chân (Leg)
+        leg_errors = self._check_leg_posture(keypoints)
+        errors.extend(leg_errors)
+        
+        # 3. Vai (Shoulder)
+        shoulder_errors = self._check_shoulder_posture(keypoints)
+        errors.extend(shoulder_errors)
+        
+        # 4. Mũi (Nose) - Kiểm tra đầu có cúi không
+        nose_errors = self._check_head_posture(keypoints)
+        errors.extend(nose_errors)
+        
+        # 5. Cổ (Neck)
+        neck_errors = self._check_neck_posture(keypoints)
+        errors.extend(neck_errors)
+        
+        # 6. Lưng (Back)
+        back_errors = self._check_back_posture(keypoints)
+        errors.extend(back_errors)
+        
+        # Thêm metadata
+        for error in errors:
+            error["frame_number"] = frame_number
+            error["timestamp"] = timestamp
+        
+        return errors
+    
+    def _check_arm_posture(self, keypoints: np.ndarray) -> List[Dict]:
+        """Kiểm tra tư thế tay"""
+        errors = []
+        
+        # Tính góc tay
+        left_arm_angle = calculate_arm_angle(keypoints, "left")
+        right_arm_angle = calculate_arm_angle(keypoints, "right")
+        
+        # So sánh với golden (nếu có)
+        if self.golden_profile and "statistics" in self.golden_profile:
+            stats = self.golden_profile["statistics"]
+            if "arm_angle" in stats and "left" in stats["arm_angle"]:
+                golden_left = stats["arm_angle"]["left"].get("mean", 0)
+                golden_std = stats["arm_angle"]["left"].get("std", 5.0)
+                
+                if left_arm_angle:
+                    diff = abs(left_arm_angle - golden_left)
+                    if diff > golden_std * 2:  # Vượt quá 2 sigma
+                        if left_arm_angle > golden_left:
+                            errors.append({
+                                "type": "arm_angle",
+                                "description": "Tay trái quá cao",
+                                "severity": min(diff / 10, 10.0),
+                                "deduction": 2.0,
+                                "body_part": "arm",
+                                "side": "left"
+                            })
+                        else:
+                            errors.append({
+                                "type": "arm_angle",
+                                "description": "Tay trái quá thấp",
+                                "severity": min(diff / 10, 10.0),
+                                "deduction": 2.0,
+                                "body_part": "arm",
+                                "side": "left"
+                            })
+        
+        # Tương tự cho tay phải
+        if self.golden_profile and "statistics" in self.golden_profile:
+            stats = self.golden_profile["statistics"]
+            if "arm_angle" in stats and "right" in stats["arm_angle"]:
+                golden_right = stats["arm_angle"]["right"].get("mean", 0)
+                golden_std = stats["arm_angle"]["right"].get("std", 5.0)
+                
+                if right_arm_angle:
+                    diff = abs(right_arm_angle - golden_right)
+                    if diff > golden_std * 2:
+                        if right_arm_angle > golden_right:
+                            errors.append({
+                                "type": "arm_angle",
+                                "description": "Tay phải quá cao",
+                                "severity": min(diff / 10, 10.0),
+                                "deduction": 2.0,
+                                "body_part": "arm",
+                                "side": "right"
+                            })
+                        else:
+                            errors.append({
+                                "type": "arm_angle",
+                                "description": "Tay phải quá thấp",
+                                "severity": min(diff / 10, 10.0),
+                                "deduction": 2.0,
+                                "body_part": "arm",
+                                "side": "right"
+                            })
+        
+        return errors
+    
+    def _check_leg_posture(self, keypoints: np.ndarray) -> List[Dict]:
+        """Kiểm tra tư thế chân"""
+        errors = []
+        
+        left_leg_angle = calculate_leg_angle(keypoints, "left")
+        right_leg_angle = calculate_leg_angle(keypoints, "right")
+        
+        # Tương tự như arm
+        if self.golden_profile and "statistics" in self.golden_profile:
+            stats = self.golden_profile["statistics"]
+            if "leg_angle" in stats:
+                # Kiểm tra chân trái
+                if "left" in stats["leg_angle"] and left_leg_angle:
+                    golden_left = stats["leg_angle"]["left"].get("mean", 0)
+                    golden_std = stats["leg_angle"]["left"].get("std", 5.0)
+                    diff = abs(left_leg_angle - golden_left)
+                    
+                    if diff > golden_std * 2:
+                        errors.append({
+                            "type": "leg_angle",
+                            "description": f"Chân trái {'quá cao' if left_leg_angle > golden_left else 'quá thấp'}",
+                            "severity": min(diff / 10, 10.0),
+                            "deduction": 2.0,
+                            "body_part": "leg",
+                            "side": "left"
+                        })
+                
+                # Kiểm tra chân phải
+                if "right" in stats["leg_angle"] and right_leg_angle:
+                    golden_right = stats["leg_angle"]["right"].get("mean", 0)
+                    golden_std = stats["leg_angle"]["right"].get("std", 5.0)
+                    diff = abs(right_leg_angle - golden_right)
+                    
+                    if diff > golden_std * 2:
+                        errors.append({
+                            "type": "leg_angle",
+                            "description": f"Chân phải {'quá cao' if right_leg_angle > golden_right else 'quá thấp'}",
+                            "severity": min(diff / 10, 10.0),
+                            "deduction": 2.0,
+                            "body_part": "leg",
+                            "side": "right"
+                        })
+        
+        return errors
+    
+    def _check_shoulder_posture(self, keypoints: np.ndarray) -> List[Dict]:
+        """Kiểm tra tư thế vai"""
+        errors = []
+        
+        # Kiểm tra vai có cân bằng không
+        if keypoints.shape[0] >= 6:  # Có keypoints cho vai
+            left_shoulder = keypoints[5]  # Left shoulder
+            right_shoulder = keypoints[6]  # Right shoulder
+            
+            if left_shoulder[2] > 0 and right_shoulder[2] > 0:
+                height_diff = abs(left_shoulder[1] - right_shoulder[1])
+                if height_diff > 20:  # Chênh lệch > 20 pixels
+                    errors.append({
+                        "type": "shoulder_imbalance",
+                        "description": "Vai không cân bằng",
+                        "severity": min(height_diff / 10, 10.0),
+                        "deduction": 1.5,
+                        "body_part": "shoulder"
+                    })
+        
+        return errors
+    
+    def _check_head_posture(self, keypoints: np.ndarray) -> List[Dict]:
+        """Kiểm tra tư thế đầu (mũi)"""
+        errors = []
+        
+        head_angle = calculate_head_angle(keypoints)
+        
+        if head_angle is not None:
+            # Kiểm tra đầu có cúi quá không
+            if head_angle < -15:  # Cúi quá
+                errors.append({
+                    "type": "head_angle",
+                    "description": "Đầu cúi quá thấp",
+                    "severity": abs(head_angle) / 10,
+                    "deduction": 1.0,
+                    "body_part": "nose"
+                })
+            elif head_angle > 15:  # Ngẩng quá
+                errors.append({
+                    "type": "head_angle",
+                    "description": "Đầu ngẩng quá cao",
+                    "severity": abs(head_angle) / 10,
+                    "deduction": 1.0,
+                    "body_part": "nose"
+                })
+        
+        return errors
+    
+    def _check_neck_posture(self, keypoints: np.ndarray) -> List[Dict]:
+        """Kiểm tra tư thế cổ"""
+        errors = []
+        
+        # Kiểm tra cổ có thẳng không (dựa vào góc giữa đầu và vai)
+        if keypoints.shape[0] >= 2:
+            nose = keypoints[0]
+            neck = keypoints[1]
+            
+            if nose[2] > 0 and neck[2] > 0:
+                # Tính góc cổ
+                # Tạm thời: kiểm tra đơn giản
+                pass  # TODO: Implement chi tiết
+        
+        return errors
+    
+    def _check_back_posture(self, keypoints: np.ndarray) -> List[Dict]:
+        """Kiểm tra tư thế lưng"""
+        errors = []
+        
+        torso_stability = calculate_torso_stability(keypoints)
+        
+        if torso_stability is not None and torso_stability < 0.7:  # Lưng không ổn định
+            errors.append({
+                "type": "torso_stability",
+                "description": "Lưng không ổn định",
+                "severity": (1.0 - torso_stability) * 10,
+                "deduction": 1.0,
+                "body_part": "back"
+            })
+        
+        return errors
+

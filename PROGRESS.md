@@ -108,7 +108,101 @@
 - ✅ `services/configurationService.ts` - API service
 - ✅ `services/baremService.ts` - API service
 
-## 📋 Phase 5: Camera Integration (CHƯA BẮT ĐẦU)
+## ✅ Phase 5: Camera Integration (HOÀN THÀNH)
+
+### Backend:
+- ✅ `camera_controller.py` - Controller cho camera:
+  - Kết nối/ngắt kết nối camera
+  - Lấy frame từ camera
+  - Quản lý nhiều cameras (tối đa 2)
+  - Lấy thông tin camera (resolution, FPS)
+- ✅ `snapshot_controller.py` - Controller cho snapshot:
+  - Chụp snapshot theo interval
+  - Lưu snapshot vào file
+  - Tổ chức theo session
+- ✅ `video_controller.py` - Controller cho video recording:
+  - Bắt đầu/dừng ghi video
+  - Ghi video theo chunks (thời lượng cố định)
+  - Lưu video vào file
+- ✅ `api/camera.py` - API routes:
+  - POST `/api/camera/connect` - Kết nối camera
+  - POST `/api/camera/disconnect/{id}` - Ngắt kết nối
+  - GET `/api/camera/info` - Lấy thông tin cameras
+  - GET `/api/camera/{id}/frame` - Lấy frame (streaming)
+  - POST `/api/camera/{id}/snapshot` - Chụp snapshot
+  - POST `/api/camera/{id}/video/start` - Bắt đầu ghi video
+  - POST `/api/camera/{id}/video/stop` - Dừng ghi video
+
+### Frontend:
+- ✅ `CameraView.tsx` - Component hiển thị camera:
+  - Auto connect/disconnect
+  - Streaming frames (10 FPS)
+  - Hiển thị thông tin camera
+  - Controls (connect/disconnect)
+  - Error handling
+- ✅ `services/cameraService.ts` - API service cho camera
+
+## ✅ Phase 6: Local Mode (Làm chậm) (HOÀN THÀNH)
+
+### Backend:
+- ✅ `local_controller.py` - Base controller cho Local Mode:
+  - `LocalTestingController` - Testing mode (trừ điểm)
+  - `LocalPractisingController` - Practising mode (chỉ hiển thị lỗi)
+  - Xử lý frame, phát hiện lỗi, cập nhật điểm
+  - Lưu snapshot khi có lỗi
+- ✅ `ai_controller.py` - AI Controller phát hiện lỗi:
+  - Phát hiện lỗi tư thế (tay, chân, vai, mũi, cổ, lưng)
+  - So sánh với golden template
+  - Tính severity và deduction
+- ✅ `api/local.py` - API routes:
+  - POST `/api/local/process-frame` - Xử lý một frame
+  - GET `/api/local/{session_id}/notifications` - Lấy lỗi (Practising)
+  - GET `/api/local/{session_id}/score` - Lấy điểm hiện tại
+
+### Frontend:
+- ✅ `ObservationView.tsx` - Màn hình chấm thí sinh:
+  - Popup hiển thị thông tin (tiêu chí, chế độ, thí sinh)
+  - Hiển thị 2 cameras
+  - Kết nối cameras
+  - Phát nhạc (lệnh + nhạc mode)
+  - Local Mode:
+    - Testing: Hiển thị điểm, trừ điểm, dừng nếu < 50
+    - Practising: Stack notifications lỗi
+  - Xử lý frame theo chu kỳ (1 giây)
+- ✅ `services/localService.ts` - API service
+- ✅ `services/audioService.ts` - Audio service
+
+### Config:
+- ✅ Thêm `KEYPOINT_INDICES` vào config.py
+
+## ✅ Phase 7: Global Mode (Tổng hợp) (HOÀN THÀNH)
+
+### Backend:
+- ✅ `global_controller.py` - Base controller cho Global Mode:
+  - `GlobalTestingController` - Testing mode (trừ điểm, dùng lại điểm Local)
+  - `GlobalPractisingController` - Practising mode (chỉ hiển thị lỗi)
+  - Xử lý frame, phát hiện lỗi tổng hợp, cập nhật điểm
+  - Lưu video khi có lỗi
+- ✅ Tích hợp AI cho Global Mode:
+  - Kiểm tra nhịp nhạc (rhythm) - so sánh với golden template
+  - Kiểm tra khoảng cách (distance) - bước chân, vung tay
+  - Kiểm tra tốc độ (speed) - động tác quá nhanh/chậm
+- ✅ `api/global.py` - API routes:
+  - POST `/api/global/process-frame` - Xử lý một frame (với timestamp)
+  - GET `/api/global/{session_id}/notifications` - Lấy lỗi (Practising)
+  - GET `/api/global/{session_id}/score` - Lấy điểm hiện tại
+
+### Frontend:
+- ✅ Cập nhật `ObservationView.tsx`:
+  - Tự động chuyển từ Local Mode sang Global Mode
+  - Phát nhạc Global Mode sau khi Local Mode kết thúc
+  - Bắt đầu ghi video khi vào Global Mode
+  - Hiển thị mode indicator (Làm chậm / Tổng hợp)
+  - Xử lý frame với timestamp
+  - Hiển thị lỗi với video (thay vì snapshot)
+- ✅ `services/globalService.ts` - API service
+
+## 📋 Phase 8: AI Integration (CHƯA BẮT ĐẦU)
 
 ### Cần tạo:
 - `candidate_controller.py`

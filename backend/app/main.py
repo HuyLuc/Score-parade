@@ -9,6 +9,7 @@ import traceback
 import logging
 from backend.app.config import API_CONFIG
 from backend.app.database.base import init_db
+from backend.app.utils.exceptions import CustomException
 
 # Setup logging
 logging.basicConfig(
@@ -32,9 +33,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Import custom exceptions
-from backend.app.utils.exceptions import CustomException
 
 
 @app.exception_handler(CustomException)

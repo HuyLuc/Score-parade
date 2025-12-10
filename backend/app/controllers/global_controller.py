@@ -12,8 +12,10 @@ from backend.app.controllers.ai_controller import AIController
 from backend.app.models.session import ScoringSession, SessionMode, SessionType
 from backend.app.models.score import Score
 from backend.app.models.session import Error
+from backend.app.config import SCORING_CONFIG, ERROR_THRESHOLDS
 import numpy as np
 import cv2
+from scipy.signal import find_peaks
 from scipy.signal import find_peaks
 
 
@@ -64,6 +66,38 @@ class GlobalController:
         self.keypoints_history: List[np.ndarray] = []
         self.frame_timestamps: List[float] = []
         self.max_history = 300  # Lưu tối đa 300 frames (~10 giây @ 30fps)
+
+    # ===================== Helpers =====================
+    def _build_error(
+        self,
+        error_type: str,
+        description: str,
+        diff: float,
+        body_part: str
+    ) -> Dict:
+        """Tạo dict lỗi kèm severity/deduction dựa trên config"""
+        weight = SCORING_CONFIG["error_weights"].get(error_type, 1.0)
+        threshold = ERROR_THRESHOLDS.get(error_type, 10.0)
+        threshold = threshold if threshold and threshold > 0 else 10.0
+        severity = min(diff / threshold, 10.0)
+        deduction = weight * severity
+        return {
+            "type": error_type,
+            "description": description,
+            "severity": severity,
+            "deduction": deduction,
+            "body_part": body_part,
+        }
+
+    def _is_outlier(self, value: float, mean: Optional[float], std: Optional[float], default_threshold: float) -> Tuple[bool, float]:
+        """Kiểm tra vượt ngưỡng so với golden (mean/std) hoặc ngưỡng mặc định"""
+        if value is None:
+            return False, 0.0
+        threshold = (std * 2) if std else default_threshold
+        if threshold is None or threshold <= 0:
+            threshold = default_threshold
+        diff = abs(value - mean) if mean is not None else 0.0
+        return diff > threshold, diff
     
     def process_frame(self, camera_id: int, frame: np.ndarray, timestamp: float) -> Dict:
         """
@@ -215,15 +249,21 @@ class GlobalController:
         if len(left_ankle_heights) < 10 or len(right_ankle_heights) < 10:
             return errors
         
-        # Tính nhịp bước (steps per minute)
-        # Tìm các peak (chân lên cao) bằng cách tìm local minima
+        # Smooth nhẹ để giảm nhiễu
+        def smooth(arr, window=5):
+            if len(arr) < window:
+                return arr
+            return np.convolve(arr, np.ones(window)/window, mode='same')
+        
+        left_sm = smooth(left_ankle_heights, window=5)
+        right_sm = smooth(right_ankle_heights, window=5)
         
         # Đảo ngược để tìm minima (chân cao = Y nhỏ)
-        left_heights_inv = [-h for h in left_ankle_heights]
-        right_heights_inv = [-h for h in right_ankle_heights]
+        left_heights_inv = [-h for h in left_sm]
+        right_heights_inv = [-h for h in right_sm]
         
-        left_peaks, _ = find_peaks(left_heights_inv, distance=10)  # Tối thiểu 10 frames giữa các bước
-        right_peaks, _ = find_peaks(right_heights_inv, distance=10)
+        left_peaks, _ = find_peaks(left_heights_inv, distance=8)  # ~>= 8 frames giữa bước
+        right_peaks, _ = find_peaks(right_heights_inv, distance=8)
         
         # Tính số bước
         total_steps = len(left_peaks) + len(right_peaks)
@@ -237,24 +277,24 @@ class GlobalController:
                 golden_spm = golden_rhythm["steps_per_minute"]
                 rhythm_std = golden_rhythm.get("std", 5.0)
                 
-                diff = abs(steps_per_minute - golden_spm)
-                if diff > rhythm_std * 2:  # Vượt quá 2 sigma
-                    if steps_per_minute > golden_spm:
-                        errors.append({
-                            "type": "rhythm",
-                            "description": f"Nhịp quá nhanh ({steps_per_minute:.1f} vs {golden_spm:.1f} bước/phút)",
-                            "severity": min(diff / 10, 10.0),
-                            "deduction": 2.0,
-                            "body_part": "rhythm"
-                        })
-                    else:
-                        errors.append({
-                            "type": "rhythm",
-                            "description": f"Nhịp quá chậm ({steps_per_minute:.1f} vs {golden_spm:.1f} bước/phút)",
-                            "severity": min(diff / 10, 10.0),
-                            "deduction": 2.0,
-                            "body_part": "rhythm"
-                        })
+                is_out, diff = self._is_outlier(
+                    steps_per_minute,
+                    golden_spm,
+                    rhythm_std,
+                    ERROR_THRESHOLDS.get("step_rhythm", 10.0)
+                )
+                if is_out:
+                    desc = (
+                        f"Nhịp quá nhanh ({steps_per_minute:.1f} vs {golden_spm:.1f} bước/phút)"
+                        if steps_per_minute > (golden_spm or 0)
+                        else f"Nhịp quá chậm ({steps_per_minute:.1f} vs {golden_spm:.1f} bước/phút)"
+                    )
+                    errors.append(self._build_error(
+                        "rhythm",
+                        desc,
+                        diff,
+                        "rhythm"
+                    ))
         
         return errors
     
@@ -271,7 +311,7 @@ class GlobalController:
             return errors
         
         from backend.app.config import KEYPOINT_INDICES
-        from backend.app.services.geometry import calculate_distance, calculate_leg_height, calculate_arm_height
+        from backend.app.services.geometry import calculate_leg_height, calculate_arm_height
         
         # Kiểm tra độ cao chân (khi bước)
         max_leg_heights = []
@@ -300,24 +340,24 @@ class GlobalController:
                         )
                         golden_std = golden_leg.get("std", 10.0) or 10.0
                         
-                        diff = abs(max_leg_height - golden_mean)
-                        if diff > golden_std * 2:
-                            if max_leg_height > golden_mean:
-                                errors.append({
-                                    "type": "distance",
-                                    "description": f"Bước chân quá cao ({max_leg_height:.1f} vs {golden_mean:.1f})",
-                                    "severity": min(diff / 10, 10.0),
-                                    "deduction": 1.5,
-                                    "body_part": "leg"
-                                })
-                            else:
-                                errors.append({
-                                    "type": "distance",
-                                    "description": f"Bước chân quá thấp ({max_leg_height:.1f} vs {golden_mean:.1f})",
-                                    "severity": min(diff / 10, 10.0),
-                                    "deduction": 1.5,
-                                    "body_part": "leg"
-                                })
+                        is_out, diff = self._is_outlier(
+                            max_leg_height,
+                            golden_mean,
+                            golden_std,
+                            ERROR_THRESHOLDS.get("distance", 30.0)
+                        )
+                        if is_out:
+                            desc = (
+                                f"Bước chân quá cao ({max_leg_height:.1f} vs {golden_mean:.1f})"
+                                if max_leg_height > (golden_mean or 0)
+                                else f"Bước chân quá thấp ({max_leg_height:.1f} vs {golden_mean:.1f})"
+                            )
+                            errors.append(self._build_error(
+                                "distance",
+                                desc,
+                                diff,
+                                "leg"
+                            ))
         
         # Kiểm tra độ cao tay (khi vung)
         max_arm_heights = []
@@ -344,24 +384,24 @@ class GlobalController:
                         )
                         golden_std = golden_arm.get("std", 10.0) or 10.0
                         
-                        diff = abs(max_arm_height - golden_mean)
-                        if diff > golden_std * 2:
-                            if max_arm_height > golden_mean:
-                                errors.append({
-                                    "type": "distance",
-                                    "description": f"Vung tay quá cao ({max_arm_height:.1f} vs {golden_mean:.1f})",
-                                    "severity": min(diff / 10, 10.0),
-                                    "deduction": 1.5,
-                                    "body_part": "arm"
-                                })
-                            else:
-                                errors.append({
-                                    "type": "distance",
-                                    "description": f"Vung tay quá thấp ({max_arm_height:.1f} vs {golden_mean:.1f})",
-                                    "severity": min(diff / 10, 10.0),
-                                    "deduction": 1.5,
-                                    "body_part": "arm"
-                                })
+                        is_out, diff = self._is_outlier(
+                            max_arm_height,
+                            golden_mean,
+                            golden_std,
+                            ERROR_THRESHOLDS.get("distance", 30.0)
+                        )
+                        if is_out:
+                            desc = (
+                                f"Vung tay quá cao ({max_arm_height:.1f} vs {golden_mean:.1f})"
+                                if max_arm_height > (golden_mean or 0)
+                                else f"Vung tay quá thấp ({max_arm_height:.1f} vs {golden_mean:.1f})"
+                            )
+                            errors.append(self._build_error(
+                                "distance",
+                                desc,
+                                diff,
+                                "arm"
+                            ))
         
         return errors
     
@@ -383,66 +423,77 @@ class GlobalController:
         
         from backend.app.config import KEYPOINT_INDICES
         
-        # Tính tốc độ di chuyển của keypoints (pixels per second)
-        # Sử dụng vị trí chân để tính tốc độ
         speeds = []
-        
         for i in range(1, len(keypoints_sequence)):
             if i >= len(timestamps):
                 break
-                
-            prev_keypoints = keypoints_sequence[i-1]
-            curr_keypoints = keypoints_sequence[i]
+            prev_kp = keypoints_sequence[i-1]
+            curr_kp = keypoints_sequence[i]
             dt = timestamps[i] - timestamps[i-1]
-            
             if dt <= 0:
                 continue
-            
-            # Tính tốc độ từ vị trí chân
-            if (prev_keypoints.shape[0] > KEYPOINT_INDICES["left_ankle"] and
-                curr_keypoints.shape[0] > KEYPOINT_INDICES["left_ankle"]):
-                
-                prev_ankle = prev_keypoints[KEYPOINT_INDICES["left_ankle"]]
-                curr_ankle = curr_keypoints[KEYPOINT_INDICES["left_ankle"]]
-                
-                if prev_ankle[2] > 0 and curr_ankle[2] > 0:
-                    # Tính khoảng cách di chuyển
-                    dx = curr_ankle[0] - prev_ankle[0]
-                    dy = curr_ankle[1] - prev_ankle[1]
-                    distance = np.sqrt(dx*dx + dy*dy)
-                    speed = distance / dt  # pixels per second
-                    speeds.append(speed)
+            if (prev_kp.shape[0] > KEYPOINT_INDICES["left_ankle"] and
+                curr_kp.shape[0] > KEYPOINT_INDICES["left_ankle"]):
+                p_prev = prev_kp[KEYPOINT_INDICES["left_ankle"]]
+                p_curr = curr_kp[KEYPOINT_INDICES["left_ankle"]]
+                if p_prev[2] > 0 and p_curr[2] > 0:
+                    dx = p_curr[0] - p_prev[0]
+                    dy = p_curr[1] - p_prev[1]
+                    dist = np.sqrt(dx*dx + dy*dy)
+                    speeds.append(dist / dt)
         
         if not speeds:
             return errors
         
-        avg_speed = np.mean(speeds)
-        max_speed = np.max(speeds)
+        avg_speed = float(np.mean(speeds))
+        max_speed = float(np.max(speeds))
         
-        # So sánh với golden template (nếu có)
-        # TODO: Lưu speed trong golden profile để so sánh
-        # Tạm thời: kiểm tra tốc độ có quá nhanh/chậm không
+        # So sánh với golden nếu có
+        golden_mean = None
+        golden_std = None
+        if self.ai_controller.golden_profile:
+            stats = self.ai_controller.golden_profile.get("statistics", {})
+            if "speed" in stats and isinstance(stats["speed"], dict):
+                golden_mean = stats["speed"].get("mean")
+                golden_std = stats["speed"].get("std")
         
-        # Ngưỡng tốc độ hợp lý (cần điều chỉnh dựa trên thực tế)
-        min_speed = 50  # pixels/second
-        max_speed_threshold = 200  # pixels/second
-        
-        if avg_speed < min_speed:
-            errors.append({
-                "type": "speed",
-                "description": f"Tốc độ quá chậm ({avg_speed:.1f} pixels/s)",
-                "severity": (min_speed - avg_speed) / 10,
-                "deduction": 1.5,
-                "body_part": "speed"
-            })
-        elif max_speed > max_speed_threshold:
-            errors.append({
-                "type": "speed",
-                "description": f"Tốc độ quá nhanh ({max_speed:.1f} pixels/s)",
-                "severity": (max_speed - max_speed_threshold) / 10,
-                "deduction": 1.5,
-                "body_part": "speed"
-            })
+        if golden_mean is not None:
+            is_out, diff = self._is_outlier(
+                avg_speed,
+                golden_mean,
+                golden_std,
+                ERROR_THRESHOLDS.get("speed", 50.0)
+            )
+            if is_out:
+                desc = (
+                    f"Tốc độ quá nhanh ({avg_speed:.1f} px/s so với {golden_mean:.1f})"
+                    if avg_speed > (golden_mean or 0)
+                    else f"Tốc độ quá chậm ({avg_speed:.1f} px/s so với {golden_mean:.1f})"
+                )
+                errors.append(self._build_error(
+                    "speed",
+                    desc,
+                    diff,
+                    "speed"
+                ))
+        else:
+            # Fallback ngưỡng
+            min_speed = ERROR_THRESHOLDS.get("speed", 50.0)
+            max_speed_threshold = min_speed * 4
+            if avg_speed < min_speed:
+                errors.append(self._build_error(
+                    "speed",
+                    f"Tốc độ quá chậm ({avg_speed:.1f} px/s)",
+                    min_speed - avg_speed,
+                    "speed"
+                ))
+            elif max_speed > max_speed_threshold:
+                errors.append(self._build_error(
+                    "speed",
+                    f"Tốc độ quá nhanh ({max_speed:.1f} px/s)",
+                    max_speed - max_speed_threshold,
+                    "speed"
+                ))
         
         return errors
     

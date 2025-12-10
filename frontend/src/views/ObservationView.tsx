@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import CameraView from '../components/CameraView';
 import { candidateService, Candidate } from '../services/candidateService';
 import { configurationService, Configuration } from '../services/configurationService';
-import * as audioService from '../services/audioService';
+import { getCommandAudio, getModeAudio } from '../services/audioService';
 import { localService, ProcessFrameResponse, ErrorNotification } from '../services/localService';
 import { globalService } from '../services/globalService';
 import { cameraService } from '../services/cameraService';
@@ -91,7 +91,7 @@ const ObservationView: React.FC = () => {
       setAudioPlaying(true);
       
       // Phát lệnh trước
-      const commandAudio = audioService.getCommandAudio('nghiem_di_deu_buoc');
+      const commandAudio = getCommandAudio('nghiem_di_deu_buoc');
       if (commandAudio && audioRef.current) {
         audioRef.current.src = commandAudio;
         await new Promise((resolve) => {
@@ -103,7 +103,7 @@ const ObservationView: React.FC = () => {
       }
       
       // Phát nhạc cho Local Mode
-      const localAudio = audioService.getModeAudio(
+      const localAudio = getModeAudio(
         config.criteria,
         'local',
         config.mode
@@ -178,7 +178,7 @@ const ObservationView: React.FC = () => {
       setStartTime(Date.now());
       
       // Phát nhạc Global Mode
-      const globalAudio = audioService.getModeAudio(
+      const globalAudio = getModeAudio(
         config.criteria,
         'global',
         config.mode
@@ -340,7 +340,7 @@ const ObservationView: React.FC = () => {
               <h3>Điểm: {currentScore.toFixed(1)} / 100</h3>
               {isFailed && (
                 <div className="failed-message">
-                  Điểm < 50 - Trượt!
+                  Điểm &lt; 50 - Trượt!
                 </div>
               )}
             </div>

@@ -87,7 +87,11 @@ class Error(Base):
     # Relationships
     session = relationship("ScoringSession", back_populates="errors")
     criterion = relationship("Criterion", back_populates="errors")
-    part_of_body = relationship("PartOfBody", back_populates="error")
+    part_of_body = relationship(
+        "PartOfBody",
+        back_populates="errors",
+        foreign_keys=[part_of_body_id],
+    )
     
     def __repr__(self):
         return f"<Error(id={self.id}, error_type={self.error_type}, session_id={self.session_id})>"

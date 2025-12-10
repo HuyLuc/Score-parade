@@ -4,45 +4,42 @@ Hệ thống AI để đánh giá và chấm điểm động tác điều lệnh
 
 ## Cấu trúc dự án
 
-Dự án được tổ chức theo mô hình MVC:
-
-```
-Score-parade/
-├── backend/          # FastAPI backend
-├── frontend/         # React frontend
-├── src/             # Code CLI cũ (tương thích ngược)
-└── data/            # Dữ liệu (videos, models, audio)
-```
-
-Xem chi tiết: [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)
+- `backend/`: FastAPI backend (API, local/global controllers, AI, camera, DB)
+- `frontend/`: React frontend (Observation, EndOfSection, Summary, Auth)
+- `data/`: Dữ liệu (golden_template, input_videos, output, models, audio)
+- `docs/`: Tài liệu (project structure, upgrade plan, golden template usage)
 
 ## Quick Start
 
-### Backend
+### Backend (chạy trực tiếp)
 
 ```bash
 cd backend
 pip install -r requirements.txt
-python -m app.main
+# (tuỳ chọn) Tạo .env: DATABASE_URL=postgresql://user:password@localhost/score_parade, SECRET_KEY=...
+# (tuỳ chọn) alembic upgrade head  # nếu cần migrations
+cd ..  # quay về thư mục gốc dự án
+python -m backend.app.main  # chạy API (mặc định http://localhost:8000)
+# mở docs: http://localhost:8000/docs
 ```
 
-### Frontend
+### Frontend (chạy trực tiếp)
 
 ```bash
 cd frontend
 npm install
+# nếu backend không ở http://localhost:8000, đặt REACT_APP_API_URL
 npm start
 ```
 
-### CLI (Code cũ)
-
-```bash
-# Tạo golden template
-python main.py --mode step1 --golden-video data/golden_template/video.mp4 --multi-person
-
-# Chấm video
-python main.py --mode full --input-video data/input_videos/video.mp4
-```
+### Quy trình test nhanh
+- Đăng ký → Đăng nhập
+- Import/Tạo thí sinh
+- Cấu hình (mode testing/practising, tiêu chí đi đều/đi nghiêm, độ khắt khe)
+- Barem: chỉnh trọng số nếu cần
+- Observation: kết nối camera, phát lệnh + nhạc, chạy Local → Global
+- EndOfSection: xem lỗi (ảnh/video), điểm
+- Summary: bảng kết quả, xoá session (nếu muốn)
 
 ## Tính năng
 
@@ -55,14 +52,38 @@ python main.py --mode full --input-video data/input_videos/video.mp4
 
 ## Tài liệu
 
-- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Cấu trúc dự án
-- [UPGRADE_PLAN.md](UPGRADE_PLAN.md) - Kế hoạch nâng cấp
-- [GOLDEN_TEMPLATE_USAGE.md](GOLDEN_TEMPLATE_USAGE.md) - Hướng dẫn golden template
-- [QUICK_START.md](QUICK_START.md) - Hướng dẫn nhanh
+- [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) - Cấu trúc dự án
+- [docs/UPGRADE_PLAN.md](docs/UPGRADE_PLAN.md) - Kế hoạch nâng cấp
+- [docs/GOLDEN_TEMPLATE_USAGE.md](docs/GOLDEN_TEMPLATE_USAGE.md) - Hướng dẫn golden template
+- [docs/QUICK_START.md](docs/QUICK_START.md) - Hướng dẫn nhanh
 
 ## Requirements
 
 - Python 3.8+
 - Node.js 18+
-- PostgreSQL (cho backend mới)
+- PostgreSQL (cho backend mới) hoặc SQLite cho môi trường demo
 - CUDA (tùy chọn, cho GPU acceleration)
+
+## Chạy bằng Docker
+
+Yêu cầu: Docker + Docker Compose.
+
+```bash
+# build & run
+docker-compose up --build
+
+# Backend: http://localhost:8000
+# Frontend: http://localhost:3000
+```
+
+Mặc định dùng PostgreSQL trong compose với URL `postgresql://postgres:postgres@db:5432/score_parade`.
+
+Nếu muốn thay API URL cho frontend khi build, chỉnh trong `docker-compose.yml`:
+```yaml
+frontend:
+  build:
+    args:
+      REACT_APP_API_URL: http://backend:8000
+```
+
+Lưu ý: Backend auto tạo bảng khi khởi động (startup init_db). Nếu dùng Postgres thật, hãy tạo DB/USER phù hợp và đặt `DATABASE_URL`.

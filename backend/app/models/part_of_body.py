@@ -16,12 +16,20 @@ class PartOfBody(Base):
     position_y = Column(Float, nullable=True)  # Vị trí Y
     position_z = Column(Float, nullable=True)  # Vị trí Z (nếu có)
     confidence = Column(Float, nullable=True)  # Độ tin cậy (0-1)
-    
-    # Foreign key đến Error (nếu có lỗi)
-    error_id = Column(Integer, ForeignKey("errors.id"), nullable=True)
+    type = Column(String(50), nullable=False, default="part")
     
     # Relationships
-    error = relationship("Error", back_populates="part_of_body")
+    errors = relationship(
+        "Error",
+        back_populates="part_of_body",
+        cascade="all, delete-orphan",
+        foreign_keys="Error.part_of_body_id",
+    )
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "part",
+        "polymorphic_on": type,
+    }
     
     def __repr__(self):
         return f"<PartOfBody(id={self.id}, name={self.name})>"
@@ -31,85 +39,115 @@ class Nose(PartOfBody):
     """Mũi"""
     __tablename__ = "noses"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)  # FK to parts_of_body.id
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "nose",
+    }
 
 
 class Neck(PartOfBody):
     """Cổ"""
     __tablename__ = "necks"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "neck",
+    }
 
 
 class Shoulder(PartOfBody):
     """Vai"""
     __tablename__ = "shoulders"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
     side = Column(String(10), nullable=True)  # left, right
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "shoulder",
+    }
 
 
 class Arm(PartOfBody):
     """Tay"""
     __tablename__ = "arms"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
     side = Column(String(10), nullable=True)  # left, right
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "arm",
+    }
 
 
 class Elbow(PartOfBody):
     """Khuỷu tay"""
     __tablename__ = "elbows"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
     side = Column(String(10), nullable=True)  # left, right
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "elbow",
+    }
 
 
 class Fist(PartOfBody):
     """Nắm tay"""
     __tablename__ = "fists"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
     side = Column(String(10), nullable=True)  # left, right
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "fist",
+    }
 
 
 class Hand(PartOfBody):
     """Bàn tay"""
     __tablename__ = "hands"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
     side = Column(String(10), nullable=True)  # left, right
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "hand",
+    }
 
 
 class Back(PartOfBody):
     """Lưng"""
     __tablename__ = "backs"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "back",
+    }
 
 
 class Knee(PartOfBody):
     """Đầu gối"""
     __tablename__ = "knees"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
     side = Column(String(10), nullable=True)  # left, right
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "knee",
+    }
 
 
 class Foot(PartOfBody):
     """Bàn chân"""
     __tablename__ = "feet"
     
-    id = Column(Integer, primary_key=True)
-    part_of_body_id = Column(Integer, nullable=False)
+    id = Column(Integer, ForeignKey("parts_of_body.id"), primary_key=True)
     side = Column(String(10), nullable=True)  # left, right
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "foot",
+    }
 

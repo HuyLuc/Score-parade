@@ -1,7 +1,7 @@
 """
 Person models - Person, Soldier, Officer
 """
-from sqlalchemy import Column, Integer, String, DateTime, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -45,9 +45,15 @@ class Person(Base):
     avatar = Column(String(500), nullable=True)  # Đường dẫn avatar
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    type = Column(String(50), nullable=False, default="person")
     
     # Relationships
     scoring_sessions = relationship("ScoringSession", back_populates="person")
+    
+    __mapper_args__ = {
+        "polymorphic_identity": "person",
+        "polymorphic_on": type,
+    }
     
     def __repr__(self):
         return f"<Person(id={self.id}, username={self.username}, name={self.name})>"
@@ -57,22 +63,28 @@ class Soldier(Person):
     """Chiến sĩ - kế thừa từ Person"""
     __tablename__ = "soldiers"
     
-    id = Column(Integer, primary_key=True)
-    person_id = Column(Integer, nullable=False)  # FK to persons.id
+    id = Column(Integer, ForeignKey("persons.id"), primary_key=True)
     unit = Column(String(255), nullable=True)  # Đơn vị
     
+    __mapper_args__ = {
+        "polymorphic_identity": "soldier",
+    }
+    
     def __repr__(self):
-        return f"<Soldier(id={self.id}, person_id={self.person_id})>"
+        return f"<Soldier(id={self.id}, unit={self.unit})>"
 
 
 class Officer(Person):
     """Sĩ quan - kế thừa từ Person"""
     __tablename__ = "officers"
     
-    id = Column(Integer, primary_key=True)
-    person_id = Column(Integer, nullable=False)  # FK to persons.id
+    id = Column(Integer, ForeignKey("persons.id"), primary_key=True)
     position = Column(String(255), nullable=True)  # Chức vụ (vd: đại đội trưởng)
     
+    __mapper_args__ = {
+        "polymorphic_identity": "officer",
+    }
+    
     def __repr__(self):
-        return f"<Officer(id={self.id}, person_id={self.person_id}, position={self.position})>"
+        return f"<Officer(id={self.id}, position={self.position})>"
 

@@ -13,7 +13,7 @@ from backend.app.services.geometry import (
     calculate_head_angle,
     calculate_torso_stability
 )
-from backend.app.config import GOLDEN_TEMPLATE_DIR, GOLDEN_TEMPLATE_CONFIG
+from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS
 import pickle
 import json
 
@@ -25,6 +25,56 @@ class AIController:
         self.pose_service = pose_service
         self.golden_profile = None
         self.golden_keypoints = None
+
+    # ===================== Helper =====================
+    def _build_error(
+        self,
+        error_type: str,
+        description: str,
+        diff: float,
+        body_part: str,
+        side: Optional[str] = None
+    ) -> Dict:
+        """Tạo dict lỗi kèm severity và deduction dựa trên config"""
+        weight = SCORING_CONFIG["error_weights"].get(error_type, 1.0)
+        threshold = ERROR_THRESHOLDS.get(error_type, 10.0)
+        threshold = threshold if threshold and threshold > 0 else 10.0
+        severity = min(diff / threshold, 10.0)
+        deduction = weight * severity
+        return {
+            "type": error_type,
+            "description": description,
+            "severity": severity,
+            "deduction": deduction,
+            "body_part": body_part,
+            **({"side": side} if side else {})
+        }
+
+    def _get_golden_stat(self, metric: str, side: Optional[str] = None) -> Tuple[Optional[float], Optional[float]]:
+        """Lấy mean/std từ golden profile nếu có"""
+        if not self.golden_profile or "statistics" not in self.golden_profile:
+            return None, None
+        stats = self.golden_profile["statistics"]
+        if metric not in stats:
+            return None, None
+        val = stats[metric]
+        if side and isinstance(val, dict) and side in val:
+            mean = val[side].get("mean")
+            std = val[side].get("std")
+            return mean, std
+        if isinstance(val, dict) and "mean" in val:
+            return val.get("mean"), val.get("std")
+        return None, None
+
+    def _is_outlier(self, value: float, mean: Optional[float], std: Optional[float], default_threshold: float) -> Tuple[bool, float]:
+        """Kiểm tra vượt ngưỡng so với golden (mean/std) hoặc ngưỡng mặc định"""
+        if value is None:
+            return False, 0.0
+        threshold = (std * 2) if std else default_threshold
+        if threshold is None or threshold <= 0:
+            threshold = default_threshold
+        diff = abs(value - mean) if mean is not None else 0.0
+        return diff > threshold, diff
     
     def load_golden_template(self, template_name: str = None, camera_angle: str = None):
         """
@@ -135,27 +185,22 @@ class AIController:
                 golden_left = stats["arm_angle"]["left"].get("mean", 0)
                 golden_std = stats["arm_angle"]["left"].get("std", 5.0)
                 
-                if left_arm_angle:
-                    diff = abs(left_arm_angle - golden_left)
-                    if diff > golden_std * 2:  # Vượt quá 2 sigma
-                        if left_arm_angle > golden_left:
-                            errors.append({
-                                "type": "arm_angle",
-                                "description": "Tay trái quá cao",
-                                "severity": min(diff / 10, 10.0),
-                                "deduction": 2.0,
-                                "body_part": "arm",
-                                "side": "left"
-                            })
-                        else:
-                            errors.append({
-                                "type": "arm_angle",
-                                "description": "Tay trái quá thấp",
-                                "severity": min(diff / 10, 10.0),
-                                "deduction": 2.0,
-                                "body_part": "arm",
-                                "side": "left"
-                            })
+                if left_arm_angle is not None:
+                    is_out, diff = self._is_outlier(
+                        left_arm_angle,
+                        golden_left,
+                        golden_std,
+                        ERROR_THRESHOLDS.get("arm_angle", 10.0)
+                    )
+                    if is_out:
+                        desc = "Tay trái quá cao" if left_arm_angle > (golden_left or 0) else "Tay trái quá thấp"
+                        errors.append(self._build_error(
+                            "arm_angle",
+                            desc,
+                            diff,
+                            "arm",
+                            "left"
+                        ))
         
         # Tương tự cho tay phải
         if self.golden_profile and "statistics" in self.golden_profile:
@@ -164,27 +209,22 @@ class AIController:
                 golden_right = stats["arm_angle"]["right"].get("mean", 0)
                 golden_std = stats["arm_angle"]["right"].get("std", 5.0)
                 
-                if right_arm_angle:
-                    diff = abs(right_arm_angle - golden_right)
-                    if diff > golden_std * 2:
-                        if right_arm_angle > golden_right:
-                            errors.append({
-                                "type": "arm_angle",
-                                "description": "Tay phải quá cao",
-                                "severity": min(diff / 10, 10.0),
-                                "deduction": 2.0,
-                                "body_part": "arm",
-                                "side": "right"
-                            })
-                        else:
-                            errors.append({
-                                "type": "arm_angle",
-                                "description": "Tay phải quá thấp",
-                                "severity": min(diff / 10, 10.0),
-                                "deduction": 2.0,
-                                "body_part": "arm",
-                                "side": "right"
-                            })
+                if right_arm_angle is not None:
+                    is_out, diff = self._is_outlier(
+                        right_arm_angle,
+                        golden_right,
+                        golden_std,
+                        ERROR_THRESHOLDS.get("arm_angle", 10.0)
+                    )
+                    if is_out:
+                        desc = "Tay phải quá cao" if right_arm_angle > (golden_right or 0) else "Tay phải quá thấp"
+                        errors.append(self._build_error(
+                            "arm_angle",
+                            desc,
+                            diff,
+                            "arm",
+                            "right"
+                        ))
         
         return errors
     
@@ -200,36 +240,44 @@ class AIController:
             stats = self.golden_profile["statistics"]
             if "leg_angle" in stats:
                 # Kiểm tra chân trái
-                if "left" in stats["leg_angle"] and left_leg_angle:
+                if "left" in stats["leg_angle"] and left_leg_angle is not None:
                     golden_left = stats["leg_angle"]["left"].get("mean", 0)
                     golden_std = stats["leg_angle"]["left"].get("std", 5.0)
-                    diff = abs(left_leg_angle - golden_left)
-                    
-                    if diff > golden_std * 2:
-                        errors.append({
-                            "type": "leg_angle",
-                            "description": f"Chân trái {'quá cao' if left_leg_angle > golden_left else 'quá thấp'}",
-                            "severity": min(diff / 10, 10.0),
-                            "deduction": 2.0,
-                            "body_part": "leg",
-                            "side": "left"
-                        })
+                    is_out, diff = self._is_outlier(
+                        left_leg_angle,
+                        golden_left,
+                        golden_std,
+                        ERROR_THRESHOLDS.get("leg_angle", 10.0)
+                    )
+                    if is_out:
+                        desc = f"Chân trái {'quá cao' if left_leg_angle > (golden_left or 0) else 'quá thấp'}"
+                        errors.append(self._build_error(
+                            "leg_angle",
+                            desc,
+                            diff,
+                            "leg",
+                            "left"
+                        ))
                 
                 # Kiểm tra chân phải
-                if "right" in stats["leg_angle"] and right_leg_angle:
+                if "right" in stats["leg_angle"] and right_leg_angle is not None:
                     golden_right = stats["leg_angle"]["right"].get("mean", 0)
                     golden_std = stats["leg_angle"]["right"].get("std", 5.0)
-                    diff = abs(right_leg_angle - golden_right)
-                    
-                    if diff > golden_std * 2:
-                        errors.append({
-                            "type": "leg_angle",
-                            "description": f"Chân phải {'quá cao' if right_leg_angle > golden_right else 'quá thấp'}",
-                            "severity": min(diff / 10, 10.0),
-                            "deduction": 2.0,
-                            "body_part": "leg",
-                            "side": "right"
-                        })
+                    is_out, diff = self._is_outlier(
+                        right_leg_angle,
+                        golden_right,
+                        golden_std,
+                        ERROR_THRESHOLDS.get("leg_angle", 10.0)
+                    )
+                    if is_out:
+                        desc = f"Chân phải {'quá cao' if right_leg_angle > (golden_right or 0) else 'quá thấp'}"
+                        errors.append(self._build_error(
+                            "leg_angle",
+                            desc,
+                            diff,
+                            "leg",
+                            "right"
+                        ))
         
         return errors
     
@@ -238,20 +286,20 @@ class AIController:
         errors = []
         
         # Kiểm tra vai có cân bằng không
-        if keypoints.shape[0] >= 6:  # Có keypoints cho vai
+        if keypoints.shape[0] >= 7:  # Có keypoints cho vai
             left_shoulder = keypoints[5]  # Left shoulder
             right_shoulder = keypoints[6]  # Right shoulder
             
             if left_shoulder[2] > 0 and right_shoulder[2] > 0:
                 height_diff = abs(left_shoulder[1] - right_shoulder[1])
-                if height_diff > 20:  # Chênh lệch > 20 pixels
-                    errors.append({
-                        "type": "shoulder_imbalance",
-                        "description": "Vai không cân bằng",
-                        "severity": min(height_diff / 10, 10.0),
-                        "deduction": 1.5,
-                        "body_part": "shoulder"
-                    })
+                threshold = ERROR_THRESHOLDS.get("torso_stability", 20.0)
+                if height_diff > threshold:
+                    errors.append(self._build_error(
+                        "torso_stability",
+                        "Vai không cân bằng",
+                        height_diff,
+                        "shoulder"
+                    ))
         
         return errors
     
@@ -262,23 +310,24 @@ class AIController:
         head_angle = calculate_head_angle(keypoints)
         
         if head_angle is not None:
-            # Kiểm tra đầu có cúi quá không
-            if head_angle < -15:  # Cúi quá
-                errors.append({
-                    "type": "head_angle",
-                    "description": "Đầu cúi quá thấp",
-                    "severity": abs(head_angle) / 10,
-                    "deduction": 1.0,
-                    "body_part": "nose"
-                })
-            elif head_angle > 15:  # Ngẩng quá
-                errors.append({
-                    "type": "head_angle",
-                    "description": "Đầu ngẩng quá cao",
-                    "severity": abs(head_angle) / 10,
-                    "deduction": 1.0,
-                    "body_part": "nose"
-                })
+            # Kiểm tra đầu có cúi/ngẩng quá không
+            threshold = ERROR_THRESHOLDS.get("head_angle", 15.0)
+            if head_angle < -threshold:
+                diff = abs(head_angle + threshold)
+                errors.append(self._build_error(
+                    "head_angle",
+                    "Đầu cúi quá thấp",
+                    diff,
+                    "nose"
+                ))
+            elif head_angle > threshold:
+                diff = abs(head_angle - threshold)
+                errors.append(self._build_error(
+                    "head_angle",
+                    "Đầu ngẩng quá cao",
+                    diff,
+                    "nose"
+                ))
         
         return errors
     
@@ -304,14 +353,16 @@ class AIController:
         
         torso_stability = calculate_torso_stability(keypoints)
         
-        if torso_stability is not None and torso_stability < 0.7:  # Lưng không ổn định
-            errors.append({
-                "type": "torso_stability",
-                "description": "Lưng không ổn định",
-                "severity": (1.0 - torso_stability) * 10,
-                "deduction": 1.0,
-                "body_part": "back"
-            })
+        if torso_stability is not None:
+            threshold = ERROR_THRESHOLDS.get("torso_stability", 0.7)
+            if torso_stability < threshold:
+                diff = abs(torso_stability - threshold)
+                errors.append(self._build_error(
+                    "torso_stability",
+                    "Lưng không ổn định",
+                    diff,
+                    "back"
+                ))
         
         return errors
 

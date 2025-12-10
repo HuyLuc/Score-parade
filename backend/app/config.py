@@ -86,6 +86,19 @@ SCORING_CONFIG = {
     },
 }
 
+# Ngưỡng sai lệch mặc định (dùng khi không có std từ golden)
+ERROR_THRESHOLDS = {
+    "arm_angle": 30.0,
+    "leg_angle": 25.0,
+    "arm_height": 30.0,
+    "leg_height": 25.0,
+    "head_angle": 15.0,
+    "torso_stability": 0.7,  # ổn định (0-1)
+    "step_rhythm": 10.0,  # bước/phút
+    "distance": 30.0,  # pixels approx
+    "speed": 50.0,  # pixels/s
+}
+
 # Cấu hình database
 DATABASE_CONFIG = {
     "url": os.getenv("DATABASE_URL", "postgresql://user:password@localhost/score_parade"),

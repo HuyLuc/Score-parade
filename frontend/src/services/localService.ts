@@ -33,6 +33,9 @@ export interface ErrorNotification {
   description: string;
   timestamp: string;
   snapshot_path?: string;
+  video_path?: string;
+  video_start_time?: number;
+  video_end_time?: number;
 }
 
 export interface ScoreInfo {

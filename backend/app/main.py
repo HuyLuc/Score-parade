@@ -4,6 +4,7 @@ FastAPI main application
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.config import API_CONFIG
+from backend.app.database.base import init_db
 
 app = FastAPI(
     title=API_CONFIG["title"],
@@ -22,7 +23,16 @@ app.add_middleware(
 )
 
 # Import và đăng ký routes
-from backend.app.api import auth, candidates, configuration, barem, camera, local, global_mode
+from backend.app.api import (
+    auth,
+    candidates,
+    configuration,
+    barem,
+    camera,
+    local,
+    global_mode as global_api,
+)
+from backend.app.api import results as results_api
 
 @app.get("/")
 async def root():
@@ -40,8 +50,14 @@ app.include_router(barem.router, prefix="/api/barem", tags=["barem"])
 app.include_router(camera.router, prefix="/api/camera", tags=["camera"])
 app.include_router(local.router, prefix="/api/local", tags=["local"])
 app.include_router(global_api.router, prefix="/api/global", tags=["global"])
+app.include_router(results_api.router, prefix="/api/results", tags=["results"])
 # TODO: Đăng ký các routes khác khi implement
 # app.include_router(scoring.router, prefix="/api/scoring", tags=["scoring"])
+
+@app.on_event("startup")
+async def on_startup():
+    # Tạo bảng nếu chưa có (tiện cho môi trường demo/docker)
+    init_db()
 
 if __name__ == "__main__":
     import uvicorn

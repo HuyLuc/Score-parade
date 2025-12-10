@@ -3,8 +3,19 @@ FastAPI main application
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+import traceback
+import logging
 from backend.app.config import API_CONFIG
 from backend.app.database.base import init_db
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=API_CONFIG["title"],
@@ -21,6 +32,53 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Import custom exceptions
+from backend.app.utils.exceptions import CustomException
+
+
+@app.exception_handler(CustomException)
+async def custom_exception_handler(request, exc: CustomException):
+    """Handle all custom exceptions with consistent response format"""
+    logger.error(f"CustomException: {exc.detail} (code: {exc.code})")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "code": exc.code,
+            "path": str(request.url)
+        }
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    """Handle FastAPI request validation errors"""
+    logger.error(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error",
+            "code": "VALIDATION_ERROR",
+            "errors": exc.errors(),
+            "path": str(request.url)
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc: Exception):
+    """Catch-all handler for any unhandled exceptions"""
+    logger.error(f"Unhandled exception: {str(exc)}\n{traceback.format_exc()}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "code": "INTERNAL_ERROR",
+            "path": str(request.url)
+        }
+    )
+
 
 # Import và đăng ký routes
 from backend.app.api import (

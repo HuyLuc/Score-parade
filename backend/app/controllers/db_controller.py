@@ -7,6 +7,7 @@ from typing import Optional, List
 from backend.app.models.person import Person
 from backend.app.models.candidate import Candidate
 from backend.app.utils.auth import get_password_hash, verify_password
+from backend.app.utils.exceptions import DatabaseException, ValidationException
 
 
 class DBController:
@@ -26,17 +27,21 @@ class DBController:
         rank: Optional[str] = None,
         insignia: Optional[str] = None,
         avatar: Optional[str] = None
-    ) -> tuple[Person, Optional[str]]:
+    ) -> Person:
         """
-        Tạo person mới
+        Create a new person
         
         Returns:
-            (Person, error_message)
+            Person object
+            
+        Raises:
+            ValidationException: If username already exists
+            DatabaseException: If database operation fails
         """
-        # Kiểm tra trùng username
+        # Check for duplicate username
         existing = self.db.query(Person).filter(Person.username == username).first()
         if existing:
-            return None, "Username đã tồn tại"
+            raise ValidationException("Username đã tồn tại", field="username")
         
         try:
             person = Person(
@@ -51,13 +56,13 @@ class DBController:
             self.db.add(person)
             self.db.commit()
             self.db.refresh(person)
-            return person, None
+            return person
         except IntegrityError as e:
             self.db.rollback()
-            return None, f"Lỗi database: {str(e)}"
+            raise DatabaseException(str(e))
         except Exception as e:
             self.db.rollback()
-            return None, f"Lỗi: {str(e)}"
+            raise DatabaseException(str(e))
     
     def get_person_by_username(self, username: str) -> Optional[Person]:
         """Lấy person theo username"""

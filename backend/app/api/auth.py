@@ -95,17 +95,12 @@ async def register(
     request: RegisterRequest,
     db: Session = Depends(get_db)
 ):
-    """Đăng ký user mới"""
+    """Register a new user"""
     db_controller = DBController(db)
     register_controller = RegisterController(db_controller)
     
-    person, error = register_controller.register(request.dict())
-    
-    if error:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error
-        )
+    # This will raise exceptions if it fails
+    person = register_controller.register(request.dict())
     
     return RegisterResponse(
         success=True,

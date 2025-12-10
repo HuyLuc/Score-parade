@@ -4,6 +4,7 @@ RegisterController - Điều khiển việc đăng ký
 from typing import Dict, Optional, Tuple
 from backend.app.controllers.db_controller import DBController
 from backend.app.models.person import Person
+from backend.app.utils.exceptions import ValidationException
 
 
 class RegisterController:
@@ -52,23 +53,27 @@ class RegisterController:
         
         return True, None
     
-    def register(self, data: Dict) -> Tuple[Optional[Person], Optional[str]]:
+    def register(self, data: Dict) -> Person:
         """
-        Đăng ký user mới
+        Register a new user
         
         Args:
-            data: Dict chứa thông tin đăng ký
+            data: Dict containing registration info
             
         Returns:
-            (Person, error_message)
+            Person object
+            
+        Raises:
+            ValidationException: If validation fails
+            DatabaseException: If database operation fails
         """
         # Validate
         is_valid, error = self.validate(data)
         if not is_valid:
-            return None, error
+            raise ValidationException(error)
         
-        # Tạo person
-        person, error = self.db_controller.create_person(
+        # Create person (will raise exceptions if fails)
+        person = self.db_controller.create_person(
             name=data.get("name"),
             username=data.get("username"),
             password=data.get("password"),
@@ -78,8 +83,5 @@ class RegisterController:
             avatar=data.get("avatar")
         )
         
-        if error:
-            return None, error
-        
-        return person, None
+        return person
 

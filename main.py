@@ -4,33 +4,66 @@ Workflow tổng thể cho hệ thống đánh giá điều lệnh quân đội
 Chạy tất cả các bước từ 1-7 hoặc chỉ các bước cần thiết.
 """
 import sys
+import os
 from pathlib import Path
 import argparse
 import src.config as config
 
+# Fix encoding for Windows console
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
-def run_step1(video_path: Path):
+
+def run_step1(video_path: Path, template_name: str = "default", 
+              camera_angle: str = None, multi_person: bool = None):
     """Bước 1: Tạo golden template"""
     print("\n" + "="*50)
     print("BƯỚC 1: TẠO VIDEO MẪU CHUẨN")
     print("="*50)
     from src.step1_golden_template import create_golden_template
-    return create_golden_template(video_path)
+    return create_golden_template(
+        video_path, 
+        template_name=template_name,
+        camera_angle=camera_angle,
+        multi_person=multi_person
+    )
 
 
-def run_step2():
+def run_step2(template_name: str = None, template_dir: Path = None):
     """Bước 2: Trích xuất đặc điểm hình học"""
     print("\n" + "="*50)
     print("BƯỚC 2: TRÍCH XUẤT ĐẶC ĐIỂM HÌNH HỌC")
     print("="*50)
-    import pickle
-    from src.step2_feature_extraction import extract_features_from_skeleton
     
-    skeleton_path = config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_SKELETON_NAME
-    with open(skeleton_path, 'rb') as f:
-        skeleton_data = pickle.load(f)
-    
-    return extract_features_from_skeleton(skeleton_data)
+    if template_dir or template_name:
+        # Chế độ mới: nhiều người
+        from src.step2_feature_extraction import extract_features_multi_person
+        
+        if template_dir:
+            template_path = template_dir
+        elif template_name:
+            template_path = config.GOLDEN_TEMPLATE_DIR / template_name
+        else:
+            # Tự động tìm template mới nhất
+            template_dirs = [d for d in config.GOLDEN_TEMPLATE_DIR.iterdir() 
+                           if d.is_dir() and (d / "metadata.json").exists()]
+            if not template_dirs:
+                raise ValueError("Không tìm thấy template nào!")
+            template_path = max(template_dirs, key=lambda p: p.stat().st_mtime)
+        
+        return extract_features_multi_person(template_path, create_combined=True)
+    else:
+        # Chế độ cũ: một người
+        import pickle
+        from src.step2_feature_extraction import extract_features_from_skeleton
+        
+        skeleton_path = config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_SKELETON_NAME
+        with open(skeleton_path, 'rb') as f:
+            skeleton_data = pickle.load(f)
+        
+        return extract_features_from_skeleton(skeleton_data)
 
 
 def run_step3(video_path: Path):
@@ -91,9 +124,10 @@ def run_step7(video_path: Path, video_name: str, person_id: int):
     print("="*50)
     from src.step7_visualization import create_visualization
     
-    aligned_skeleton_path = config.OUTPUT_DIR / video_name / f"person_{person_id}_aligned.pkl"
-    errors_path = config.OUTPUT_DIR / video_name / f"person_{person_id}_errors.json"
-    score_path = config.OUTPUT_DIR / video_name / f"person_{person_id}_score.json"
+    output_dir = config.OUTPUT_DIR / video_name
+    aligned_skeleton_path = output_dir / f"person_{person_id}_aligned.pkl"
+    errors_path = output_dir / f"person_{person_id}_errors.json"
+    score_path = output_dir / f"person_{person_id}_score.json"
     golden_skeleton_path = config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_SKELETON_NAME
     
     return create_visualization(
@@ -101,7 +135,8 @@ def run_step7(video_path: Path, video_name: str, person_id: int):
         aligned_skeleton_path,
         errors_path,
         score_path,
-        golden_skeleton_path
+        golden_skeleton_path,
+        output_dir=output_dir
     )
 
 
@@ -213,10 +248,22 @@ def main():
             if not args.golden_video:
                 print("❌ Cần --golden-video cho step1")
                 sys.exit(1)
-            run_step1(Path(args.golden_video))
+            
+            multi_person = None
+            if args.multi_person:
+                multi_person = True
+            elif args.single_person:
+                multi_person = False
+            
+            run_step1(
+                Path(args.golden_video),
+                template_name=args.template_name or "default",
+                camera_angle=args.camera_angle,
+                multi_person=multi_person
+            )
         
         elif args.mode == 'step2':
-            run_step2()
+            run_step2(template_name=args.template_name)
         
         elif args.mode == 'step3':
             if not args.input_video:

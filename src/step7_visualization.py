@@ -188,7 +188,7 @@ def create_annotated_video(
         
         # Vẽ skeleton person (màu xanh)
         kpt_idx = find_nearest_keypoint(video_frame_idx)
-        if kpt_idx is not None:
+        if kpt_idx is not None and kpt_idx < len(person_keypoints):
             draw_skeleton(
                 vis_frame,
                 person_keypoints[kpt_idx],

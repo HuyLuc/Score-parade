@@ -1,18 +1,18 @@
 {
   "person_id": 0,
-  "total_score": 2.0030663184254465,
+  "total_score": 6.980539589248386,
   "max_score": 10.0,
   "breakdown": {
-    "arm_technique": 0.004672502352821505,
-    "leg_technique": 0.005465060084079094,
+    "arm_technique": 5.643021416644496,
+    "leg_technique": 7.301132924568732,
     "step_rhythm": 10.0,
-    "torso_stability": 0.0001252484718807961
+    "torso_stability": 8.028778527630951
   },
   "weights": {
-    "arm_technique": 0.3,
-    "leg_technique": 0.3,
-    "step_rhythm": 0.2,
-    "torso_stability": 0.2
+    "arm_technique": 0.4,
+    "leg_technique": 0.4,
+    "step_rhythm": 0.1,
+    "torso_stability": 0.1
   },
-  "grade": "Yếu"
+  "grade": "Trung bình"
 }

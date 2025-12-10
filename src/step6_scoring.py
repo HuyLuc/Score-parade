@@ -2,6 +2,8 @@
 BƯỚC 6: TÍNH ĐIỂM
 
 Quy đổi sai lệch thành điểm số (0-10).
+
+CẢI TIẾN: Chỉ dùng GÓC (angle), bỏ HEIGHT (không bất biến với camera)
 """
 import json
 import numpy as np
@@ -33,19 +35,19 @@ def calculate_score(
     # Tính điểm cho từng yếu tố
     scores = {}
     
-    # Điểm kỹ thuật tay (30%)
+    # Điểm kỹ thuật tay (40% - CHỈ TỪ GÓC)
     arm_score = calculate_arm_score(summary)
     scores['arm_technique'] = arm_score
     
-    # Điểm kỹ thuật chân (30%)
+    # Điểm kỹ thuật chân (40% - CHỈ TỪ GÓC)
     leg_score = calculate_leg_score(summary)
     scores['leg_technique'] = leg_score
     
-    # Điểm nhịp bước (20%) - cần thêm thông tin từ step4
+    # Điểm nhịp bước (10%)
     rhythm_score = 10.0  # Tạm thời, cần tính từ DTW distance
     scores['step_rhythm'] = rhythm_score
     
-    # Điểm ổn định thân người (20%)
+    # Điểm ổn định thân người (10%)
     stability_score = calculate_stability_score(summary)
     scores['torso_stability'] = stability_score
     
@@ -88,100 +90,85 @@ def calculate_score(
 
 
 def calculate_arm_score(summary: Dict) -> float:
-    """Tính điểm kỹ thuật tay"""
-    if 'arm_angle' not in summary or 'arm_height' not in summary:
+    """
+    Tính điểm kỹ thuật tay - CHỈ TỪ GÓC (bỏ height)
+    
+    Lý do: arm_height phụ thuộc góc quay camera, không đáng tin cậy
+    Góc tay (shoulder-elbow-wrist) là bất biến, chính xác hơn
+    """
+    if 'arm_angle' not in summary:
         return 10.0
     
-    # Tính điểm từ góc tay
+    # Tính điểm từ góc tay (DUY NHẤT)
     arm_angle_errors = []
     if 'left' in summary['arm_angle']:
-        arm_angle_errors.append(summary['arm_angle']['left']['mean'])
+        arm_angle_errors.append(abs(summary['arm_angle']['left']['mean']))
     if 'right' in summary['arm_angle']:
-        arm_angle_errors.append(summary['arm_angle']['right']['mean'])
+        arm_angle_errors.append(abs(summary['arm_angle']['right']['mean']))
     
-    angle_score = 10.0
-    if arm_angle_errors:
-        avg_angle_error = np.mean(arm_angle_errors)
-        threshold = config.ERROR_THRESHOLDS['arm_angle']
-        if config.SCORING_FORMULA == 'exponential':
-            angle_score = 10.0 * np.exp(-avg_angle_error / threshold)
-        else:  # linear
-            angle_score = max(0, 10.0 - (avg_angle_error / threshold) * 10.0)
+    if not arm_angle_errors:
+        return 10.0
     
-    # Tính điểm từ độ cao tay
-    arm_height_errors = []
-    if 'left' in summary['arm_height']:
-        arm_height_errors.append(summary['arm_height']['left']['mean'])
-    if 'right' in summary['arm_height']:
-        arm_height_errors.append(summary['arm_height']['right']['mean'])
+    avg_angle_error = np.mean(arm_angle_errors)
+    threshold = config.ERROR_THRESHOLDS['arm_angle']
+    decay_rate = config.SCORING_DECAY_RATE if hasattr(config, 'SCORING_DECAY_RATE') else 1.0
     
-    height_score = 10.0
-    if arm_height_errors:
-        avg_height_error = np.mean(arm_height_errors)
-        threshold = config.ERROR_THRESHOLDS['arm_height']
-        if config.SCORING_FORMULA == 'exponential':
-            height_score = 10.0 * np.exp(-avg_height_error / threshold)
-        else:  # linear
-            height_score = max(0, 10.0 - (avg_height_error / threshold) * 10.0)
+    if config.SCORING_FORMULA == 'exponential':
+        # Công thức mới: score = 10 * exp(-error * decay_rate / threshold)
+        score = 10.0 * np.exp(-avg_angle_error * decay_rate / threshold)
+    else:  # linear
+        score = max(0, 10.0 * (1 - avg_angle_error / threshold))
     
-    # Trung bình có trọng số (góc quan trọng hơn)
-    return (angle_score * 0.6 + height_score * 0.4)
+    return float(score)
 
 
 def calculate_leg_score(summary: Dict) -> float:
-    """Tính điểm kỹ thuật chân"""
-    if 'leg_angle' not in summary or 'leg_height' not in summary:
+    """
+    Tính điểm kỹ thuật chân - CHỈ TỪ GÓC (bỏ height)
+    
+    Lý do: leg_height phụ thuộc góc quay camera, không đáng tin cậy
+    Góc chân (hip-knee-ankle) là bất biến, chính xác hơn
+    """
+    if 'leg_angle' not in summary:
         return 10.0
     
-    # Tính điểm từ góc chân
+    # Tính điểm từ góc chân (DUY NHẤT)
     leg_angle_errors = []
     if 'left' in summary['leg_angle']:
-        leg_angle_errors.append(summary['leg_angle']['left']['mean'])
+        leg_angle_errors.append(abs(summary['leg_angle']['left']['mean']))
     if 'right' in summary['leg_angle']:
-        leg_angle_errors.append(summary['leg_angle']['right']['mean'])
+        leg_angle_errors.append(abs(summary['leg_angle']['right']['mean']))
     
-    angle_score = 10.0
-    if leg_angle_errors:
-        avg_angle_error = np.mean(leg_angle_errors)
-        threshold = config.ERROR_THRESHOLDS['leg_angle']
-        if config.SCORING_FORMULA == 'exponential':
-            angle_score = 10.0 * np.exp(-avg_angle_error / threshold)
-        else:  # linear
-            angle_score = max(0, 10.0 - (avg_angle_error / threshold) * 10.0)
+    if not leg_angle_errors:
+        return 10.0
     
-    # Tính điểm từ độ cao chân
-    leg_height_errors = []
-    if 'left' in summary['leg_height']:
-        leg_height_errors.append(summary['leg_height']['left']['mean'])
-    if 'right' in summary['leg_height']:
-        leg_height_errors.append(summary['leg_height']['right']['mean'])
+    avg_angle_error = np.mean(leg_angle_errors)
+    threshold = config.ERROR_THRESHOLDS['leg_angle']
+    decay_rate = config.SCORING_DECAY_RATE if hasattr(config, 'SCORING_DECAY_RATE') else 1.0
     
-    height_score = 10.0
-    if leg_height_errors:
-        avg_height_error = np.mean(leg_height_errors)
-        threshold = config.ERROR_THRESHOLDS['leg_height']
-        if config.SCORING_FORMULA == 'exponential':
-            height_score = 10.0 * np.exp(-avg_height_error / threshold)
-        else:  # linear
-            height_score = max(0, 10.0 - (avg_height_error / threshold) * 10.0)
+    if config.SCORING_FORMULA == 'exponential':
+        # Công thức mới: score = 10 * exp(-error * decay_rate / threshold)
+        score = 10.0 * np.exp(-avg_angle_error * decay_rate / threshold)
+    else:  # linear
+        score = max(0, 10.0 * (1 - avg_angle_error / threshold))
     
-    # Trung bình có trọng số
-    return (angle_score * 0.6 + height_score * 0.4)
+    return float(score)
 
 
 def calculate_stability_score(summary: Dict) -> float:
-    """Tính điểm ổn định thân người"""
+    """Tính điểm ổn định thân người (dùng head_angle)"""
     # Dựa trên head_angle error (đầu cúi/ngẩng)
     if 'head_angle' not in summary:
         return 10.0
     
-    head_error = summary['head_angle']['mean']
+    head_error = abs(summary['head_angle']['mean'])
     threshold = config.ERROR_THRESHOLDS['head_angle']
+    decay_rate = config.SCORING_DECAY_RATE if hasattr(config, 'SCORING_DECAY_RATE') else 1.0
     
     if config.SCORING_FORMULA == 'exponential':
-        return 10.0 * np.exp(-head_error / threshold)
+        return float(10.0 * np.exp(-head_error * decay_rate / threshold))
     else:  # linear
-        return max(0, 10.0 - (head_error / threshold) * 10.0)
+        return float(max(0, 10.0 * (1 - head_error / threshold)))
 
 
 def get_grade(score: float) -> str:
@@ -220,4 +207,3 @@ if __name__ == "__main__":
         print(f"❌ Lỗi: {e}")
         import traceback
         traceback.print_exc()
-

@@ -7,7 +7,7 @@ import pickle
 import json
 import numpy as np
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple, Optional
 import src.config as config
 from src.utils.geometry import (
     calculate_arm_angle,
@@ -20,37 +20,162 @@ from src.utils.geometry import (
 )
 
 
-def compare_with_golden(
-    golden_profile_path: Path,
-    aligned_skeleton_path: Path,
-    golden_skeleton_path: Path,
-    output_path: Path = None
-) -> Dict:
+def find_best_golden_profile(
+    person_keypoints: np.ndarray,
+    template_dir: Path = None,
+    camera_angle: Optional[str] = None
+) -> Tuple[Path, Path, Dict]:
     """
-    So sánh skeleton đã align với golden template
+    Tự động tìm profile phù hợp nhất từ template (nhiều người/góc quay)
     
     Args:
-        golden_profile_path: Đường dẫn profile chuẩn (từ step2)
+        person_keypoints: Keypoints của người cần đánh giá [n_frames, 17, 3]
+        template_dir: Thư mục template (mặc định: golden_template)
+        camera_angle: Góc quay (nếu biết trước)
+        
+    Returns:
+        Tuple (golden_profile_path, golden_skeleton_path, profile_info)
+    """
+    if template_dir is None:
+        template_dir = config.GOLDEN_TEMPLATE_DIR
+    
+    # Kiểm tra xem có template với nhiều người không
+    import json
+    
+    # Tìm metadata.json (template mới)
+    metadata_path = template_dir / "metadata.json"
+    if metadata_path.exists():
+        with open(metadata_path, 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+        
+        if 'people' in metadata and len(metadata['people']) > 0:
+            # Template có nhiều người
+            print(f"Tìm thấy template với {len(metadata['people'])} người")
+            
+            best_profile_path = None
+            best_skeleton_path = None
+            best_similarity = -1
+            best_person_id = None
+            
+            # So sánh với từng profile
+            for person_id, person_info in metadata['people'].items():
+                # Ưu tiên profiles cùng camera angle nếu có
+                person_camera_angle = person_info.get('camera_angle', 'unknown')
+                if camera_angle and person_camera_angle != camera_angle:
+                    continue  # Bỏ qua nếu góc quay khác
+                
+                # Load profile để so sánh
+                profile_path = Path(person_info['profile_path'])
+                if not profile_path.exists():
+                    # Tạo profile nếu chưa có
+                    skeleton_path = Path(person_info['skeleton_path'])
+                    if skeleton_path.exists():
+                        with open(skeleton_path, 'rb') as f:
+                            skeleton_data = pickle.load(f)
+                        from src.step2_feature_extraction import extract_features_from_keypoints_sequence
+                        profile = extract_features_from_keypoints_sequence(
+                            skeleton_data['keypoints'],
+                            skeleton_data['metadata'],
+                            profile_path
+                        )
+                
+                # Tính similarity (đơn giản: so sánh skeleton structure)
+                skeleton_path = Path(person_info['skeleton_path'])
+                if skeleton_path.exists():
+                    with open(skeleton_path, 'rb') as f:
+                        golden_data = pickle.load(f)
+                    golden_keypoints = golden_data['keypoints']
+                    
+                    # Tính similarity
+                    from src.utils.motion_filter import calculate_similarity_with_golden
+                    similarity = calculate_similarity_with_golden(
+                        person_keypoints,
+                        golden_keypoints
+                    )
+                    
+                    if similarity > best_similarity:
+                        best_similarity = similarity
+                        best_profile_path = profile_path
+                        best_skeleton_path = skeleton_path
+                        best_person_id = person_id
+            
+            if best_profile_path and best_skeleton_path:
+                print(f"✓ Chọn profile người {best_person_id} (similarity: {best_similarity:.2f})")
+                return best_profile_path, best_skeleton_path, {
+                    'person_id': best_person_id,
+                    'similarity': best_similarity,
+                    'camera_angle': metadata.get('camera_angle', 'unknown')
+                }
+    
+    # Fallback: dùng profile cũ (format cũ)
+    profile_path = template_dir / config.GOLDEN_PROFILE_NAME
+    skeleton_path = template_dir / config.GOLDEN_SKELETON_NAME
+    
+    if profile_path.exists() and skeleton_path.exists():
+        print("Sử dụng profile mặc định (format cũ)")
+        return profile_path, skeleton_path, {}
+    
+    raise ValueError("Không tìm thấy golden profile nào!")
+
+
+def compare_with_golden(
+    golden_profile_path: Path = None,
+    aligned_skeleton_path: Path = None,
+    golden_skeleton_path: Path = None,
+    output_path: Path = None,
+    template_dir: Path = None,
+    camera_angle: Optional[str] = None,
+    auto_select: bool = True
+) -> Dict:
+    """
+    So sánh skeleton đã align với golden template (hỗ trợ tự động chọn profile)
+    
+    Args:
+        golden_profile_path: Đường dẫn profile chuẩn (từ step2) - optional nếu auto_select
         aligned_skeleton_path: Đường dẫn skeleton đã align (từ step4)
-        golden_skeleton_path: Đường dẫn skeleton golden (từ step1)
+        golden_skeleton_path: Đường dẫn skeleton golden (từ step1) - optional nếu auto_select
         output_path: Đường dẫn lưu error metrics
+        template_dir: Thư mục template (để tự động chọn profile)
+        camera_angle: Góc quay (để ưu tiên chọn profile)
+        auto_select: Tự động chọn profile phù hợp nhất
         
     Returns:
         Dict chứa error metrics
     """
-    # Load golden profile
-    with open(golden_profile_path, 'r', encoding='utf-8') as f:
-        golden_profile = json.load(f)
-    
     # Load aligned skeleton
     with open(aligned_skeleton_path, 'rb') as f:
         aligned_data = pickle.load(f)
     aligned_keypoints = aligned_data['aligned_keypoints']  # [n_frames, 17, 3]
     
+    # Tự động chọn profile nếu được yêu cầu
+    if auto_select and (golden_profile_path is None or golden_skeleton_path is None):
+        if template_dir is None:
+            template_dir = config.GOLDEN_TEMPLATE_DIR
+        
+        golden_profile_path, golden_skeleton_path, profile_info = find_best_golden_profile(
+            aligned_keypoints,
+            template_dir,
+            camera_angle
+        )
+        print(f"Đã tự động chọn profile: {golden_profile_path}")
+    
+    # Load golden profile
+    with open(golden_profile_path, 'r', encoding='utf-8') as f:
+        golden_profile = json.load(f)
+    
     # Load golden skeleton để so sánh frame-by-frame
     with open(golden_skeleton_path, 'rb') as f:
         golden_data = pickle.load(f)
-    golden_keypoints = np.array(golden_data['valid_skeletons'])  # [n_frames, 17, 3]
+    
+    # Xử lý cả format cũ và mới
+    if 'keypoints' in golden_data:
+        # Format mới (nhiều người)
+        golden_keypoints = golden_data['keypoints']  # [n_frames, 17, 3]
+    elif 'valid_skeletons' in golden_data:
+        # Format cũ (một người)
+        golden_keypoints = np.array(golden_data['valid_skeletons'])  # [n_frames, 17, 3]
+    else:
+        raise ValueError("Không tìm thấy keypoints trong golden skeleton!")
     
     # Đảm bảo cùng độ dài
     min_length = min(len(aligned_keypoints), len(golden_keypoints))

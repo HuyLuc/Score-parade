@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.db
+*.sqlite
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Data (giữ lại structure nhưng ignore nội dung lớn)
+data/output/*
+!data/output/.gitkeep
+data/models/*
+!data/models/.gitkeep
+
+# Models
+*.pt
+*.pth
+*.onnx
+
+# OS
+.DS_Store
+Thumbs.db

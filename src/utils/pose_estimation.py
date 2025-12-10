@@ -125,8 +125,9 @@ class PoseEstimator:
                     # Đếm số keypoints có confidence cao
                     valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
                     
-                    # Chỉ giữ người có ít nhất 8 keypoints rõ ràng (giảm từ 10)
-                    if valid_kpts >= 8:
+                    # Lấy min từ config, mặc định 6 keypoints
+                    min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 6)
+                    if valid_kpts >= min_valid:
                         keypoints_list.append(kpts)
         
         return keypoints_list
@@ -164,7 +165,8 @@ class PoseEstimator:
                         for j, kpts in enumerate(keypoints):
                             if boxes[j, 4] >= config.POSE_CONFIG["confidence_threshold"]:
                                 valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
-                                if valid_kpts >= 8:  # Giảm từ 10
+                                min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 6)
+                                if valid_kpts >= min_valid:
                                     keypoints_list.append(kpts)
                     results.append(keypoints_list)
         else:

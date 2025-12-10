@@ -2,6 +2,7 @@
 BƯỚC 4: CĂN CHỈNH THỜI GIAN (TEMPORAL ALIGNMENT)
 
 Khớp nhịp và pha chuyển động giữa video mẫu và video mới bằng DTW.
+CẢI TIẾN: Dùng GÓC thay vì tọa độ để detect pha động tác
 """
 import pickle
 import json
@@ -37,12 +38,12 @@ def align_temporal(
     with open(person_skeleton_path, 'rb') as f:
         person_data = pickle.load(f)
     person_keypoints = person_data['keypoints']  # [n_frames, 17, 3]
-    person_frame_indices = person_data.get('frame_indices', None)  # Lấy frame indices nếu có
+    person_frame_indices = person_data.get('frame_indices', None)
     
     print(f"Golden template: {len(golden_skeletons)} frames")
     print(f"Person video: {len(person_keypoints)} frames")
     
-    # Trích xuất features để so sánh (ví dụ: vị trí hông)
+    # Trích xuất features để so sánh - DÙNG GÓC
     golden_features = extract_temporal_features(golden_skeletons)
     person_features = extract_temporal_features(person_keypoints)
     
@@ -73,14 +74,13 @@ def align_temporal(
             'person_id': person_data['person_id'],
             'mapping': mapping,
             'aligned_keypoints': aligned_person_keypoints,
-            'frame_indices': person_frame_indices,  # QUAN TRỌNG: Truyền frame indices
+            'frame_indices': person_frame_indices,
             'dtw_distance': alignment.distance,
             'dtw_normalized_distance': alignment.normalizedDistance,
             'golden_length': len(golden_skeletons),
             'original_length': len(person_keypoints),
             'aligned_length': len(aligned_person_keypoints)
         }, f)
-
     
     print(f"Đã lưu alignment: {output_path}")
     print(f"DTW distance: {alignment.distance:.2f}")
@@ -97,7 +97,9 @@ def align_temporal(
 
 def extract_temporal_features(keypoints_sequence: np.ndarray) -> np.ndarray:
     """
-    Trích xuất features để so sánh temporal (ví dụ: vị trí hông, độ cao chân)
+    Trích xuất features để so sánh temporal - DÙNG GÓC thay vì tọa độ
+    
+    Lý do: Góc bất biến với camera, giúp DTW nhận diện đúng pha động tác
     
     Args:
         keypoints_sequence: [n_frames, 17, 3]
@@ -105,28 +107,43 @@ def extract_temporal_features(keypoints_sequence: np.ndarray) -> np.ndarray:
     Returns:
         Features [n_frames, n_features]
     """
+    from src.utils.geometry import calculate_arm_angle, calculate_leg_angle, calculate_head_angle
+    
     features = []
     
     for frame_keypoints in keypoints_sequence:
         frame_features = []
         
-        # Vị trí hông (trung bình 2 hông)
-        left_hip = frame_keypoints[config.KEYPOINT_INDICES["left_hip"], :2]
-        right_hip = frame_keypoints[config.KEYPOINT_INDICES["right_hip"], :2]
-        center_hip = (left_hip + right_hip) / 2
-        frame_features.extend(center_hip.tolist())
+        # GÓC TAY trái và phải (phát hiện pha đánh tay, giơ tay, etc.)
+        left_arm_angle = calculate_arm_angle(frame_keypoints, "left")
+        right_arm_angle = calculate_arm_angle(frame_keypoints, "right")
+        if left_arm_angle is not None:
+            frame_features.append(left_arm_angle)
+        else:
+            frame_features.append(0)
+        if right_arm_angle is not None:
+            frame_features.append(right_arm_angle)
+        else:
+            frame_features.append(0)
         
-        # Độ cao chân (mắt cá chân thấp hơn)
-        left_ankle_y = frame_keypoints[config.KEYPOINT_INDICES["left_ankle"], 1]
-        right_ankle_y = frame_keypoints[config.KEYPOINT_INDICES["right_ankle"], 1]
-        min_ankle_y = min(left_ankle_y, right_ankle_y)
-        frame_features.append(min_ankle_y)
+        # GÓC CHÂN trái và phải (phát hiện pha bước chân, duỗi/gập)
+        left_leg_angle = calculate_leg_angle(frame_keypoints, "left")
+        right_leg_angle = calculate_leg_angle(frame_keypoints, "right")
+        if left_leg_angle is not None:
+            frame_features.append(left_leg_angle)
+        else:
+            frame_features.append(0)
+        if right_leg_angle is not None:
+            frame_features.append(right_leg_angle)
+        else:
+            frame_features.append(0)
         
-        # Độ cao tay (cổ tay cao hơn)
-        left_wrist_y = frame_keypoints[config.KEYPOINT_INDICES["left_wrist"], 1]
-        right_wrist_y = frame_keypoints[config.KEYPOINT_INDICES["right_wrist"], 1]
-        max_wrist_y = max(left_wrist_y, right_wrist_y)
-        frame_features.append(max_wrist_y)
+        # GÓC ĐẦU (phát hiện pha ngẩng/cúi đầu)
+        head_angle = calculate_head_angle(frame_keypoints)
+        if head_angle is not None:
+            frame_features.append(head_angle)
+        else:
+            frame_features.append(0)
         
         features.append(frame_features)
     
@@ -154,15 +171,12 @@ def create_frame_mapping(
     # alignment.index1: indices của golden sequence
     # alignment.index2: indices của person sequence
     for i, (g_idx, p_idx) in enumerate(zip(alignment.index1, alignment.index2)):
-        # Có thể có nhiều golden frame map tới cùng person frame
-        # Lấy mapping đầu tiên hoặc trung bình
         if g_idx not in mapping:
             mapping[g_idx] = p_idx
     
     # Đảm bảo tất cả golden frames đều có mapping
     for g_idx in range(golden_length):
         if g_idx not in mapping:
-            # Tìm frame person gần nhất
             if g_idx == 0:
                 mapping[g_idx] = 0
             elif g_idx == golden_length - 1:
@@ -217,7 +231,6 @@ if __name__ == "__main__":
     person_path = Path(sys.argv[2])
     
     if not golden_path.exists():
-        # Thử dùng default
         golden_path = config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_SKELETON_NAME
         if not golden_path.exists():
             print(f"Không tìm thấy golden skeleton: {sys.argv[1]}")
@@ -235,4 +248,3 @@ if __name__ == "__main__":
         print(f"❌ Lỗi: {e}")
         import traceback
         traceback.print_exc()
-

@@ -20,6 +20,16 @@ GOLDEN_SKELETON_NAME = "golden_skeleton.pkl"
 GOLDEN_PROFILE_NAME = "golden_profile.json"
 GOLDEN_VIS_NAME = "golden_skeleton_vis.mp4"
 
+# Cấu hình golden template (hỗ trợ nhiều người và góc quay)
+GOLDEN_TEMPLATE_CONFIG = {
+    "support_multi_person": True,  # Hỗ trợ nhiều người trong một video
+    "max_people_per_template": 3,  # Số người tối đa
+    "supported_camera_angles": ["front", "side", "back", "diagonal"],  # Các góc quay hỗ trợ
+    "auto_select_profile": True,  # Tự động chọn profile phù hợp khi so sánh
+    "create_combined_profile": True,  # Tạo profile tổng hợp (trung bình)
+    "default_camera_angle": "front",  # Góc quay mặc định
+}
+
 # Cấu hình video
 VIDEO_CONFIG = {
     "min_resolution": (1280, 720),  # 720p minimum
@@ -32,24 +42,24 @@ VIDEO_CONFIG = {
 POSE_CONFIG = {
     "model_type": "yolov8",  # "rtmpose" or "yolov8" - mặc định dùng yolov8 (đơn giản hơn)
     "rtmpose_model": "rtmpose-m_8xb256-420e_aic-coco-256x192",  # RTMPose model name
-    "yolov8_model": "yolov8n-pose.pt",  # YOLOv8-Pose model (n=nanos, s=small, m=medium, l=large, x=xlarge)
-    "confidence_threshold": 0.3,  # Giảm xuống 0.3 để phát hiện được nhiều hơn
-    "keypoint_confidence_threshold": 0.2,  # Giảm xuống 0.2
+    "yolov8_model": "yolov8s-pose.pt",  # YOLOv8-Pose model (n=nano, s=small, m=medium, l=large, x=xlarge) - NÂNG CẤP LÊN S
+    "confidence_threshold": 0.5,  # Tăng lên 0.5 để chỉ lấy detections chất lượng cao
+    "keypoint_confidence_threshold": 0.3,  # Tăng lên 0.3 để keypoints chính xác hơn
     "device": "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu",
     "batch_size": 8,  # Số frame xử lý cùng lúc (nếu GPU đủ mạnh)
 }
 
 # Cấu hình tracking
 TRACKING_CONFIG = {
-    "max_age": 100,  # Tăng max_age lên 100 frames (1.7s @ 60fps) để giữ track lâu hơn
-    "min_hits": 1,  # GIẢM xuống 1 để confirm track ngay lập tức
-    "iou_threshold": 0.2,  # Giảm IoU threshold xuống 0.2 để dễ match hơn
-    "pose_similarity_threshold": 0.3,  # Giảm xuống 0.3 để dễ nhận diện cùng người
-    "pose_weight": 0.7,  # Tăng trọng số pose lên 70% - ưu tiên pose hơn IoU
+    "max_age": 50,  # Giảm xuống 50 frames để loại bỏ track cũ nhanh hơn
+    "min_hits": 3,  # Tăng lên 3 để chỉ confirm track ổn định (giảm false positives)
+    "iou_threshold": 0.3,  # Tăng lên 0.3 để matching chặt chẽ hơn
+    "pose_similarity_threshold": 0.4,  # Tăng lên 0.4 để yêu cầu pose giống nhau hơn
+    "pose_weight": 0.8,  # Tăng lên 80% - ưu tiên pose nhiều hơn (quan trọng cho điều lệnh)
     "max_people": 20,  # Số người tối đa trong một video
     "use_kalman": True,  # Sử dụng Kalman filter để dự đoán vị trí
     "merge_similar_tracks": True,  # Merge các track giống nhau
-    "merge_threshold": 0.6,  # Giảm xuống 0.6 để merge dễ hơn
+    "merge_threshold": 0.7,  # Tăng lên 0.7 để merge chặt chẽ hơn (tránh merge nhầm)
 }
 
 # Cấu hình filter động tác (để chỉ đánh giá người có động tác tương tự golden)
@@ -102,27 +112,32 @@ SMOOTHING_CONFIG = {
 }
 
 # Ngưỡng sai lệch (cần điều chỉnh dựa trên thực tế)
+# Ngưỡng cao hơn = dễ đạt điểm cao hơn, ngưỡng thấp = khắt khe hơn
 ERROR_THRESHOLDS = {
-    "arm_angle": 5.0,  # Độ
-    "leg_angle": 3.0,  # Độ
-    "arm_height": 10.0,  # cm (cần scale từ pixel)
-    "leg_height": 5.0,  # cm
-    "head_angle": 2.0,  # Độ
-    "torso_stability": 5.0,  # cm (variance của vị trí hông)
-    "step_rhythm": 0.1,  # 10% sai lệch nhịp
+    "arm_angle": 30.0,  # Độ - Tăng lên 30° để chấp nhận sai lệch tracking
+    "leg_angle": 25.0,  # Độ - Tăng lên 25° vì chân di chuyển nhiều
+    "arm_height": 30.0,  # cm - Tăng lên vì height không đáng tin cậy
+    "leg_height": 25.0,  # cm - Tăng lên vì height thay đổi nhiều
+    "head_angle": 15.0,  # Độ - Tăng lên vì đầu có góc quay khác nhau
+    "torso_stability": 20.0,  # cm - Tăng lên vì thân người di chuyển tự nhiên
+    "step_rhythm": 0.25,  # 25% sai lệch nhịp - Cho phép linh hoạt hơn
 }
 
-# Trọng số tính điểm
+# Trọng số tính điểm - Cải thiện để phản ánh tầm quan trọng thực tế
+# CHỈ DÙNG GÓC, BỎ QUA HEIGHT (không bất biến với góc quay camera)
 SCORING_WEIGHTS = {
-    "arm_technique": 0.30,  # Kỹ thuật tay: 30%
-    "leg_technique": 0.30,  # Kỹ thuật chân: 30%
-    "step_rhythm": 0.20,  # Nhịp bước: 20%
-    "torso_stability": 0.20,  # Ổn định thân người: 20%
+    "arm_technique": 0.40,  # Kỹ thuật tay: 40% (CHỈ từ arm_angle, bỏ arm_height)
+    "leg_technique": 0.40,  # Kỹ thuật chân: 40% (CHỈ từ leg_angle, bỏ leg_height)
+    "step_rhythm": 0.10,    # Nhịp bước: 10% (giảm xuống vì ít quan trọng hơn)
+    "torso_stability": 0.10 # Ổn định thân người: 10% (dùng head_angle)
 }
 
 # Công thức tính điểm
-SCORING_FORMULA = "exponential"  # "linear" or "exponential"
+SCORING_FORMULA = "exponential"  # "exponential" - Điểm giảm từ từ, không bị 0 ngay
 SCORING_MAX_POINTS = 10.0
+SCORING_DECAY_RATE = 0.5  # Tốc độ giảm điểm (càng nhỏ càng từ từ)
+# Với exponential: điểm = max_points * exp(-error * decay_rate / threshold)
+# Lợi ích: Lỗi nhỏ vẫn được điểm cao, lỗi lớn vẫn có điểm (không bị 0)
 
 # Cấu hình visualization
 VIS_CONFIG = {

@@ -20,6 +20,221 @@ from src.utils.geometry import (
 from src.utils.smoothing import smooth_keypoints_sequence
 
 
+def extract_features_multi_person(
+    template_dir: Path,
+    create_combined: bool = True
+) -> Dict:
+    """
+    Trích xuất features cho tất cả người trong template (nhiều người)
+    
+    Args:
+        template_dir: Thư mục template (chứa person_0/, person_1/, ...)
+        create_combined: Có tạo profile tổng hợp không
+        
+    Returns:
+        Dict chứa profiles cho từng người và profile tổng hợp
+    """
+    import json
+    
+    result = {
+        'template_dir': str(template_dir),
+        'people': {},
+        'combined_profile': None
+    }
+    
+    # Tìm tất cả thư mục person_*
+    person_dirs = sorted([d for d in template_dir.iterdir() 
+                         if d.is_dir() and d.name.startswith('person_')])
+    
+    if len(person_dirs) == 0:
+        raise ValueError(f"Không tìm thấy thư mục person_* trong {template_dir}")
+    
+    print(f"Tìm thấy {len(person_dirs)} người trong template")
+    
+    profiles = []
+    
+    # Xử lý từng người
+    for person_dir in person_dirs:
+        person_id = person_dir.name.replace('person_', '')
+        skeleton_path = person_dir / "skeleton.pkl"
+        
+        if not skeleton_path.exists():
+            print(f"⚠️  Không tìm thấy skeleton cho người {person_id}")
+            continue
+        
+        # Load skeleton
+        with open(skeleton_path, 'rb') as f:
+            skeleton_data = pickle.load(f)
+        
+        keypoints_sequence = skeleton_data['keypoints']
+        metadata = skeleton_data['metadata']
+        camera_angle = skeleton_data.get('camera_angle', 'unknown')
+        
+        print(f"\nĐang xử lý người {person_id} (góc quay: {camera_angle})...")
+        
+        # Trích xuất profile cho người này
+        profile_path = person_dir / "profile.json"
+        profile = extract_features_from_keypoints_sequence(
+            keypoints_sequence,
+            metadata,
+            profile_path
+        )
+        
+        result['people'][person_id] = {
+            'person_id': person_id,
+            'profile_path': str(profile_path),
+            'camera_angle': camera_angle,
+            'num_frames': len(keypoints_sequence),
+            'profile': profile
+        }
+        
+        profiles.append(profile)
+        print(f"  ✓ Đã tạo profile cho người {person_id}")
+    
+    # Tạo profile tổng hợp (trung bình)
+    if create_combined and len(profiles) > 1:
+        print("\nĐang tạo profile tổng hợp...")
+        combined_profile = create_combined_profile(profiles, metadata)
+        
+        combined_path = template_dir / "combined_profile.json"
+        with open(combined_path, 'w', encoding='utf-8') as f:
+            json.dump(combined_profile, f, indent=2, ensure_ascii=False)
+        
+        result['combined_profile'] = {
+            'profile_path': str(combined_path),
+            'profile': combined_profile
+        }
+        print(f"  ✓ Đã tạo profile tổng hợp: {combined_path}")
+    
+    # Lưu metadata tổng hợp
+    summary_path = template_dir / "profiles_summary.json"
+    with open(summary_path, 'w', encoding='utf-8') as f:
+        json.dump(result, f, indent=2, ensure_ascii=False)
+    
+    print(f"\n✅ Hoàn thành! Đã tạo profile cho {len(result['people'])} người")
+    print(f"Summary: {summary_path}")
+    
+    return result
+
+
+def extract_features_from_keypoints_sequence(
+    keypoints_sequence: np.ndarray,
+    metadata: Dict,
+    output_path: Path = None
+) -> Dict:
+    """
+    Trích xuất features từ keypoints sequence (cho một người)
+    
+    Args:
+        keypoints_sequence: [n_frames, 17, 3]
+        metadata: Video metadata
+        output_path: Đường dẫn lưu profile
+        
+    Returns:
+        Dict chứa profile
+    """
+    # Làm mượt skeleton
+    print("  Đang làm mượt skeleton...")
+    smoothed_skeletons = smooth_keypoints_sequence(keypoints_sequence)
+    
+    # Tính các đặc điểm cho từng frame
+    features_per_frame = []
+    
+    print("  Đang tính toán đặc điểm hình học...")
+    for frame_idx, skeleton in enumerate(smoothed_skeletons):
+        features = calculate_frame_features(skeleton)
+        features['frame_idx'] = frame_idx
+        features['timestamp'] = frame_idx / metadata['fps']
+        features_per_frame.append(features)
+    
+    # Tính giá trị trung bình và các thống kê
+    profile = calculate_profile_statistics(features_per_frame, metadata)
+    
+    # Lưu profile nếu có output_path
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        import json
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(profile, f, indent=2, ensure_ascii=False)
+    
+    return profile
+
+
+def create_combined_profile(profiles: List[Dict], metadata: Dict) -> Dict:
+    """
+    Tạo profile tổng hợp từ nhiều profiles (trung bình)
+    
+    Args:
+        profiles: List các profile
+        metadata: Video metadata
+        
+    Returns:
+        Profile tổng hợp
+    """
+    if len(profiles) == 0:
+        return {}
+    
+    combined = {
+        'metadata': metadata,
+        'num_profiles': len(profiles),
+        'statistics': {}
+    }
+    
+    # Tính trung bình cho từng thống kê
+    stats_keys = ['arm_angle', 'leg_angle', 'arm_height', 'leg_height', 'head_angle']
+    
+    for key in stats_keys:
+        if key not in profiles[0]['statistics']:
+            continue
+        
+        stat = profiles[0]['statistics'][key]
+        
+        if isinstance(stat, dict):
+            # Nested dict (arm_angle có left/right)
+            combined['statistics'][key] = {}
+            for sub_key in stat.keys():
+                if isinstance(stat[sub_key], dict) and 'mean' in stat[sub_key]:
+                    # Tính trung bình của mean
+                    means = [p['statistics'][key][sub_key]['mean'] 
+                            for p in profiles 
+                            if key in p['statistics'] and sub_key in p['statistics'][key]
+                            and p['statistics'][key][sub_key] is not None
+                            and 'mean' in p['statistics'][key][sub_key]
+                            and p['statistics'][key][sub_key]['mean'] is not None]
+                    stds = [p['statistics'][key][sub_key]['std'] 
+                           for p in profiles 
+                           if key in p['statistics'] and sub_key in p['statistics'][key]
+                           and p['statistics'][key][sub_key] is not None
+                           and 'std' in p['statistics'][key][sub_key]
+                           and p['statistics'][key][sub_key]['std'] is not None]
+                    
+                    if means:
+                        combined['statistics'][key][sub_key] = {
+                            'mean': float(np.mean(means)),
+                            'std': float(np.mean(stds)) if stds else None
+                        }
+        elif isinstance(stat, dict) and 'mean' in stat:
+            # Direct dict với mean/std
+            means = [p['statistics'][key]['mean'] 
+                    for p in profiles 
+                    if key in p['statistics'] and p['statistics'][key] is not None
+                    and 'mean' in p['statistics'][key]
+                    and p['statistics'][key]['mean'] is not None]
+            stds = [p['statistics'][key]['std'] 
+                   for p in profiles 
+                   if key in p['statistics'] and p['statistics'][key] is not None
+                   and 'std' in p['statistics'][key]
+                   and p['statistics'][key]['std'] is not None]
+            
+            if means:
+                combined['statistics'][key] = {
+                    'mean': float(np.mean(means)),
+                    'std': float(np.mean(stds)) if stds else None
+                }
+    
+    return combined
+
+
 def extract_features_from_skeleton(
     skeleton_data: Dict,
     output_path: Path = None
@@ -265,32 +480,82 @@ def detect_step_rhythm(features_per_frame: List[Dict], metadata: Dict) -> Dict:
 
 if __name__ == "__main__":
     import sys
+    import argparse
     
-    skeleton_path = config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_SKELETON_NAME
+    parser = argparse.ArgumentParser(description="Trích xuất đặc điểm hình học")
+    parser.add_argument('--skeleton-path', type=str, default=None,
+                       help='Đường dẫn skeleton file (chế độ cũ)')
+    parser.add_argument('--template-dir', type=str, default=None,
+                       help='Thư mục template (chế độ mới - nhiều người)')
+    parser.add_argument('--template-name', type=str, default=None,
+                       help='Tên template (tự động tìm trong golden_template)')
+    parser.add_argument('--no-combined', action='store_true',
+                       help='Không tạo profile tổng hợp')
     
-    if len(sys.argv) > 1:
-        skeleton_path = Path(sys.argv[1])
-    
-    if not skeleton_path.exists():
-        print(f"Không tìm thấy skeleton file: {skeleton_path}")
-        print("Hãy chạy step1_golden_template.py trước!")
-        sys.exit(1)
+    args = parser.parse_args()
     
     try:
-        # Load skeleton data
-        with open(skeleton_path, 'rb') as f:
-            skeleton_data = pickle.load(f)
+        if args.template_dir or args.template_name:
+            # Chế độ mới: nhiều người
+            if args.template_dir:
+                template_dir = Path(args.template_dir)
+            elif args.template_name:
+                template_dir = config.GOLDEN_TEMPLATE_DIR / args.template_name
+            else:
+                # Tự động tìm template mới nhất
+                template_dirs = [d for d in config.GOLDEN_TEMPLATE_DIR.iterdir() 
+                               if d.is_dir() and (d / "metadata.json").exists()]
+                if not template_dirs:
+                    raise ValueError("Không tìm thấy template nào!")
+                template_dir = max(template_dirs, key=lambda p: p.stat().st_mtime)
+                print(f"Tự động chọn template: {template_dir.name}")
+            
+            if not template_dir.exists():
+                raise ValueError(f"Không tìm thấy template: {template_dir}")
+            
+            result = extract_features_multi_person(
+                template_dir,
+                create_combined=not args.no_combined
+            )
+            
+            print("\n✅ Hoàn thành Bước 2 (nhiều người)!")
+            for person_id, info in result['people'].items():
+                profile = info['profile']
+                print(f"\nNgười {person_id}:")
+                if 'arm_angle' in profile['statistics']:
+                    print(f"  - Góc tay: {profile['statistics']['arm_angle']['left'].get('mean', 0):.2f}°")
+                if 'leg_angle' in profile['statistics']:
+                    print(f"  - Góc chân: {profile['statistics']['leg_angle']['left'].get('mean', 0):.2f}°")
         
-        # Trích xuất features
-        profile = extract_features_from_skeleton(skeleton_data)
-        
-        print("\n✅ Hoàn thành Bước 2!")
-        print(f"Profile đã được lưu: {config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_PROFILE_NAME}")
-        print(f"\nThống kê:")
-        print(f"- Góc tay trung bình: {profile['statistics']['arm_angle']['left']['mean']:.2f}°")
-        print(f"- Góc chân trung bình: {profile['statistics']['leg_angle']['left']['mean']:.2f}°")
-        if profile['statistics']['step_rhythm']['detected']:
-            print(f"- Nhịp bước: {profile['statistics']['step_rhythm']['steps_per_minute']:.2f} bước/phút")
+        else:
+            # Chế độ cũ: một người
+            skeleton_path = config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_SKELETON_NAME
+            
+            if args.skeleton_path:
+                skeleton_path = Path(args.skeleton_path)
+            
+            if not skeleton_path.exists():
+                print(f"Không tìm thấy skeleton file: {skeleton_path}")
+                print("Hãy chạy step1_golden_template.py trước!")
+                sys.exit(1)
+            
+            # Load skeleton data
+            with open(skeleton_path, 'rb') as f:
+                skeleton_data = pickle.load(f)
+            
+            # Trích xuất features
+            profile = extract_features_from_skeleton(skeleton_data)
+            
+            print("\n✅ Hoàn thành Bước 2!")
+            print(f"Profile đã được lưu: {config.GOLDEN_TEMPLATE_DIR / config.GOLDEN_PROFILE_NAME}")
+            print(f"\nThống kê:")
+            if 'arm_angle' in profile['statistics']:
+                print(f"- Góc tay trung bình: {profile['statistics']['arm_angle']['left']['mean']:.2f}°")
+            if 'leg_angle' in profile['statistics']:
+                print(f"- Góc chân trung bình: {profile['statistics']['leg_angle']['left']['mean']:.2f}°")
+            if profile['statistics'].get('step_rhythm', {}).get('detected'):
+                print(f"- Nhịp bước: {profile['statistics']['step_rhythm']['steps_per_minute']:.2f} bước/phút")
+    
     except Exception as e:
         print(f"❌ Lỗi: {e}")
         import traceback

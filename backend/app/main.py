@@ -22,7 +22,7 @@ app.add_middleware(
 )
 
 # Import và đăng ký routes
-# from backend.app.api import auth, candidates, camera, scoring
+from backend.app.api import auth
 
 @app.get("/")
 async def root():
@@ -32,8 +32,9 @@ async def root():
 async def health():
     return {"status": "ok"}
 
-# TODO: Đăng ký các routes khi implement
-# app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+# Đăng ký routes
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+# TODO: Đăng ký các routes khác khi implement
 # app.include_router(candidates.router, prefix="/api/candidates", tags=["candidates"])
 # app.include_router(camera.router, prefix="/api/camera", tags=["camera"])
 # app.include_router(scoring.router, prefix="/api/scoring", tags=["scoring"])

@@ -26,8 +26,8 @@ def calculate_motion_score(keypoints_sequence: np.ndarray) -> float:
     if len(keypoints_sequence) < 2:
         return 0.0
     
-    # Kiểm tra shape hợp lệ
-    if keypoints_sequence.ndim != 3 or keypoints_sequence.shape[1] == 0 or keypoints_sequence.shape[2] < 2:
+    # Kiểm tra shape hợp lệ: cần ít nhất 3 channels (x, y, confidence)
+    if keypoints_sequence.ndim != 3 or keypoints_sequence.shape[1] == 0 or keypoints_sequence.shape[2] < 3:
         return 0.0
     
     # Tính variance của mỗi keypoint qua các frame
@@ -117,8 +117,9 @@ def calculate_skeleton_similarity(
     if keypoints1 is None or keypoints2 is None:
         return 0.0
     
+    # Kiểm tra shape: cần ít nhất 17 keypoints và 3 channels (x, y, confidence)
     if (keypoints1.shape[0] < 17 or keypoints2.shape[0] < 17 or
-        keypoints1.shape[1] < 2 or keypoints2.shape[1] < 2):
+        keypoints1.shape[1] < 3 or keypoints2.shape[1] < 3):
         return 0.0
     
     # Định nghĩa các đoạn xương quan trọng

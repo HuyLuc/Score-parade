@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.app.api import global as global_api
+from backend.app.api import global_mode
 from backend.app.config import API_CONFIG
 from backend.app.utils.exceptions import CustomException
 
@@ -36,7 +36,7 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(global_api.router)
+app.include_router(global_mode.router)
 
 
 @app.exception_handler(CustomException)

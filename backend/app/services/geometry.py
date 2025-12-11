@@ -275,12 +275,11 @@ def calculate_head_angle(keypoints: np.ndarray) -> Optional[float]:
     # Vector từ cổ đến mũi
     vec = nose - neck
     
-    # Sử dụng atan2 để có giá trị có dấu
-    # atan2(x, -y) vì:
-    # - Y tăng xuống dưới trong tọa độ ảnh (Y=0 ở trên)
-    # - X tăng sang phải (X=0 ở trái)
-    # - Khi vec[0] > 0 (mũi bên phải cổ): góc dương = ngẩng/nghiêng phải
-    # - Khi vec[0] < 0 (mũi bên trái cổ): góc âm = cúi/nghiêng trái
+    # Sử dụng atan2 để có giá trị có dấu (-180° đến +180°)
+    # atan2(x, -y) vì Y tăng xuống trong tọa độ ảnh, cần đảo dấu
+    # Góc dương: vec[0] > 0 (vector nghiêng phải)
+    # Góc âm: vec[0] < 0 (vector nghiêng trái)
+    # Góc ~0°: vector thẳng đứng (đầu thẳng)
     angle = np.degrees(np.arctan2(vec[0], -vec[1]))
     
     # Clamp về khoảng -90 đến +90 để tập trung vào góc dọc

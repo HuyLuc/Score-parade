@@ -280,21 +280,40 @@ def calculate_torso_stability(
     Tính độ ổn định thân người (variance của vị trí hông)
     
     Args:
-        keypoints_sequence: Array [n_frames, 17, 2] hoặc [n_frames, 17, 3]
+        keypoints_sequence: Array [n_frames, 17, 2/3] hoặc [17, 2/3] (single frame)
         
     Returns:
-        Variance của vị trí hông (pixel^2)
+        Variance của vị trí hông (pixel^2), hoặc None nếu là single frame
     """
     left_hip_idx = config.KEYPOINT_INDICES["left_hip"]
     right_hip_idx = config.KEYPOINT_INDICES["right_hip"]
     
+    # Kiểm tra shape để xác định single frame hay sequence
+    if keypoints_sequence.ndim == 2:
+        # Single frame [17, 2/3] - không thể tính variance, trả về None
+        return None
+    elif keypoints_sequence.ndim == 3:
+        # Sequence [n_frames, 17, 2/3]
+        if keypoints_sequence.shape[0] < 2:
+            # Cần ít nhất 2 frames để tính variance
+            return None
+    else:
+        # Shape không hợp lệ
+        return None
+    
     # Lấy tọa độ hông trung bình qua các frame
     hip_positions = []
     for frame_keypoints in keypoints_sequence:
+        if frame_keypoints.ndim == 1:
+            # Nếu frame_keypoints là 1D, bỏ qua
+            continue
         left_hip = frame_keypoints[left_hip_idx, :2]
         right_hip = frame_keypoints[right_hip_idx, :2]
         center_hip = (left_hip + right_hip) / 2
         hip_positions.append(center_hip)
+    
+    if len(hip_positions) < 2:
+        return None
     
     hip_positions = np.array(hip_positions)
     

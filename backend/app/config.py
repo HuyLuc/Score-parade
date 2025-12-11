@@ -42,6 +42,7 @@ GOLDEN_TEMPLATE_CONFIG = {
 POSE_CONFIG = {
     "model_type": "yolov8",  # rtmpose hoặc yolov8
     "model_path": None,  # Đường dẫn model (None = tự động download)
+    "yolov8_model": "yolov8n-pose.pt",  # Tên model YOLOv8 (sẽ tự download)
     "device": "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu",
     "conf_threshold": 0.25,  # Confidence threshold
 }

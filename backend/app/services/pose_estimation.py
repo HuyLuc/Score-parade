@@ -106,7 +106,7 @@ class PoseEstimator:
     
     def _predict_yolov8(self, frame: np.ndarray) -> List[np.ndarray]:
         """Dự đoán bằng YOLOv8-Pose"""
-        conf_threshold = config.POSE_CONFIG["confidence_threshold"]
+        conf_threshold = config.POSE_CONFIG.get("conf_threshold", 0.25)
         kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.3)
         
         results = self.model(frame, verbose=False, conf=conf_threshold)
@@ -153,7 +153,7 @@ class PoseEstimator:
             for i in range(0, len(frames), batch_size):
                 batch_frames = frames[i:i+batch_size]
                 batch_results = self.model(batch_frames, verbose=False, 
-                                          conf=config.POSE_CONFIG["confidence_threshold"])
+                                          conf=config.POSE_CONFIG.get("conf_threshold", 0.25))
                 
                 for result in batch_results:
                     keypoints_list = []
@@ -163,7 +163,7 @@ class PoseEstimator:
                         kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.3)
                         
                         for j, kpts in enumerate(keypoints):
-                            if boxes[j, 4] >= config.POSE_CONFIG["confidence_threshold"]:
+                            if boxes[j, 4] >= config.POSE_CONFIG.get("conf_threshold", 0.25):
                                 valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
                                 min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 6)
                                 if valid_kpts >= min_valid:

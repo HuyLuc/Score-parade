@@ -1,5 +1,0 @@
-/**
- * Views package
- */
-
-export {};

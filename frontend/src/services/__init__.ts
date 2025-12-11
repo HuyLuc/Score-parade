@@ -1,5 +1,0 @@
-/**
- * Services package
- */
-
-export {};

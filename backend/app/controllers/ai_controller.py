@@ -93,16 +93,45 @@ class AIController:
             profile_path = GOLDEN_TEMPLATE_DIR / "golden_profile.json"
         
         if profile_path.exists():
-            with open(profile_path, 'r', encoding='utf-8') as f:
-                self.golden_profile = json.load(f)
+            try:
+                with open(profile_path, 'r', encoding='utf-8') as f:
+                    self.golden_profile = json.load(f)
+            except (json.JSONDecodeError, IOError, UnicodeDecodeError, ValueError) as e:
+                print(f"⚠️ Cảnh báo: Không thể load golden profile: {e}")
+                self.golden_profile = None
+            except Exception as e:
+                # Catch any other unexpected exceptions
+                print(f"⚠️ Cảnh báo: Lỗi không mong đợi khi load golden profile: {type(e).__name__}: {e}")
+                self.golden_profile = None
+        else:
+            print(f"⚠️ Cảnh báo: Không tìm thấy golden profile: {profile_path}")
+            self.golden_profile = None
         
         # Load golden keypoints
         skeleton_path = GOLDEN_TEMPLATE_DIR / "golden_skeleton.pkl"
         if skeleton_path.exists():
-            with open(skeleton_path, 'rb') as f:
-                golden_data = pickle.load(f)
-            if 'valid_skeletons' in golden_data:
-                self.golden_keypoints = np.array(golden_data['valid_skeletons'])
+            try:
+                with open(skeleton_path, 'rb') as f:
+                    golden_data = pickle.load(f)
+                if 'valid_skeletons' in golden_data:
+                    self.golden_keypoints = np.array(golden_data['valid_skeletons'])
+                elif 'keypoints' in golden_data:
+                    # Fallback nếu không có 'valid_skeletons'
+                    self.golden_keypoints = np.array(golden_data['keypoints'])
+                else:
+                    print(f"⚠️ Cảnh báo: Golden skeleton không có 'valid_skeletons' hoặc 'keypoints'")
+                    self.golden_keypoints = None
+            except (pickle.UnpicklingError, IOError, EOFError, ValueError, AttributeError, KeyError) as e:
+                # Catch common pickle errors: UnpicklingError, IOError, EOFError (empty file), 
+                # ValueError (corrupted data), AttributeError (class definition issues), KeyError (missing keys)
+                print(f"⚠️ Cảnh báo: Không thể load golden skeleton: {type(e).__name__}: {e}")
+                self.golden_keypoints = None
+            except Exception as e:
+                # Catch any other unexpected exceptions
+                print(f"⚠️ Cảnh báo: Lỗi không mong đợi khi load golden skeleton: {type(e).__name__}: {e}")
+                self.golden_keypoints = None
+        else:
+            self.golden_keypoints = None
     
     def detect_posture_errors(
         self,
@@ -351,18 +380,9 @@ class AIController:
         """Kiểm tra tư thế lưng"""
         errors = []
         
-        torso_stability = calculate_torso_stability(keypoints)
-        
-        if torso_stability is not None:
-            threshold = ERROR_THRESHOLDS.get("torso_stability", 0.7)
-            if torso_stability < threshold:
-                diff = abs(torso_stability - threshold)
-                errors.append(self._build_error(
-                    "torso_stability",
-                    "Lưng không ổn định",
-                    diff,
-                    "back"
-                ))
+        # torso_stability cần nhiều frames để tính variance
+        # Nên không kiểm tra ở đây (single frame)
+        # torso_stability sẽ được kiểm tra trong global mode với nhiều frames
         
         return errors
 

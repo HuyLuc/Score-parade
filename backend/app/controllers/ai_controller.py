@@ -18,7 +18,8 @@ from backend.app.services.geometry import (
     calculate_torso_stability
 )
 from backend.app.services.keypoint_normalization import normalize_keypoints_relative
-from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG
+from backend.app.services.temporal_smoothing import TemporalSmoother, KeypointSmoother
+from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG
 
 
 class AIController:
@@ -29,6 +30,29 @@ class AIController:
         self.golden_profile = None
         self.golden_keypoints = None
         self.beat_detector = None  # Beat detector for rhythm checking
+        
+        # Initialize temporal smoothers
+        smoothing_enabled = TEMPORAL_SMOOTHING_CONFIG.get("enabled", False)
+        window_size = TEMPORAL_SMOOTHING_CONFIG.get("window_size", 5)
+        method = TEMPORAL_SMOOTHING_CONFIG.get("method", "moving_average")
+        
+        if smoothing_enabled:
+            self.keypoint_smoother = KeypointSmoother(
+                window_size=window_size,
+                num_keypoints=17,
+                method=method
+            )
+            # Metric smoothers for arm, leg, head angles (left and right)
+            self.metric_smoothers = {
+                "arm_angle_left": TemporalSmoother(window_size=window_size, method=method),
+                "arm_angle_right": TemporalSmoother(window_size=window_size, method=method),
+                "leg_angle_left": TemporalSmoother(window_size=window_size, method=method),
+                "leg_angle_right": TemporalSmoother(window_size=window_size, method=method),
+                "head_angle": TemporalSmoother(window_size=window_size, method=method),
+            }
+        else:
+            self.keypoint_smoother = None
+            self.metric_smoothers = None
 
     # ===================== Helper =====================
     def _build_error(
@@ -191,30 +215,49 @@ class AIController:
         if self.golden_profile is None:
             self.load_golden_template()
         
+        # Apply temporal smoothing to keypoints if enabled
+        smoothed_keypoints = keypoints
+        if TEMPORAL_SMOOTHING_CONFIG.get("enabled", False) and TEMPORAL_SMOOTHING_CONFIG.get("smooth_keypoints", True):
+            if self.keypoint_smoother is not None:
+                self.keypoint_smoother.add_keypoints(keypoints)
+                smoothed = self.keypoint_smoother.get_smoothed_keypoints()
+                if smoothed is not None:
+                    smoothed_keypoints = smoothed
+        
         # Normalize keypoints nếu được bật trong config
-        normalized_keypoints = keypoints
+        normalized_keypoints = smoothed_keypoints
         if NORMALIZATION_CONFIG.get("enabled", True):
-            normalized_keypoints = normalize_keypoints_relative(keypoints)
+            normalized_keypoints = normalize_keypoints_relative(smoothed_keypoints)
             if normalized_keypoints is None:
                 # Không đủ keypoints để normalize, dùng keypoints gốc
                 print(f"⚠️ Cảnh báo: Không thể normalize keypoints tại frame {frame_number}, sử dụng keypoints gốc")
-                normalized_keypoints = keypoints
+                normalized_keypoints = smoothed_keypoints
         
         # Kiểm tra từng bộ phận với normalized keypoints
-        # 1. Tay (Arm)
-        arm_errors = self._check_arm_posture(normalized_keypoints)
+        # 1. Tay (Arm) - use smoothed version if enabled
+        use_smoothed_metrics = TEMPORAL_SMOOTHING_CONFIG.get("enabled", False) and TEMPORAL_SMOOTHING_CONFIG.get("smooth_metrics", True)
+        if use_smoothed_metrics and self.metric_smoothers is not None:
+            arm_errors = self._check_arm_posture_smoothed(normalized_keypoints)
+        else:
+            arm_errors = self._check_arm_posture(normalized_keypoints)
         errors.extend(arm_errors)
         
-        # 2. Chân (Leg)
-        leg_errors = self._check_leg_posture(normalized_keypoints)
+        # 2. Chân (Leg) - use smoothed version if enabled
+        if use_smoothed_metrics and self.metric_smoothers is not None:
+            leg_errors = self._check_leg_posture_smoothed(normalized_keypoints)
+        else:
+            leg_errors = self._check_leg_posture(normalized_keypoints)
         errors.extend(leg_errors)
         
         # 3. Vai (Shoulder)
         shoulder_errors = self._check_shoulder_posture(normalized_keypoints)
         errors.extend(shoulder_errors)
         
-        # 4. Mũi (Nose) - Kiểm tra đầu có cúi không
-        nose_errors = self._check_head_posture(normalized_keypoints)
+        # 4. Mũi (Nose) - Kiểm tra đầu có cúi không - use smoothed version if enabled
+        if use_smoothed_metrics and self.metric_smoothers is not None:
+            nose_errors = self._check_head_posture_smoothed(normalized_keypoints)
+        else:
+            nose_errors = self._check_head_posture(normalized_keypoints)
         errors.extend(nose_errors)
         
         # 5. Cổ (Neck)
@@ -521,4 +564,223 @@ class AIController:
             ))
         
         return errors
+    
+    def _check_arm_posture_smoothed(self, keypoints: np.ndarray) -> List[Dict]:
+        """
+        Kiểm tra tư thế tay với temporal smoothing
+        
+        Smooths arm angles across frames before comparing to golden template
+        to reduce false positives from keypoint jitter.
+        """
+        errors = []
+        
+        # Tính góc tay
+        left_arm_angle = calculate_arm_angle(keypoints, "left")
+        right_arm_angle = calculate_arm_angle(keypoints, "right")
+        
+        # Smooth angles before checking
+        if left_arm_angle is not None:
+            self.metric_smoothers["arm_angle_left"].add_value(left_arm_angle)
+        if right_arm_angle is not None:
+            self.metric_smoothers["arm_angle_right"].add_value(right_arm_angle)
+        
+        # Get smoothed values
+        smoothed_left = self.metric_smoothers["arm_angle_left"].get_smoothed_value()
+        smoothed_right = self.metric_smoothers["arm_angle_right"].get_smoothed_value()
+        
+        # Check left arm with smoothed value
+        if smoothed_left is not None and self.golden_profile and "statistics" in self.golden_profile:
+            stats = self.golden_profile["statistics"]
+            if "arm_angle" in stats and "left" in stats["arm_angle"]:
+                golden_left = stats["arm_angle"]["left"].get("mean", 0)
+                golden_std = stats["arm_angle"]["left"].get("std", 5.0)
+                
+                is_out, diff = self._is_outlier(
+                    smoothed_left,
+                    golden_left,
+                    golden_std,
+                    ERROR_THRESHOLDS.get("arm_angle", 10.0)
+                )
+                if is_out:
+                    desc = "Tay trái quá cao" if smoothed_left > (golden_left or 0) else "Tay trái quá thấp"
+                    errors.append(self._build_error(
+                        "arm_angle",
+                        desc,
+                        diff,
+                        "arm",
+                        "left"
+                    ))
+        
+        # Check right arm with smoothed value
+        if smoothed_right is not None and self.golden_profile and "statistics" in self.golden_profile:
+            stats = self.golden_profile["statistics"]
+            if "arm_angle" in stats and "right" in stats["arm_angle"]:
+                golden_right = stats["arm_angle"]["right"].get("mean", 0)
+                golden_std = stats["arm_angle"]["right"].get("std", 5.0)
+                
+                is_out, diff = self._is_outlier(
+                    smoothed_right,
+                    golden_right,
+                    golden_std,
+                    ERROR_THRESHOLDS.get("arm_angle", 10.0)
+                )
+                if is_out:
+                    desc = "Tay phải quá cao" if smoothed_right > (golden_right or 0) else "Tay phải quá thấp"
+                    errors.append(self._build_error(
+                        "arm_angle",
+                        desc,
+                        diff,
+                        "arm",
+                        "right"
+                    ))
+        
+        return errors
+    
+    def _check_leg_posture_smoothed(self, keypoints: np.ndarray) -> List[Dict]:
+        """
+        Kiểm tra tư thế chân với temporal smoothing
+        
+        Smooths leg angles across frames before comparing to golden template.
+        """
+        errors = []
+        
+        left_leg_angle = calculate_leg_angle(keypoints, "left")
+        right_leg_angle = calculate_leg_angle(keypoints, "right")
+        
+        # Smooth angles before checking
+        if left_leg_angle is not None:
+            self.metric_smoothers["leg_angle_left"].add_value(left_leg_angle)
+        if right_leg_angle is not None:
+            self.metric_smoothers["leg_angle_right"].add_value(right_leg_angle)
+        
+        # Get smoothed values
+        smoothed_left = self.metric_smoothers["leg_angle_left"].get_smoothed_value()
+        smoothed_right = self.metric_smoothers["leg_angle_right"].get_smoothed_value()
+        
+        # Check left leg with smoothed value
+        if smoothed_left is not None and self.golden_profile and "statistics" in self.golden_profile:
+            stats = self.golden_profile["statistics"]
+            if "leg_angle" in stats and "left" in stats["leg_angle"]:
+                golden_left = stats["leg_angle"]["left"].get("mean", 0)
+                golden_std = stats["leg_angle"]["left"].get("std", 5.0)
+                is_out, diff = self._is_outlier(
+                    smoothed_left,
+                    golden_left,
+                    golden_std,
+                    ERROR_THRESHOLDS.get("leg_angle", 10.0)
+                )
+                if is_out:
+                    desc = f"Chân trái {'quá cao' if smoothed_left > (golden_left or 0) else 'quá thấp'}"
+                    errors.append(self._build_error(
+                        "leg_angle",
+                        desc,
+                        diff,
+                        "leg",
+                        "left"
+                    ))
+        
+        # Check right leg with smoothed value
+        if smoothed_right is not None and self.golden_profile and "statistics" in self.golden_profile:
+            stats = self.golden_profile["statistics"]
+            if "leg_angle" in stats and "right" in stats["leg_angle"]:
+                golden_right = stats["leg_angle"]["right"].get("mean", 0)
+                golden_std = stats["leg_angle"]["right"].get("std", 5.0)
+                is_out, diff = self._is_outlier(
+                    smoothed_right,
+                    golden_right,
+                    golden_std,
+                    ERROR_THRESHOLDS.get("leg_angle", 10.0)
+                )
+                if is_out:
+                    desc = f"Chân phải {'quá cao' if smoothed_right > (golden_right or 0) else 'quá thấp'}"
+                    errors.append(self._build_error(
+                        "leg_angle",
+                        desc,
+                        diff,
+                        "leg",
+                        "right"
+                    ))
+        
+        return errors
+    
+    def _check_head_posture_smoothed(self, keypoints: np.ndarray) -> List[Dict]:
+        """
+        Kiểm tra tư thế đầu (mũi) với temporal smoothing
+        
+        Smooths head angle across frames before comparing to golden template.
+        """
+        errors = []
+        
+        head_angle = calculate_head_angle(keypoints)
+        
+        if head_angle is None:
+            return errors
+        
+        # Smooth head angle
+        self.metric_smoothers["head_angle"].add_value(head_angle)
+        smoothed_head = self.metric_smoothers["head_angle"].get_smoothed_value()
+        
+        if smoothed_head is None:
+            return errors
+        
+        # Lấy golden statistics nếu có
+        golden_mean, golden_std = self._get_golden_stat("head_angle")
+        threshold = ERROR_THRESHOLDS.get("head_angle", 30.0)
+        
+        # Nếu có golden template, so sánh với nó
+        if golden_mean is not None and golden_std is not None:
+            is_out, diff = self._is_outlier(
+                smoothed_head,
+                golden_mean,
+                golden_std,
+                threshold
+            )
+            
+            if is_out:
+                # Phân biệt cúi vs ngẩng dựa trên dấu
+                if smoothed_head < golden_mean:
+                    desc = "Đầu cúi quá thấp"
+                else:
+                    desc = "Đầu ngẩng quá cao"
+                
+                errors.append(self._build_error(
+                    "head_angle",
+                    desc,
+                    diff,
+                    "nose"
+                ))
+        else:
+            # Không có golden template, dùng threshold tuyệt đối
+            if smoothed_head < -threshold:
+                diff = abs(smoothed_head) - threshold
+                errors.append(self._build_error(
+                    "head_angle",
+                    f"Đầu cúi quá thấp ({smoothed_head:.1f}°)",
+                    diff,
+                    "nose"
+                ))
+            elif smoothed_head > threshold:
+                diff = smoothed_head - threshold
+                errors.append(self._build_error(
+                    "head_angle",
+                    f"Đầu ngẩng quá cao ({smoothed_head:.1f}°)",
+                    diff,
+                    "nose"
+                ))
+        
+        return errors
+    
+    def reset_smoothers(self) -> None:
+        """
+        Reset all temporal smoothers
+        
+        Should be called when starting a new video or session to ensure
+        smoothing doesn't carry over from previous frames.
+        """
+        if self.keypoint_smoother is not None:
+            self.keypoint_smoother.reset()
+        
+        if self.metric_smoothers is not None:
+            for smoother in self.metric_smoothers.values():
+                smoother.reset()
 

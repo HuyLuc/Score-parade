@@ -134,6 +134,15 @@ MOTION_DETECTION_CONFIG = {
     "batch_size": 10,        # Number of motion events before batch processing
 }
 
+# Cấu hình normalization cho keypoints
+NORMALIZATION_CONFIG = {
+    "enabled": True,  # Bật/tắt normalization
+    "method": "relative",  # "relative" hoặc "absolute"
+    "reference_torso_length": 100.0,  # Chiều dài torso chuẩn (pixels) cho absolute method
+    "min_torso_length": 10.0,  # Torso tối thiểu để coi là hợp lệ
+    "min_confidence": 0.5,  # Confidence tối thiểu cho keypoints vai/hông
+}
+
 # Định nghĩa keypoints (theo COCO format)
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",

@@ -152,6 +152,15 @@ TEMPORAL_SMOOTHING_CONFIG = {
     "smooth_metrics": True,  # Làm mượt các metric (góc, chiều cao)
 }
 
+# Cấu hình adaptive thresholds dựa trên golden template statistics
+ADAPTIVE_THRESHOLD_CONFIG = {
+    "enabled": True,  # Bật/tắt adaptive thresholds
+    "multiplier": 3.0,  # N-sigma multiplier (3.0 = 99.7% confidence interval)
+    "min_ratio": 0.3,   # Minimum threshold = 30% of default
+    "max_ratio": 2.0,   # Maximum threshold = 200% of default
+    "cache_thresholds": True,  # Cache computed thresholds per session
+}
+
 # Định nghĩa keypoints (theo COCO format)
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",

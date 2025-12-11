@@ -17,7 +17,8 @@ from backend.app.services.geometry import (
     calculate_head_angle,
     calculate_torso_stability
 )
-from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS
+from backend.app.services.keypoint_normalization import normalize_keypoints_relative
+from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG
 
 
 class AIController:
@@ -190,29 +191,38 @@ class AIController:
         if self.golden_profile is None:
             self.load_golden_template()
         
-        # Kiểm tra từng bộ phận
+        # Normalize keypoints nếu được bật trong config
+        normalized_keypoints = keypoints
+        if NORMALIZATION_CONFIG.get("enabled", True):
+            normalized_keypoints = normalize_keypoints_relative(keypoints)
+            if normalized_keypoints is None:
+                # Không đủ keypoints để normalize, dùng keypoints gốc
+                print(f"⚠️ Cảnh báo: Không thể normalize keypoints tại frame {frame_number}, sử dụng keypoints gốc")
+                normalized_keypoints = keypoints
+        
+        # Kiểm tra từng bộ phận với normalized keypoints
         # 1. Tay (Arm)
-        arm_errors = self._check_arm_posture(keypoints)
+        arm_errors = self._check_arm_posture(normalized_keypoints)
         errors.extend(arm_errors)
         
         # 2. Chân (Leg)
-        leg_errors = self._check_leg_posture(keypoints)
+        leg_errors = self._check_leg_posture(normalized_keypoints)
         errors.extend(leg_errors)
         
         # 3. Vai (Shoulder)
-        shoulder_errors = self._check_shoulder_posture(keypoints)
+        shoulder_errors = self._check_shoulder_posture(normalized_keypoints)
         errors.extend(shoulder_errors)
         
         # 4. Mũi (Nose) - Kiểm tra đầu có cúi không
-        nose_errors = self._check_head_posture(keypoints)
+        nose_errors = self._check_head_posture(normalized_keypoints)
         errors.extend(nose_errors)
         
         # 5. Cổ (Neck)
-        neck_errors = self._check_neck_posture(keypoints)
+        neck_errors = self._check_neck_posture(normalized_keypoints)
         errors.extend(neck_errors)
         
         # 6. Lưng (Back)
-        back_errors = self._check_back_posture(keypoints)
+        back_errors = self._check_back_posture(normalized_keypoints)
         errors.extend(back_errors)
         
         # Thêm metadata

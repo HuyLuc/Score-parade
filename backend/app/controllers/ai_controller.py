@@ -489,7 +489,7 @@ class AIController:
         motion_times = [t for t, _ in motion_keypoints]
         
         # Lấy tolerance từ config
-        tolerance = ERROR_THRESHOLDS.get("step_rhythm", 0.15)
+        tolerance = ERROR_THRESHOLDS.get("rhythm", 0.15)
         
         # Tính lỗi rhythm
         error_count, error_pairs = self.beat_detector.calculate_rhythm_error(

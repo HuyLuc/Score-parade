@@ -6,9 +6,11 @@ import numpy as np
 from pathlib import Path
 import tempfile
 import soundfile as sf
+from contextlib import contextmanager
 
 
-def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 22050) -> str:
+@contextmanager
+def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 22050):
     """
     Create a simple test audio file with click track at specified tempo
     
@@ -44,20 +46,23 @@ def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 220
     
     # Save to temporary file
     temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
-    sf.write(temp_file.name, audio, sr)
+    temp_path = temp_file.name
     temp_file.close()
     
-    return temp_file.name
+    try:
+        sf.write(temp_path, audio, sr)
+        yield temp_path
+    finally:
+        # Cleanup
+        Path(temp_path).unlink(missing_ok=True)
 
 
 def test_beat_detector_initialization():
     """Test BeatDetector initialization with synthetic audio"""
     from backend.app.services.beat_detection import BeatDetector
     
-    # Create test audio
-    audio_path = create_test_audio(duration=5.0, tempo=120.0)
-    
-    try:
+    # Create test audio using context manager
+    with create_test_audio(duration=5.0, tempo=120.0) as audio_path:
         # Initialize detector
         detector = BeatDetector(audio_path)
         
@@ -67,10 +72,6 @@ def test_beat_detector_initialization():
         assert len(detector.beat_times) > 0
         assert detector.sr > 0
         assert len(detector.y) > 0
-        
-    finally:
-        # Clean up
-        Path(audio_path).unlink()
 
 
 def test_get_beat_at_time():
@@ -78,9 +79,7 @@ def test_get_beat_at_time():
     from backend.app.services.beat_detection import BeatDetector
     
     # Create test audio with 120 BPM (beat every 0.5 seconds)
-    audio_path = create_test_audio(duration=5.0, tempo=120.0)
-    
-    try:
+    with create_test_audio(duration=5.0, tempo=120.0) as audio_path:
         detector = BeatDetector(audio_path)
         
         # Test with various timestamps
@@ -94,9 +93,6 @@ def test_get_beat_at_time():
         # Test with timestamp far from any beat (should return None with strict tolerance)
         beat = detector.get_beat_at_time(1.25, tolerance=0.05)
         # This might be None depending on detection accuracy
-        
-    finally:
-        Path(audio_path).unlink()
 
 
 def test_calculate_rhythm_error():
@@ -104,9 +100,7 @@ def test_calculate_rhythm_error():
     from backend.app.services.beat_detection import BeatDetector
     
     # Create test audio with 120 BPM
-    audio_path = create_test_audio(duration=5.0, tempo=120.0)
-    
-    try:
+    with create_test_audio(duration=5.0, tempo=120.0) as audio_path:
         detector = BeatDetector(audio_path)
         
         # Test with motion timestamps that align with beats
@@ -132,9 +126,6 @@ def test_calculate_rhythm_error():
         
         # Should have more errors since timestamps are off-beat
         assert error_count2 >= 0, "Error count should be non-negative"
-        
-    finally:
-        Path(audio_path).unlink()
 
 
 def test_get_expected_beats_in_range():
@@ -142,9 +133,7 @@ def test_get_expected_beats_in_range():
     from backend.app.services.beat_detection import BeatDetector
     
     # Create test audio
-    audio_path = create_test_audio(duration=10.0, tempo=120.0)
-    
-    try:
+    with create_test_audio(duration=10.0, tempo=120.0) as audio_path:
         detector = BeatDetector(audio_path)
         
         # Get beats in first 2 seconds
@@ -160,9 +149,6 @@ def test_get_expected_beats_in_range():
         # Get beats in middle range
         beats2 = detector.get_expected_beats_in_range(3.0, 5.0)
         assert isinstance(beats2, list), "Should return a list"
-        
-    finally:
-        Path(audio_path).unlink()
 
 
 @pytest.mark.skipif(

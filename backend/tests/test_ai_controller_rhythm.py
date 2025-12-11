@@ -7,11 +7,13 @@ import tempfile
 import soundfile as sf
 from pathlib import Path
 from unittest.mock import MagicMock
+from contextlib import contextmanager
 from backend.app.controllers.ai_controller import AIController
 
 
-def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 22050) -> str:
-    """Create a simple test audio file"""
+@contextmanager
+def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 22050):
+    """Create a simple test audio file with context manager"""
     beat_interval = 60.0 / tempo
     samples = int(duration * sr)
     audio = np.zeros(samples)
@@ -28,10 +30,14 @@ def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 220
         t += beat_interval
     
     temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
-    sf.write(temp_file.name, audio, sr)
+    temp_path = temp_file.name
     temp_file.close()
     
-    return temp_file.name
+    try:
+        sf.write(temp_path, audio, sr)
+        yield temp_path
+    finally:
+        Path(temp_path).unlink(missing_ok=True)
 
 
 def test_ai_controller_set_beat_detector():
@@ -43,19 +49,14 @@ def test_ai_controller_set_beat_detector():
     # Initially should be None
     assert ai_controller.beat_detector is None
     
-    # Create test audio
-    audio_path = create_test_audio(duration=5.0, tempo=120.0)
-    
-    try:
+    # Create test audio using context manager
+    with create_test_audio(duration=5.0, tempo=120.0) as audio_path:
         # Set beat detector
         ai_controller.set_beat_detector(audio_path)
         
         # Should now have a beat detector
         assert ai_controller.beat_detector is not None
         assert ai_controller.beat_detector.tempo > 0
-        
-    finally:
-        Path(audio_path).unlink()
 
 
 def test_ai_controller_detect_rhythm_errors_no_detector():
@@ -85,9 +86,7 @@ def test_ai_controller_detect_rhythm_errors_with_detector():
     ai_controller = AIController(pose_service)
     
     # Create test audio with 120 BPM (beat every 0.5s)
-    audio_path = create_test_audio(duration=5.0, tempo=120.0)
-    
-    try:
+    with create_test_audio(duration=5.0, tempo=120.0) as audio_path:
         # Set beat detector
         ai_controller.set_beat_detector(audio_path)
         
@@ -125,9 +124,6 @@ def test_ai_controller_detect_rhythm_errors_with_detector():
             assert "severity" in error
             assert "deduction" in error
             assert "body_part" in error
-            
-    finally:
-        Path(audio_path).unlink()
 
 
 def test_ai_controller_detect_rhythm_errors_empty_motion():
@@ -136,9 +132,7 @@ def test_ai_controller_detect_rhythm_errors_empty_motion():
     pose_service = MagicMock()
     ai_controller = AIController(pose_service)
     
-    audio_path = create_test_audio(duration=5.0, tempo=120.0)
-    
-    try:
+    with create_test_audio(duration=5.0, tempo=120.0) as audio_path:
         ai_controller.set_beat_detector(audio_path)
         
         # Empty motion list should return no errors
@@ -146,9 +140,6 @@ def test_ai_controller_detect_rhythm_errors_empty_motion():
         
         assert isinstance(errors, list)
         assert len(errors) == 0
-        
-    finally:
-        Path(audio_path).unlink()
 
 
 if __name__ == "__main__":

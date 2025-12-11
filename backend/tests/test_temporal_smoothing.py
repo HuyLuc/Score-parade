@@ -169,11 +169,12 @@ class TestKeypointSmoother:
         base_kp = np.array([[100.0, 200.0, 0.9]] * 17)
         
         # Add frames with slight jitter
+        num_keypoints = base_kp.shape[0]
         for i in range(5):
             noisy_kp = base_kp.copy()
             # Add random noise ±5 pixels
-            noisy_kp[:, 0] += np.random.uniform(-5, 5, 17)
-            noisy_kp[:, 1] += np.random.uniform(-5, 5, 17)
+            noisy_kp[:, 0] += np.random.uniform(-5, 5, num_keypoints)
+            noisy_kp[:, 1] += np.random.uniform(-5, 5, num_keypoints)
             smoother.add_keypoints(noisy_kp)
         
         smoothed = smoother.get_smoothed_keypoints()
@@ -361,7 +362,8 @@ class TestNoiseReduction:
         # With window_size=5 at 30fps, latency is ~167ms
         window_size = 5
         fps = 30
-        latency_ms = (window_size / fps) * 1000
+        MS_PER_SECOND = 1000
+        latency_ms = (window_size / fps) * MS_PER_SECOND
         
         # Latency should be under 200ms for acceptable real-time performance
         assert latency_ms < 200

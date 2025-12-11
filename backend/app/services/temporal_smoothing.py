@@ -116,7 +116,7 @@ class KeypointSmoother:
         Args:
             keypoints: Keypoints array of shape (num_keypoints, 3) with [x, y, confidence]
         """
-        if keypoints is None or keypoints.shape[0] < self.num_keypoints:
+        if keypoints is None or keypoints.shape[0] != self.num_keypoints:
             return
         
         # Store a copy to avoid mutations

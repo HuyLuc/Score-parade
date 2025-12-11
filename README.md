@@ -181,6 +181,30 @@ Các tham số có thể điều chỉnh trong `backend/app/config.py`:
 
 - [QUICK_START.md](QUICK_START.md) - Hướng dẫn nhanh
 - [HUONG_DAN_SU_DUNG.md](HUONG_DAN_SU_DUNG.md) - Hướng dẫn chi tiết
+- [docs/DEMO_GLOBAL_MODE.md](docs/DEMO_GLOBAL_MODE.md) - Demo script cho Global Mode API
+
+## 🧪 Demo Global Mode API
+
+Để test workflow của Global Mode API (testing/practising mode):
+
+```bash
+# 1. Start backend server
+cd backend
+python -m uvicorn app.main:app --reload
+
+# 2. Run demo script (trong terminal khác)
+python demo_global_mode.py
+```
+
+Demo script sẽ:
+- ✅ Khởi tạo session (testing/practising mode)
+- ✅ Load và xử lý video từng frame
+- ✅ Hiển thị real-time: motion events, errors, score
+- ✅ Stop tự động khi score < 50 (testing mode)
+- ✅ Hiển thị summary cuối cùng
+- ✅ Cleanup session
+
+Chi tiết: [docs/DEMO_GLOBAL_MODE.md](docs/DEMO_GLOBAL_MODE.md)
 
 ## 🔬 Cách hoạt động
 

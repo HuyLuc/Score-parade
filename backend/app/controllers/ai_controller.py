@@ -1,9 +1,13 @@
 """
 AIController - Phát hiện lỗi của người thí sinh
 """
-import numpy as np
-from typing import List, Dict, Optional, Tuple
+import json
+import math
+import pickle
 from pathlib import Path
+from typing import List, Dict, Optional, Tuple
+
+import numpy as np
 from backend.app.services.pose_service import PoseService
 from backend.app.services.geometry import (
     calculate_arm_angle,
@@ -14,8 +18,6 @@ from backend.app.services.geometry import (
     calculate_torso_stability
 )
 from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS
-import pickle
-import json
 
 
 class AIController:
@@ -35,12 +37,24 @@ class AIController:
         body_part: str,
         side: Optional[str] = None
     ) -> Dict:
-        """Tạo dict lỗi kèm severity và deduction dựa trên config"""
+        """
+        Tạo dict lỗi kèm severity và deduction dựa trên config
+        
+        Sử dụng sqrt để severity tăng chậm hơn (sub-linear growth)
+        thay vì tuyến tính, giúp giảm điểm trừ cho các lỗi nhỏ.
+        
+        VD: 
+        - Trước: diff=60, threshold=30, weight=2.0 → severity = 60/30 = 2.0 → deduction = 2.0 * 2.0 = 4.0
+        - Sau:  diff=60, threshold=30, weight=1.0 → severity = sqrt(60/30) = 1.41 → deduction = 1.0 * 1.41 = 1.41
+        """
         weight = SCORING_CONFIG["error_weights"].get(error_type, 1.0)
         threshold = ERROR_THRESHOLDS.get(error_type, 10.0)
         threshold = threshold if threshold and threshold > 0 else 10.0
-        severity = min(diff / threshold, 10.0)
+        
+        # Sử dụng sqrt để severity tăng chậm hơn + cap ở 3.0 thay vì 10.0
+        severity = min(math.sqrt(diff / threshold), 3.0)
         deduction = weight * severity
+        
         return {
             "type": error_type,
             "description": description,
@@ -67,12 +81,20 @@ class AIController:
         return None, None
 
     def _is_outlier(self, value: float, mean: Optional[float], std: Optional[float], default_threshold: float) -> Tuple[bool, float]:
-        """Kiểm tra vượt ngưỡng so với golden (mean/std) hoặc ngưỡng mặc định"""
+        """
+        Kiểm tra vượt ngưỡng so với golden (mean/std) hoặc ngưỡng mặc định
+        
+        Sử dụng 3-sigma rule (99.7% confidence interval) thay vì 2-sigma (95%)
+        để giảm false positive và tránh trừ điểm quá khắt khe.
+        """
         if value is None:
             return False, 0.0
-        threshold = (std * 2) if std else default_threshold
+        
+        # Thay đổi từ std * 2 → std * 3 (từ 95% CI → 99.7% CI)
+        threshold = (std * 3) if std else default_threshold
         if threshold is None or threshold <= 0:
             threshold = default_threshold
+        
         diff = abs(value - mean) if mean is not None else 0.0
         return diff > threshold, diff
     

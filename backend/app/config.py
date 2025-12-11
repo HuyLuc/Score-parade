@@ -75,29 +75,29 @@ SCORING_CONFIG = {
     "initial_score": 100,  # Điểm ban đầu
     "fail_threshold": 50,  # Điểm tối thiểu để đạt
     "error_weights": {
-        "arm_angle": 2.0,  # Trừ điểm cho lỗi góc tay
-        "leg_angle": 2.0,  # Trừ điểm cho lỗi góc chân
-        "arm_height": 1.5,  # Trừ điểm cho lỗi độ cao tay
-        "leg_height": 1.5,  # Trừ điểm cho lỗi độ cao chân
-        "head_angle": 1.0,  # Trừ điểm cho lỗi góc đầu
-        "torso_stability": 1.0,  # Trừ điểm cho lỗi ổn định thân
-        "rhythm": 2.0,  # Trừ điểm cho lỗi nhịp
-        "distance": 1.5,  # Trừ điểm cho lỗi khoảng cách
-        "speed": 1.5,  # Trừ điểm cho lỗi tốc độ
+        "arm_angle": 1.0,  # Giảm từ 2.0 → 1.0 (giảm 50%)
+        "leg_angle": 1.0,  # Giảm từ 2.0 → 1.0
+        "arm_height": 0.8,  # Giảm từ 1.5 → 0.8
+        "leg_height": 0.8,  # Giảm từ 1.5 → 0.8
+        "head_angle": 0.5,  # Giảm từ 1.0 → 0.5 (QUAN TRỌNG - giảm 50%)
+        "torso_stability": 0.5,  # Giảm từ 1.0 → 0.5
+        "rhythm": 1.0,  # Giảm từ 2.0 → 1.0
+        "distance": 0.8,  # Giảm từ 1.5 → 0.8
+        "speed": 0.8,  # Giảm từ 1.5 → 0.8
     },
 }
 
 # Ngưỡng sai lệch mặc định (dùng khi không có std từ golden)
 ERROR_THRESHOLDS = {
-    "arm_angle": 30.0,
-    "leg_angle": 25.0,
-    "arm_height": 30.0,
-    "leg_height": 25.0,
-    "head_angle": 15.0,
-    "torso_stability": 0.7,  # ổn định (0-1)
-    "step_rhythm": 10.0,  # bước/phút
-    "distance": 30.0,  # pixels approx
-    "speed": 50.0,  # pixels/s
+    "arm_angle": 50.0,  # Tăng từ 30.0 → 50.0 (tăng 67%)
+    "leg_angle": 45.0,  # Tăng từ 25.0 → 45.0 (tăng 80%)
+    "arm_height": 50.0,  # Tăng từ 30.0 → 50.0
+    "leg_height": 45.0,  # Tăng từ 25.0 → 45.0
+    "head_angle": 30.0,  # Tăng từ 15.0 → 30.0 (GẤP ĐÔI - QUAN TRỌNG!)
+    "torso_stability": 0.85,  # Tăng từ 0.7 → 0.85
+    "step_rhythm": 20.0,  # Tăng từ 10.0 → 20.0
+    "distance": 50.0,  # Tăng từ 30.0 → 50.0
+    "speed": 80.0,  # Tăng từ 50.0 → 80.0
 }
 
 # Cấu hình database

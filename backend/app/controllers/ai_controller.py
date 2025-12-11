@@ -19,7 +19,8 @@ from backend.app.services.geometry import (
 )
 from backend.app.services.keypoint_normalization import normalize_keypoints_relative
 from backend.app.services.temporal_smoothing import TemporalSmoother, KeypointSmoother
-from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG
+from backend.app.services.adaptive_threshold import AdaptiveThresholdManager
+from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG
 
 
 class AIController:
@@ -53,6 +54,18 @@ class AIController:
         else:
             self.keypoint_smoother = None
             self.metric_smoothers = None
+        
+        # Initialize adaptive threshold manager
+        adaptive_enabled = ADAPTIVE_THRESHOLD_CONFIG.get("enabled", False)
+        if adaptive_enabled:
+            self.adaptive_threshold_manager = AdaptiveThresholdManager(
+                multiplier=ADAPTIVE_THRESHOLD_CONFIG.get("multiplier", 3.0),
+                min_ratio=ADAPTIVE_THRESHOLD_CONFIG.get("min_ratio", 0.3),
+                max_ratio=ADAPTIVE_THRESHOLD_CONFIG.get("max_ratio", 2.0),
+                enable_cache=ADAPTIVE_THRESHOLD_CONFIG.get("cache_thresholds", True)
+            )
+        else:
+            self.adaptive_threshold_manager = None
 
     # ===================== Helper =====================
     def _build_error(
@@ -106,20 +119,49 @@ class AIController:
             return val.get("mean"), val.get("std")
         return None, None
 
-    def _is_outlier(self, value: float, mean: Optional[float], std: Optional[float], default_threshold: float) -> Tuple[bool, float]:
+    def _is_outlier(
+        self,
+        value: float,
+        mean: Optional[float],
+        std: Optional[float],
+        default_threshold: float,
+        error_type: Optional[str] = None
+    ) -> Tuple[bool, float]:
         """
         Kiểm tra vượt ngưỡng so với golden (mean/std) hoặc ngưỡng mặc định
         
-        Sử dụng 3-sigma rule (99.7% confidence interval) thay vì 2-sigma (95%)
-        để giảm false positive và tránh trừ điểm quá khắt khe.
+        Sử dụng adaptive threshold dựa trên golden template statistics nếu được bật.
+        Falls back to 3-sigma rule hoặc default threshold nếu adaptive disabled.
+        
+        Args:
+            value: Giá trị cần kiểm tra
+            mean: Mean từ golden template
+            std: Standard deviation từ golden template
+            default_threshold: Ngưỡng mặc định
+            error_type: Loại lỗi (e.g., "arm_angle") - dùng cho adaptive threshold
+        
+        Returns:
+            Tuple (is_outlier, diff)
         """
         if value is None:
             return False, 0.0
         
-        # Thay đổi từ std * 2 → std * 3 (từ 95% CI → 99.7% CI)
-        threshold = (std * 3) if std else default_threshold
-        if threshold is None or threshold <= 0:
-            threshold = default_threshold
+        # Use adaptive threshold if enabled and error_type provided
+        if (self.adaptive_threshold_manager is not None and 
+            error_type is not None and 
+            std is not None and
+            ADAPTIVE_THRESHOLD_CONFIG.get("enabled", False)):
+            threshold = self.adaptive_threshold_manager.get_threshold(
+                error_type=error_type,
+                golden_mean=mean,
+                golden_std=std,
+                default_threshold=default_threshold
+            )
+        else:
+            # Fallback: Use 3-sigma rule or default threshold
+            threshold = (std * 3) if std else default_threshold
+            if threshold is None or threshold <= 0:
+                threshold = default_threshold
         
         diff = abs(value - mean) if mean is not None else 0.0
         return diff > threshold, diff
@@ -293,7 +335,8 @@ class AIController:
                         left_arm_angle,
                         golden_left,
                         golden_std,
-                        ERROR_THRESHOLDS.get("arm_angle", 10.0)
+                        ERROR_THRESHOLDS.get("arm_angle", 10.0),
+                        error_type="arm_angle"
                     )
                     if is_out:
                         desc = "Tay trái quá cao" if left_arm_angle > (golden_left or 0) else "Tay trái quá thấp"
@@ -317,7 +360,8 @@ class AIController:
                         right_arm_angle,
                         golden_right,
                         golden_std,
-                        ERROR_THRESHOLDS.get("arm_angle", 10.0)
+                        ERROR_THRESHOLDS.get("arm_angle", 10.0),
+                        error_type="arm_angle"
                     )
                     if is_out:
                         desc = "Tay phải quá cao" if right_arm_angle > (golden_right or 0) else "Tay phải quá thấp"
@@ -350,7 +394,8 @@ class AIController:
                         left_leg_angle,
                         golden_left,
                         golden_std,
-                        ERROR_THRESHOLDS.get("leg_angle", 10.0)
+                        ERROR_THRESHOLDS.get("leg_angle", 10.0),
+                        error_type="leg_angle"
                     )
                     if is_out:
                         desc = f"Chân trái {'quá cao' if left_leg_angle > (golden_left or 0) else 'quá thấp'}"
@@ -370,7 +415,8 @@ class AIController:
                         right_leg_angle,
                         golden_right,
                         golden_std,
-                        ERROR_THRESHOLDS.get("leg_angle", 10.0)
+                        ERROR_THRESHOLDS.get("leg_angle", 10.0),
+                        error_type="leg_angle"
                     )
                     if is_out:
                         desc = f"Chân phải {'quá cao' if right_leg_angle > (golden_right or 0) else 'quá thấp'}"
@@ -433,7 +479,8 @@ class AIController:
                 head_angle,
                 golden_mean,
                 golden_std,
-                threshold
+                threshold,
+                error_type="head_angle"
             )
             
             if is_out:
@@ -597,7 +644,8 @@ class AIController:
                     smoothed_left,
                     golden_left,
                     golden_std,
-                    ERROR_THRESHOLDS.get("arm_angle", 10.0)
+                    ERROR_THRESHOLDS.get("arm_angle", 10.0),
+                    error_type="arm_angle"
                 )
                 if is_out:
                     desc = "Tay trái quá cao" if smoothed_left > (golden_left or 0) else "Tay trái quá thấp"
@@ -620,7 +668,8 @@ class AIController:
                     smoothed_right,
                     golden_right,
                     golden_std,
-                    ERROR_THRESHOLDS.get("arm_angle", 10.0)
+                    ERROR_THRESHOLDS.get("arm_angle", 10.0),
+                    error_type="arm_angle"
                 )
                 if is_out:
                     desc = "Tay phải quá cao" if smoothed_right > (golden_right or 0) else "Tay phải quá thấp"
@@ -665,7 +714,8 @@ class AIController:
                     smoothed_left,
                     golden_left,
                     golden_std,
-                    ERROR_THRESHOLDS.get("leg_angle", 10.0)
+                    ERROR_THRESHOLDS.get("leg_angle", 10.0),
+                    error_type="leg_angle"
                 )
                 if is_out:
                     desc = f"Chân trái {'quá cao' if smoothed_left > (golden_left or 0) else 'quá thấp'}"
@@ -687,7 +737,8 @@ class AIController:
                     smoothed_right,
                     golden_right,
                     golden_std,
-                    ERROR_THRESHOLDS.get("leg_angle", 10.0)
+                    ERROR_THRESHOLDS.get("leg_angle", 10.0),
+                    error_type="leg_angle"
                 )
                 if is_out:
                     desc = f"Chân phải {'quá cao' if smoothed_right > (golden_right or 0) else 'quá thấp'}"
@@ -731,7 +782,8 @@ class AIController:
                 smoothed_head,
                 golden_mean,
                 golden_std,
-                threshold
+                threshold,
+                error_type="head_angle"
             )
             
             if is_out:

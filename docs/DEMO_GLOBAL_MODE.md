@@ -272,7 +272,7 @@ MAX_FRAMES = None  # Process hết video
 
 ### Backend trả về lỗi 500
 
-**Giải pháy:**
+**Giải pháp:**
 1. Xem logs của backend để biết lỗi chi tiết
 2. Kiểm tra model pose estimation đã được tải
 3. Kiểm tra audio file (nếu dùng) hợp lệ

@@ -95,7 +95,7 @@ ERROR_THRESHOLDS = {
     "leg_height": 45.0,  # Tăng từ 25.0 → 45.0
     "head_angle": 30.0,  # Tăng từ 15.0 → 30.0 (GẤP ĐÔI - QUAN TRỌNG!)
     "torso_stability": 0.85,  # Tăng từ 0.7 → 0.85
-    "rhythm": 0.15,  # Tolerance 150ms cho rhythm (seconds)
+    "rhythm": 0.15,  # Rhythm tolerance: 150ms (0.15 seconds)
     "distance": 50.0,  # Tăng từ 30.0 → 50.0
     "speed": 80.0,  # Tăng từ 50.0 → 80.0
 }

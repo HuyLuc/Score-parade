@@ -43,8 +43,12 @@ class TemporalSmoother:
         
         Args:
             value: Scalar value to add (e.g., angle in degrees)
+        
+        Note:
+            Non-finite values (inf, -inf, NaN) are ignored to prevent
+            corrupting smoothing calculations.
         """
-        if value is not None:
+        if value is not None and np.isfinite(value):
             self.values.append(value)
     
     def get_smoothed_value(self) -> Optional[float]:
@@ -116,7 +120,10 @@ class KeypointSmoother:
         Args:
             keypoints: Keypoints array of shape (num_keypoints, 3) with [x, y, confidence]
         """
-        if keypoints is None or keypoints.shape[0] != self.num_keypoints:
+        if (keypoints is None or 
+            keypoints.shape[0] != self.num_keypoints or 
+            len(keypoints.shape) < 2 or 
+            keypoints.shape[1] < 3):
             return
         
         # Store a copy to avoid mutations

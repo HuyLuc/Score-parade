@@ -130,6 +130,21 @@ class TestTemporalSmoother:
         # Should average only 10 and 20
         smoothed = smoother.get_smoothed_value()
         assert smoothed == pytest.approx(15.0, rel=1e-5)
+    
+    def test_non_finite_values_ignored(self):
+        """Test that non-finite values (inf, -inf, NaN) are ignored"""
+        smoother = TemporalSmoother(window_size=5, method="moving_average")
+        
+        smoother.add_value(10.0)
+        smoother.add_value(float('inf'))  # Should be ignored
+        smoother.add_value(20.0)
+        smoother.add_value(float('-inf'))  # Should be ignored
+        smoother.add_value(30.0)
+        smoother.add_value(float('nan'))  # Should be ignored
+        
+        # Should average only 10, 20, 30
+        smoothed = smoother.get_smoothed_value()
+        assert smoothed == pytest.approx(20.0, rel=1e-5)
 
 
 class TestKeypointSmoother:

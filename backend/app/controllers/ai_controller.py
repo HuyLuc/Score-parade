@@ -217,12 +217,11 @@ class AIController:
         
         # Apply temporal smoothing to keypoints if enabled
         smoothed_keypoints = keypoints
-        if TEMPORAL_SMOOTHING_CONFIG.get("enabled", False) and TEMPORAL_SMOOTHING_CONFIG.get("smooth_keypoints", True):
-            if self.keypoint_smoother is not None:
-                self.keypoint_smoother.add_keypoints(keypoints)
-                smoothed = self.keypoint_smoother.get_smoothed_keypoints()
-                if smoothed is not None:
-                    smoothed_keypoints = smoothed
+        if self.keypoint_smoother is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_keypoints", True):
+            self.keypoint_smoother.add_keypoints(keypoints)
+            smoothed = self.keypoint_smoother.get_smoothed_keypoints()
+            if smoothed is not None:
+                smoothed_keypoints = smoothed
         
         # Normalize keypoints nếu được bật trong config
         normalized_keypoints = smoothed_keypoints
@@ -235,15 +234,14 @@ class AIController:
         
         # Kiểm tra từng bộ phận với normalized keypoints
         # 1. Tay (Arm) - use smoothed version if enabled
-        use_smoothed_metrics = TEMPORAL_SMOOTHING_CONFIG.get("enabled", False) and TEMPORAL_SMOOTHING_CONFIG.get("smooth_metrics", True)
-        if use_smoothed_metrics and self.metric_smoothers is not None:
+        if self.metric_smoothers is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_metrics", True):
             arm_errors = self._check_arm_posture_smoothed(normalized_keypoints)
         else:
             arm_errors = self._check_arm_posture(normalized_keypoints)
         errors.extend(arm_errors)
         
         # 2. Chân (Leg) - use smoothed version if enabled
-        if use_smoothed_metrics and self.metric_smoothers is not None:
+        if self.metric_smoothers is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_metrics", True):
             leg_errors = self._check_leg_posture_smoothed(normalized_keypoints)
         else:
             leg_errors = self._check_leg_posture(normalized_keypoints)
@@ -254,7 +252,7 @@ class AIController:
         errors.extend(shoulder_errors)
         
         # 4. Mũi (Nose) - Kiểm tra đầu có cúi không - use smoothed version if enabled
-        if use_smoothed_metrics and self.metric_smoothers is not None:
+        if self.metric_smoothers is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_metrics", True):
             nose_errors = self._check_head_posture_smoothed(normalized_keypoints)
         else:
             nose_errors = self._check_head_posture(normalized_keypoints)

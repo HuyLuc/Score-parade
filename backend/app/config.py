@@ -125,6 +125,15 @@ CAMERA_CONFIG = {
     "video_chunk_duration": 5.0,  # Giây
 }
 
+# Cấu hình motion detection cho Global Mode
+MOTION_DETECTION_CONFIG = {
+    "step_threshold_y": 20,  # Threshold for ankle Y movement (pixels)
+    "step_threshold_x": 15,  # Threshold for ankle X movement (pixels)
+    "arm_threshold": 30,     # Threshold for wrist movement (pixels)
+    "confidence_threshold": 0.5,  # Minimum confidence for keypoints
+    "batch_size": 10,        # Number of motion events before batch processing
+}
+
 # Định nghĩa keypoints (theo COCO format)
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",

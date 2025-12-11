@@ -1,0 +1,276 @@
+"""
+Global Mode API endpoints
+Handles global practising and testing modes with beat detection
+"""
+import cv2
+import numpy as np
+from typing import Dict, Optional
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from pydantic import BaseModel
+
+from backend.app.controllers.global_controller import GlobalController
+from backend.app.controllers.global_testing_controller import GlobalTestingController
+from backend.app.controllers.global_practising_controller import GlobalPractisingController
+from backend.app.services.pose_service import PoseService
+from backend.app.utils.exceptions import ValidationException, NotFoundException
+
+
+router = APIRouter(prefix="/api/global", tags=["global"])
+
+# In-memory storage for active sessions
+_controllers: Dict[str, GlobalController] = {}
+_pose_service: Optional[PoseService] = None
+
+
+def get_pose_service() -> PoseService:
+    """Get or create pose service singleton"""
+    global _pose_service
+    if _pose_service is None:
+        _pose_service = PoseService()
+    return _pose_service
+
+
+class StartSessionRequest(BaseModel):
+    """Request model for starting a session"""
+    mode: str  # "testing" or "practising"
+    audio_path: Optional[str] = None
+
+
+class ProcessFrameResponse(BaseModel):
+    """Response model for frame processing"""
+    success: bool
+    timestamp: float
+    frame_number: int
+    errors: list
+    score: float
+    motion_events_pending: int
+    stopped: bool = False
+    message: Optional[str] = None
+
+
+class ScoreResponse(BaseModel):
+    """Response model for score retrieval"""
+    session_id: str
+    score: float
+    stopped: bool = False
+
+
+class ErrorsResponse(BaseModel):
+    """Response model for errors retrieval"""
+    session_id: str
+    errors: list
+    total_errors: int
+
+
+@router.post("/{session_id}/start")
+async def start_session(
+    session_id: str,
+    mode: str = Form(...),
+    audio_file: Optional[UploadFile] = File(None),
+    audio_path: Optional[str] = Form(None)
+):
+    """
+    Start a global mode session
+    
+    Args:
+        session_id: Unique session identifier
+        mode: Mode type ("testing" or "practising")
+        audio_file: Optional uploaded audio file
+        audio_path: Optional path to existing audio file
+        
+    Returns:
+        Session initialization result
+    """
+    # Validate mode
+    if mode not in ["testing", "practising"]:
+        raise ValidationException(
+            detail=f"Chế độ không hợp lệ: {mode}. Chọn 'testing' hoặc 'practising'",
+            field="mode"
+        )
+    
+    # Check if session already exists
+    if session_id in _controllers:
+        raise ValidationException(
+            detail=f"Session {session_id} đã tồn tại. Vui lòng xóa hoặc sử dụng session khác",
+            field="session_id"
+        )
+    
+    # Create appropriate controller
+    pose_service = get_pose_service()
+    
+    if mode == "testing":
+        controller = GlobalTestingController(session_id, pose_service)
+    else:
+        controller = GlobalPractisingController(session_id, pose_service)
+    
+    # Handle audio file if provided
+    audio_file_path = None
+    if audio_file:
+        # Save uploaded audio file
+        import tempfile
+        import os
+        temp_dir = tempfile.gettempdir()
+        audio_file_path = os.path.join(temp_dir, f"{session_id}_audio.wav")
+        
+        with open(audio_file_path, "wb") as f:
+            content = await audio_file.read()
+            f.write(content)
+    elif audio_path:
+        audio_file_path = audio_path
+    
+    # Set audio for beat detection
+    if audio_file_path:
+        controller.set_audio(audio_file_path)
+    
+    # Store controller
+    _controllers[session_id] = controller
+    
+    return {
+        "success": True,
+        "session_id": session_id,
+        "mode": mode,
+        "audio_set": audio_file_path is not None,
+        "message": f"Session {session_id} đã được khởi tạo ở chế độ {mode}"
+    }
+
+
+@router.post("/{session_id}/process-frame")
+async def process_frame(
+    session_id: str,
+    frame_data: UploadFile = File(...),
+    timestamp: float = Form(...),
+    frame_number: int = Form(...)
+):
+    """
+    Process a video frame
+    
+    Args:
+        session_id: Session identifier
+        frame_data: Frame image data
+        timestamp: Frame timestamp in seconds
+        frame_number: Frame number in sequence
+        
+    Returns:
+        Processing results including errors and score
+    """
+    # Get controller
+    if session_id not in _controllers:
+        raise NotFoundException("Session", session_id)
+    
+    controller = _controllers[session_id]
+    
+    # Read frame data
+    contents = await frame_data.read()
+    nparr = np.frombuffer(contents, np.uint8)
+    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if frame is None:
+        raise ValidationException(
+            detail="Không thể đọc dữ liệu frame",
+            field="frame_data"
+        )
+    
+    # Process frame
+    result = controller.process_frame(frame, timestamp, frame_number)
+    
+    return ProcessFrameResponse(**result)
+
+
+@router.get("/{session_id}/score")
+async def get_score(session_id: str):
+    """
+    Get current score for a session
+    
+    Args:
+        session_id: Session identifier
+        
+    Returns:
+        Current score
+    """
+    if session_id not in _controllers:
+        raise NotFoundException("Session", session_id)
+    
+    controller = _controllers[session_id]
+    score = controller.get_score()
+    
+    stopped = False
+    if isinstance(controller, GlobalTestingController):
+        stopped = controller.is_stopped()
+    
+    return ScoreResponse(
+        session_id=session_id,
+        score=score,
+        stopped=stopped
+    )
+
+
+@router.get("/{session_id}/errors")
+async def get_errors(session_id: str):
+    """
+    Get all errors for a session
+    
+    Args:
+        session_id: Session identifier
+        
+    Returns:
+        List of detected errors
+    """
+    if session_id not in _controllers:
+        raise NotFoundException("Session", session_id)
+    
+    controller = _controllers[session_id]
+    errors = controller.get_errors()
+    
+    return ErrorsResponse(
+        session_id=session_id,
+        errors=errors,
+        total_errors=len(errors)
+    )
+
+
+@router.post("/{session_id}/reset")
+async def reset_session(session_id: str):
+    """
+    Reset a session (clear errors and reset score)
+    
+    Args:
+        session_id: Session identifier
+        
+    Returns:
+        Reset confirmation
+    """
+    if session_id not in _controllers:
+        raise NotFoundException("Session", session_id)
+    
+    controller = _controllers[session_id]
+    controller.reset()
+    
+    return {
+        "success": True,
+        "session_id": session_id,
+        "message": f"Session {session_id} đã được reset"
+    }
+
+
+@router.delete("/{session_id}")
+async def delete_session(session_id: str):
+    """
+    Delete a session and free resources
+    
+    Args:
+        session_id: Session identifier
+        
+    Returns:
+        Deletion confirmation
+    """
+    if session_id not in _controllers:
+        raise NotFoundException("Session", session_id)
+    
+    # Remove controller
+    del _controllers[session_id]
+    
+    return {
+        "success": True,
+        "session_id": session_id,
+        "message": f"Session {session_id} đã được xóa"
+    }

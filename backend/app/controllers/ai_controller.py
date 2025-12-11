@@ -27,6 +27,7 @@ class AIController:
         self.pose_service = pose_service
         self.golden_profile = None
         self.golden_keypoints = None
+        self.beat_detector = None  # Beat detector for rhythm checking
 
     # ===================== Helper =====================
     def _build_error(
@@ -447,6 +448,67 @@ class AIController:
         # torso_stability cần nhiều frames để tính variance
         # Nên không kiểm tra ở đây (single frame)
         # torso_stability sẽ được kiểm tra trong global mode với nhiều frames
+        
+        return errors
+    
+    def set_beat_detector(self, audio_path: str):
+        """
+        Khởi tạo beat detector cho audio
+        
+        Args:
+            audio_path: Đường dẫn file audio đang phát
+        """
+        try:
+            from backend.app.services.beat_detection import BeatDetector
+            self.beat_detector = BeatDetector(audio_path)
+        except Exception as e:
+            print(f"⚠️ Không thể khởi tạo beat detector: {e}")
+            self.beat_detector = None
+    
+    def detect_rhythm_errors(
+        self,
+        motion_keypoints: List[Tuple[float, np.ndarray]],
+        motion_type: str = "step"
+    ) -> List[Dict]:
+        """
+        Phát hiện lỗi rhythm - động tác không theo nhịp
+        
+        Args:
+            motion_keypoints: List các tuple (timestamp, keypoints) của động tác
+            motion_type: Loại động tác ("step", "arm_swing", etc.)
+            
+        Returns:
+            List các dict lỗi rhythm
+        """
+        errors = []
+        
+        if self.beat_detector is None:
+            return errors
+        
+        # Extract timestamps
+        motion_times = [t for t, _ in motion_keypoints]
+        
+        # Lấy tolerance từ config
+        tolerance = ERROR_THRESHOLDS.get("rhythm", 0.15)
+        
+        # Tính lỗi rhythm
+        error_count, error_pairs = self.beat_detector.calculate_rhythm_error(
+            motion_times,
+            tolerance=tolerance
+        )
+        
+        # Build error dicts
+        for motion_time, beat_time in error_pairs:
+            diff = abs(motion_time - beat_time)
+            desc = f"Động tác {motion_type} không theo nhịp (lệch {diff:.2f}s)"
+            
+            errors.append(self._build_error(
+                "rhythm",
+                desc,
+                diff,
+                motion_type,
+                None
+            ))
         
         return errors
 

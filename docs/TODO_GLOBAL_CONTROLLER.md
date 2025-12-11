@@ -4,7 +4,7 @@
 This document outlines the planned integration of beat detection into GlobalController for Global Mode (Practising and Testing).
 
 ## Status
-⚠️ **NOT YET IMPLEMENTED** - GlobalController does not exist in the codebase yet.
+✅ **IMPLEMENTED** - GlobalController is fully implemented with comprehensive tests.
 
 ## Implementation Plan
 
@@ -156,3 +156,89 @@ def set_audio(self, audio_path: str):
 - BeatDetector: `backend/app/services/beat_detection.py`
 - AIController: `backend/app/controllers/ai_controller.py`
 - Config: `backend/app/config.py` (ERROR_THRESHOLDS, SCORING_CONFIG)
+
+---
+
+## ✅ Implementation Completed
+
+### Files Created
+1. `backend/app/controllers/global_controller.py` - Base controller with motion detection and batch processing
+2. `backend/app/controllers/global_testing_controller.py` - Testing mode with score deduction
+3. `backend/app/controllers/global_practising_controller.py` - Practising mode without deduction
+4. `backend/app/api/global_mode.py` - FastAPI endpoints for Global Mode
+5. `backend/app/main.py` - FastAPI application with CORS and error handling
+6. `backend/tests/test_global_controller.py` - 11 comprehensive tests
+7. `backend/tests/test_global_api.py` - 16 API endpoint tests
+
+### Configuration Added
+- `MOTION_DETECTION_CONFIG` in `backend/app/config.py`:
+  - `step_threshold_y`: 20 pixels
+  - `step_threshold_x`: 15 pixels
+  - `arm_threshold`: 30 pixels
+  - `confidence_threshold`: 0.5
+  - `batch_size`: 10 events
+
+### API Endpoints
+All endpoints under `/api/global/{session_id}`:
+- `POST /start` - Initialize session with mode (testing/practising) and audio
+- `POST /process-frame` - Process video frame and detect motion/rhythm errors
+- `GET /score` - Get current score and stopped status
+- `GET /errors` - Get list of all detected errors
+- `POST /reset` - Reset session state
+- `DELETE /` - Delete session and free resources
+
+### Usage Example
+
+```python
+# Start a testing session
+import requests
+
+# 1. Start session
+response = requests.post(
+    "http://localhost:8000/api/global/session_123/start",
+    data={"mode": "testing"},
+    files={"audio_file": open("music.mp3", "rb")}
+)
+
+# 2. Process frames
+with open("frame.jpg", "rb") as f:
+    response = requests.post(
+        "http://localhost:8000/api/global/session_123/process-frame",
+        files={"frame_data": f},
+        data={"timestamp": 0.1, "frame_number": 1}
+    )
+    print(response.json())
+
+# 3. Get score
+response = requests.get("http://localhost:8000/api/global/session_123/score")
+print(f"Score: {response.json()['score']}")
+
+# 4. Get errors
+response = requests.get("http://localhost:8000/api/global/session_123/errors")
+print(f"Errors: {response.json()['total_errors']}")
+
+# 5. Delete session
+requests.delete("http://localhost:8000/api/global/session_123")
+```
+
+### Test Coverage
+- ✅ 35 tests passing, 1 skipped
+- ✅ Motion detection: steps (left/right), arm swings (left/right), no motion
+- ✅ Batch processing: accumulation and rhythm checking
+- ✅ Testing mode: score deduction, stopping at threshold
+- ✅ Practising mode: error display without deduction
+- ✅ API lifecycle: create, process, query, reset, delete
+- ✅ Error handling: invalid inputs, missing sessions
+
+### Security
+- ✅ CodeQL scan: 0 vulnerabilities
+- ✅ Proper input validation
+- ✅ Custom exception handling
+- ✅ Type checking with Pydantic
+- ✅ Safe temporary file handling
+
+### Performance Optimizations
+- Batch processing (10 events) reduces beat detection overhead
+- Keypoint copying only when necessary (documented)
+- Singleton pattern for PoseService
+- In-memory session storage for fast access

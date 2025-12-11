@@ -2,6 +2,7 @@
 Global Mode API endpoints
 Handles global practising and testing modes with beat detection
 """
+import logging
 import cv2
 import numpy as np
 from typing import Dict, Optional
@@ -14,6 +15,7 @@ from backend.app.controllers.global_practising_controller import GlobalPractisin
 from backend.app.services.pose_service import PoseService
 from backend.app.utils.exceptions import ValidationException, NotFoundException
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/global", tags=["global"])
 
@@ -31,8 +33,8 @@ def get_pose_service() -> PoseService:
         except Exception as e:
             # If pose service fails to initialize (e.g., in tests without ultralytics),
             # create a minimal mock instead
-            print(f"⚠️ Failed to initialize PoseService: {e}")
-            print("⚠️ Using mock PoseService for testing")
+            logger.error(f"Failed to initialize PoseService: {e}")
+            logger.warning("Using mock PoseService for testing")
             from unittest.mock import MagicMock
             _pose_service = MagicMock(spec=PoseService)
             _pose_service.predict.return_value = []

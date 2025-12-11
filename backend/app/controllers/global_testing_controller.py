@@ -2,9 +2,12 @@
 GlobalTestingController - Testing mode controller for Global Mode
 Deducts score on errors and stops when score falls below threshold
 """
+import logging
 from typing import Dict
 from backend.app.controllers.global_controller import GlobalController
 from backend.app.config import SCORING_CONFIG
+
+logger = logging.getLogger(__name__)
 
 
 class GlobalTestingController(GlobalController):
@@ -18,7 +21,7 @@ class GlobalTestingController(GlobalController):
         """Initialize testing controller"""
         super().__init__(session_id, pose_service)
         self.stopped = False
-        self.fail_threshold = SCORING_CONFIG.get("fail_threshold", 50)
+        self.fail_threshold = SCORING_CONFIG.get("fail_threshold", SCORING_CONFIG["fail_threshold"])
     
     def _handle_error(self, error: Dict):
         """
@@ -38,7 +41,7 @@ class GlobalTestingController(GlobalController):
         # Check if should stop
         if self.score < self.fail_threshold:
             self.stopped = True
-            print(f"⚠️ Testing stopped: score ({self.score:.2f}) < threshold ({self.fail_threshold})")
+            logger.warning(f"Testing stopped: score ({self.score:.2f}) < threshold ({self.fail_threshold})")
     
     def process_frame(self, frame, timestamp: float, frame_number: int) -> Dict:
         """

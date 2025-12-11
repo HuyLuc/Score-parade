@@ -151,9 +151,11 @@ class GlobalController:
             
             if motion_type:
                 # Add motion event to buffer
+                # Copy is necessary because keypoints array may be reused in next frame
                 self.motion_events.append((timestamp, keypoints.copy(), motion_type))
             
             # Update previous frame data
+            # Copy is necessary to preserve state for comparison in next frame
             self.prev_keypoints = keypoints.copy()
             self.prev_timestamp = timestamp
         

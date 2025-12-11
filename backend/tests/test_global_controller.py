@@ -16,8 +16,13 @@ from backend.app.config import KEYPOINT_INDICES
 
 
 @contextmanager
-def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 22050):
-    """Create a simple test audio file with context manager"""
+def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 22050) -> str:
+    """
+    Create a simple test audio file with context manager
+    
+    Yields:
+        str: Path to temporary audio file
+    """
     beat_interval = 60.0 / tempo
     samples = int(duration * sr)
     audio = np.zeros(samples)
@@ -44,9 +49,24 @@ def create_test_audio(duration: float = 5.0, tempo: float = 120.0, sr: int = 220
         Path(temp_path).unlink(missing_ok=True)
 
 
-def create_mock_keypoints(left_ankle_y=100, right_ankle_y=100, 
-                          left_wrist_x=50, right_wrist_x=50):
-    """Create mock keypoints array [17, 3] with specified positions"""
+def create_mock_keypoints(
+    left_ankle_y: float = 100,
+    right_ankle_y: float = 100, 
+    left_wrist_x: float = 50,
+    right_wrist_x: float = 50
+) -> np.ndarray:
+    """
+    Create mock keypoints array [17, 3] with specified positions
+    
+    Args:
+        left_ankle_y: Y position of left ankle
+        right_ankle_y: Y position of right ankle
+        left_wrist_x: X position of left wrist
+        right_wrist_x: X position of right wrist
+        
+    Returns:
+        np.ndarray: Keypoints array of shape [17, 3] (x, y, confidence)
+    """
     keypoints = np.zeros((17, 3))
     # Set all confidences to 1.0
     keypoints[:, 2] = 1.0

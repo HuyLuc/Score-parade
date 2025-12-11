@@ -143,6 +143,15 @@ NORMALIZATION_CONFIG = {
     "min_confidence": 0.5,  # Confidence tối thiểu cho keypoints vai/hông
 }
 
+# Cấu hình temporal smoothing cho noise reduction
+TEMPORAL_SMOOTHING_CONFIG = {
+    "enabled": True,  # Bật/tắt temporal smoothing
+    "window_size": 5,  # Số frames để làm mượt (5 frames @ 30fps = 167ms latency)
+    "method": "moving_average",  # "moving_average" hoặc "median"
+    "smooth_keypoints": True,  # Làm mượt keypoint coordinates
+    "smooth_metrics": True,  # Làm mượt các metric (góc, chiều cao)
+}
+
 # Định nghĩa keypoints (theo COCO format)
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",

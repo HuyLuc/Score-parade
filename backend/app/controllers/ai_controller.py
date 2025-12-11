@@ -404,7 +404,8 @@ class AIController:
             
             if head_angle < -threshold:
                 # Đầu cúi quá (âm và lớn hơn threshold)
-                diff = abs(head_angle) - threshold
+                # Ví dụ: head_angle = -40°, threshold = 30° → diff = |-40° - (-30°)| = 10°
+                diff = abs(head_angle + threshold)
                 errors.append(self._build_error(
                     "head_angle",
                     f"Đầu cúi quá thấp ({head_angle:.1f}°)",

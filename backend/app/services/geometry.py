@@ -277,13 +277,15 @@ def calculate_head_angle(keypoints: np.ndarray) -> Optional[float]:
     
     # Sử dụng atan2 để có giá trị có dấu
     # atan2(x, -y) vì:
-    # - Y tăng xuống dưới trong tọa độ ảnh
-    # - X tăng sang phải
-    # - Góc dương = nghiêng phải/ngẩng, góc âm = nghiêng trái/cúi
+    # - Y tăng xuống dưới trong tọa độ ảnh (Y=0 ở trên)
+    # - X tăng sang phải (X=0 ở trái)
+    # - Khi vec[0] > 0 (mũi bên phải cổ): góc dương = ngẩng/nghiêng phải
+    # - Khi vec[0] < 0 (mũi bên trái cổ): góc âm = cúi/nghiêng trái
     angle = np.degrees(np.arctan2(vec[0], -vec[1]))
     
-    # Clamp về khoảng -90 đến +90 để chỉ xét góc dọc
-    # (không quan tâm góc xoay ngang quá 90°)
+    # Clamp về khoảng -90 đến +90 để tập trung vào góc dọc
+    # Góc ngoài khoảng này có nghĩa vector gần ngang hơn dọc,
+    # thường là trường hợp góc camera không chuẩn hoặc tư thế bất thường
     angle = np.clip(angle, -90.0, 90.0)
     
     return angle

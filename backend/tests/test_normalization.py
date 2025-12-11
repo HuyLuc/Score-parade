@@ -290,11 +290,11 @@ def test_normalization_preserves_confidence():
 
 def test_edge_case_zero_torso():
     """Test handling of edge case where torso length is zero or very small"""
-    keypoints = create_test_keypoints(scale=0.01)  # Very small scale
+    keypoints = create_test_keypoints(scale=0.01)  # Very small scale (torso = 150 * 0.01 = 1.5)
     
-    # Should return None for very small torso
+    # Should return None for very small torso (below min_torso_length threshold of 10.0)
     torso = calculate_torso_length(keypoints)
-    assert torso is None or torso < 10.0
+    assert torso is None
 
 
 def test_normalization_with_2d_keypoints():

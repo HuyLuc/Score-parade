@@ -1,10 +1,13 @@
 """
 AIController - Phát hiện lỗi của người thí sinh
 """
+import json
 import math
-import numpy as np
-from typing import List, Dict, Optional, Tuple
+import pickle
 from pathlib import Path
+from typing import List, Dict, Optional, Tuple
+
+import numpy as np
 from backend.app.services.pose_service import PoseService
 from backend.app.services.geometry import (
     calculate_arm_angle,
@@ -15,8 +18,6 @@ from backend.app.services.geometry import (
     calculate_torso_stability
 )
 from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS
-import pickle
-import json
 
 
 class AIController:
@@ -43,8 +44,8 @@ class AIController:
         thay vì tuyến tính, giúp giảm điểm trừ cho các lỗi nhỏ.
         
         VD: 
-        - Trước: diff=60, threshold=30 → severity = 60/30 = 2.0 → deduction = 2.0 * 2.0 = 4.0
-        - Sau:  diff=60, threshold=30 → severity = sqrt(60/30) = sqrt(2) = 1.41 → deduction = 1.0 * 1.41 = 1.41
+        - Trước: diff=60, threshold=30, weight=2.0 → severity = 60/30 = 2.0 → deduction = 2.0 * 2.0 = 4.0
+        - Sau:  diff=60, threshold=30, weight=1.0 → severity = sqrt(60/30) = 1.41 → deduction = 1.0 * 1.41 = 1.41
         """
         weight = SCORING_CONFIG["error_weights"].get(error_type, 1.0)
         threshold = ERROR_THRESHOLDS.get(error_type, 10.0)

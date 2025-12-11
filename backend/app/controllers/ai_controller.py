@@ -355,27 +355,68 @@ class AIController:
         return errors
     
     def _check_head_posture(self, keypoints: np.ndarray) -> List[Dict]:
-        """Kiểm tra tư thế đầu (mũi)"""
+        """
+        Kiểm tra tư thế đầu (mũi)
+        
+        Kiểm tra đầu có cúi quá thấp hoặc ngẩng quá cao so với golden template.
+        Sử dụng giá trị head_angle có dấu:
+        - Âm: đầu cúi
+        - Dương: đầu ngẩng
+        - ~0: đầu thẳng
+        """
         errors = []
         
         head_angle = calculate_head_angle(keypoints)
         
-        if head_angle is not None:
-            # Kiểm tra đầu có cúi/ngẩng quá không
-            threshold = ERROR_THRESHOLDS.get("head_angle", 15.0)
-            if head_angle < -threshold:
-                diff = abs(head_angle + threshold)
+        if head_angle is None:
+            return errors
+        
+        # Lấy golden statistics nếu có
+        golden_mean, golden_std = self._get_golden_stat("head_angle")
+        threshold = ERROR_THRESHOLDS.get("head_angle", 30.0)
+        
+        # Nếu có golden template, so sánh với nó
+        if golden_mean is not None and golden_std is not None:
+            is_out, diff = self._is_outlier(
+                head_angle,
+                golden_mean,
+                golden_std,
+                threshold
+            )
+            
+            if is_out:
+                # Phân biệt cúi vs ngẩng dựa trên dấu
+                if head_angle < golden_mean:
+                    desc = "Đầu cúi quá thấp"
+                else:
+                    desc = "Đầu ngẩng quá cao"
+                
                 errors.append(self._build_error(
                     "head_angle",
-                    "Đầu cúi quá thấp",
+                    desc,
+                    diff,
+                    "nose"
+                ))
+        else:
+            # Không có golden template, dùng threshold tuyệt đối
+            # Giả định tư thế chuẩn là đầu thẳng (~0°)
+            # Cho phép lệch ±threshold
+            
+            if head_angle < -threshold:
+                # Đầu cúi quá (âm và lớn hơn threshold)
+                diff = abs(head_angle) - threshold
+                errors.append(self._build_error(
+                    "head_angle",
+                    f"Đầu cúi quá thấp ({head_angle:.1f}°)",
                     diff,
                     "nose"
                 ))
             elif head_angle > threshold:
-                diff = abs(head_angle - threshold)
+                # Đầu ngẩng quá (dương và lớn hơn threshold)
+                diff = head_angle - threshold
                 errors.append(self._build_error(
                     "head_angle",
-                    "Đầu ngẩng quá cao",
+                    f"Đầu ngẩng quá cao ({head_angle:.1f}°)",
                     diff,
                     "nose"
                 ))

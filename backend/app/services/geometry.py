@@ -237,11 +237,22 @@ def calculate_head_angle(keypoints: np.ndarray) -> Optional[float]:
     """
     Tính góc nghiêng đầu (dựa trên vector từ cổ đến mũi)
     
+    Sử dụng atan2 để có giá trị có dấu:
+    - Góc âm (-90° đến 0°): đầu cúi về phía trước
+    - Góc dương (0° đến +90°): đầu ngẩng về phía sau
+    - Góc ~0°: đầu thẳng đứng (tư thế chuẩn)
+    
     Args:
-        keypoints: Array keypoints
+        keypoints: Array keypoints [17, 2] hoặc [17, 3]
         
     Returns:
-        Góc nghiêng đầu (độ, 0 = thẳng đứng)
+        Góc nghiêng đầu (độ, -90° đến +90°, 0° = thẳng đứng)
+        None nếu thiếu keypoint
+    
+    Examples:
+        - Đầu cúi 30°: trả về -30.0
+        - Đầu thẳng: trả về ~0.0
+        - Đầu ngẩng 20°: trả về +20.0
     """
     nose_idx = config.KEYPOINT_INDICES["nose"]
     left_shoulder_idx = config.KEYPOINT_INDICES["left_shoulder"]
@@ -251,24 +262,29 @@ def calculate_head_angle(keypoints: np.ndarray) -> Optional[float]:
     left_shoulder = keypoints[left_shoulder_idx, :2]
     right_shoulder = keypoints[right_shoulder_idx, :2]
     
+    # Kiểm tra confidence (nếu có)
     if keypoints.shape[1] > 2:
         if (keypoints[nose_idx, 2] == 0 or 
             keypoints[left_shoulder_idx, 2] == 0 or 
             keypoints[right_shoulder_idx, 2] == 0):
             return None
     
-    # Điểm giữa 2 vai
+    # Điểm giữa 2 vai (neck)
     neck = (left_shoulder + right_shoulder) / 2
     
     # Vector từ cổ đến mũi
     vec = nose - neck
     
-    # Góc so với trục thẳng đứng (0, -1)
-    vertical = np.array([0, -1])
-    angle = np.degrees(np.arccos(np.clip(
-        np.dot(vec, vertical) / (np.linalg.norm(vec) + 1e-8),
-        -1.0, 1.0
-    )))
+    # Sử dụng atan2 để có giá trị có dấu
+    # atan2(x, -y) vì:
+    # - Y tăng xuống dưới trong tọa độ ảnh
+    # - X tăng sang phải
+    # - Góc dương = nghiêng phải/ngẩng, góc âm = nghiêng trái/cúi
+    angle = np.degrees(np.arctan2(vec[0], -vec[1]))
+    
+    # Clamp về khoảng -90 đến +90 để chỉ xét góc dọc
+    # (không quan tâm góc xoay ngang quá 90°)
+    angle = np.clip(angle, -90.0, 90.0)
     
     return angle
 

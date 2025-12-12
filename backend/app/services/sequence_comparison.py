@@ -34,7 +34,18 @@ class SequenceComparator:
             min_sequence_length: Minimum number of consecutive frames to form a sequence (default: 3)
             severity_aggregation: How to aggregate severity across sequence ("mean", "max", "median")
             enabled: Whether sequence comparison is enabled
+        
+        Raises:
+            ValueError: If severity_aggregation is not one of "mean", "max", "median"
         """
+        # Validate severity_aggregation parameter
+        valid_methods = ["mean", "max", "median"]
+        if severity_aggregation not in valid_methods:
+            raise ValueError(
+                f"Invalid severity_aggregation: '{severity_aggregation}'. "
+                f"Must be one of {valid_methods}"
+            )
+        
         self.min_sequence_length = min_sequence_length
         self.severity_aggregation = severity_aggregation
         self.enabled = enabled
@@ -189,20 +200,16 @@ class SequenceComparator:
         severities = [e.get("severity", 0.0) for e in sequence]
         deductions = [e.get("deduction", 0.0) for e in sequence]
         
-        # Aggregate based on configured method
+        # Aggregate based on configured method (validated in __init__)
         if self.severity_aggregation == "mean":
             agg_severity = mean(severities)
             agg_deduction = mean(deductions)
         elif self.severity_aggregation == "max":
             agg_severity = max(severities)
             agg_deduction = max(deductions)
-        elif self.severity_aggregation == "median":
+        else:  # median
             agg_severity = median(severities)
             agg_deduction = median(deductions)
-        else:
-            logger.warning(f"Unknown aggregation method: {self.severity_aggregation}, using mean")
-            agg_severity = mean(severities)
-            agg_deduction = mean(deductions)
         
         # Build aggregated error
         start_frame = first_error.get("frame_number", 0)

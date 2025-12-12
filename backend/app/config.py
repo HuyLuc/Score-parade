@@ -168,11 +168,11 @@ DTW_CONFIG = {
     "distance_metric": "euclidean",  # Distance metric: "euclidean", "manhattan", "cosine"
 }
 
-# Cấu hình Sequence Comparison cho group consecutive errors
+# Sequence Comparison configuration for grouping consecutive errors
 SEQUENCE_COMPARISON_CONFIG = {
-    "enabled": True,  # Bật/tắt sequence-based error detection
-    "min_sequence_length": 3,  # Số frame tối thiểu để tạo thành sequence (default: 3)
-    "severity_aggregation": "mean",  # Cách tính severity: "mean", "max", "median"
+    "enabled": True,  # Enable/disable sequence-based error detection
+    "min_sequence_length": 3,  # Minimum frames to form a sequence (default: 3)
+    "severity_aggregation": "mean",  # Severity calculation method: "mean", "max", "median"
 }
 
 # Định nghĩa keypoints (theo COCO format)

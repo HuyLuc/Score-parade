@@ -977,7 +977,7 @@ class AIController:
             # Deduction: -300 → -2.6 points
         """
         # Check if sequence comparison is enabled
-        if self.sequence_comparator is None or not SEQUENCE_COMPARISON_CONFIG.get("enabled", True):
+        if self.sequence_comparator is None:
             # Fallback to frame-by-frame scoring
             if initial_score is None:
                 initial_score = SCORING_CONFIG.get("initial_score", 100.0)

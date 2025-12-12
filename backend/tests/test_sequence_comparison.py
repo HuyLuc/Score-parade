@@ -26,6 +26,11 @@ class TestSequenceComparator:
         assert comparator.severity_aggregation == "max"
         assert comparator.enabled is False
     
+    def test_init_invalid_aggregation_method(self):
+        """Test that invalid aggregation method raises ValueError"""
+        with pytest.raises(ValueError, match="Invalid severity_aggregation"):
+            SequenceComparator(severity_aggregation="invalid")
+    
     def test_group_consecutive_errors(self):
         """Test grouping consecutive errors of the same type"""
         comparator = SequenceComparator(min_sequence_length=3)

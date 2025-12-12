@@ -160,6 +160,14 @@ class PersonTracker:
         x1, y1 = valid_points.min(axis=0)
         x2, y2 = valid_points.max(axis=0)
         
+        # Add small padding to handle degenerate cases where all points are at same location
+        # This ensures bbox has some area for IoU calculation
+        min_size = 1.0
+        if x2 - x1 < min_size:
+            x2 = x1 + min_size
+        if y2 - y1 < min_size:
+            y2 = y1 + min_size
+        
         return (x1, y1, x2, y2)
     
     def _calculate_iou(self, bbox1: Tuple[float, float, float, float], 
@@ -275,7 +283,7 @@ class MultiPersonManager:
     
     def _calculate_similarity(self, keypoints1: np.ndarray, keypoints2: np.ndarray) -> float:
         """
-        Calculate pose similarity using cosine similarity
+        Calculate pose similarity using normalized L2 distance
         
         Args:
             keypoints1: First pose keypoints [17, 3]
@@ -293,18 +301,31 @@ class MultiPersonManager:
             return 0.0
         
         # Use only x, y coordinates (ignore confidence)
-        points1 = keypoints1[common_mask, :2].flatten()
-        points2 = keypoints2[common_mask, :2].flatten()
+        points1 = keypoints1[common_mask, :2]
+        points2 = keypoints2[common_mask, :2]
         
-        # Normalize poses (center at origin)
-        points1 = points1 - np.mean(points1)
-        points2 = points2 - np.mean(points2)
+        # Normalize poses to unit scale (center at origin and scale)
+        mean1 = np.mean(points1, axis=0)
+        mean2 = np.mean(points2, axis=0)
         
-        # Calculate cosine similarity
-        similarity = cosine_similarity([points1], [points2])[0, 0]
+        points1_centered = points1 - mean1
+        points2_centered = points2 - mean2
         
-        # Convert from [-1, 1] to [0, 1]
-        return (similarity + 1.0) / 2.0
+        # Scale to unit variance
+        scale1 = np.std(points1_centered) + 1e-8
+        scale2 = np.std(points2_centered) + 1e-8
+        
+        points1_normalized = points1_centered / scale1
+        points2_normalized = points2_centered / scale2
+        
+        # Calculate normalized L2 distance
+        distance = np.linalg.norm(points1_normalized - points2_normalized)
+        max_distance = np.sqrt(2 * len(points1_normalized))  # Maximum possible distance
+        
+        # Convert distance to similarity (0 = identical, higher = more different)
+        similarity = 1.0 - min(distance / max_distance, 1.0)
+        
+        return similarity
     
     def get_template_for_person(self, test_person_id: int) -> Optional[str]:
         """Get matched template ID for a test person"""

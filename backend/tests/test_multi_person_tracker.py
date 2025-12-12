@@ -70,25 +70,30 @@ class TestPersonTracker:
         """Test tracking multiple persons simultaneously"""
         tracker = PersonTracker(iou_threshold=0.3)
         
-        # Frame 0: Two persons
+        # Frame 0: Two persons with realistic spread
         person1_kpts = np.zeros((17, 3))
-        person1_kpts[:, :2] = np.array([[100, 100]] * 17)
+        # Create a realistic bbox spread (50x100 pixels)
+        for i in range(17):
+            person1_kpts[i, :2] = [100 + (i % 5) * 10, 100 + (i // 5) * 30]
         person1_kpts[:, 2] = 1.0
         
         person2_kpts = np.zeros((17, 3))
-        person2_kpts[:, :2] = np.array([[300, 100]] * 17)
+        for i in range(17):
+            person2_kpts[i, :2] = [300 + (i % 5) * 10, 100 + (i // 5) * 30]
         person2_kpts[:, 2] = 1.0
         
         tracked = tracker.update([person1_kpts, person2_kpts], frame_num=0)
         assert len(tracked) == 2
         
-        # Frame 1: Same two persons
+        # Frame 1: Same two persons, slightly moved
         person1_kpts_1 = np.zeros((17, 3))
-        person1_kpts_1[:, :2] = np.array([[105, 105]] * 17)
+        for i in range(17):
+            person1_kpts_1[i, :2] = [105 + (i % 5) * 10, 105 + (i // 5) * 30]
         person1_kpts_1[:, 2] = 1.0
         
         person2_kpts_1 = np.zeros((17, 3))
-        person2_kpts_1[:, :2] = np.array([[305, 105]] * 17)
+        for i in range(17):
+            person2_kpts_1[i, :2] = [305 + (i % 5) * 10, 105 + (i // 5) * 30]
         person2_kpts_1[:, 2] = 1.0
         
         tracked = tracker.update([person1_kpts_1, person2_kpts_1], frame_num=1)
@@ -378,13 +383,15 @@ class TestIntegration:
         tracker = PersonTracker(iou_threshold=0.3)
         manager = MultiPersonManager(similarity_threshold=0.5)
         
-        # Add golden templates
+        # Add golden templates with realistic spread
         template1_kpts = np.zeros((17, 3))
-        template1_kpts[:, :2] = 100
+        for i in range(17):
+            template1_kpts[i, :2] = [100 + (i % 5) * 10, 100 + (i // 5) * 30]
         template1_kpts[:, 2] = 1.0
         
         template2_kpts = np.zeros((17, 3))
-        template2_kpts[:, :2] = 300
+        for i in range(17):
+            template2_kpts[i, :2] = [300 + (i % 5) * 10, 100 + (i // 5) * 30]
         template2_kpts[:, 2] = 1.0
         
         manager.add_golden_template("person_0", template1_kpts)
@@ -392,13 +399,15 @@ class TestIntegration:
         
         # Simulate video frames
         for frame_num in range(10):
-            # Two persons in each frame
+            # Two persons in each frame, moving slightly
             person1_kpts = np.zeros((17, 3))
-            person1_kpts[:, :2] = 100 + frame_num  # Moving slightly
+            for i in range(17):
+                person1_kpts[i, :2] = [100 + frame_num + (i % 5) * 10, 100 + frame_num + (i // 5) * 30]
             person1_kpts[:, 2] = 1.0
             
             person2_kpts = np.zeros((17, 3))
-            person2_kpts[:, :2] = 300 + frame_num
+            for i in range(17):
+                person2_kpts[i, :2] = [300 + frame_num + (i % 5) * 10, 100 + frame_num + (i // 5) * 30]
             person2_kpts[:, 2] = 1.0
             
             # Track persons

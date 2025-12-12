@@ -168,6 +168,13 @@ DTW_CONFIG = {
     "distance_metric": "euclidean",  # Distance metric: "euclidean", "manhattan", "cosine"
 }
 
+# Sequence Comparison configuration for grouping consecutive errors
+SEQUENCE_COMPARISON_CONFIG = {
+    "enabled": True,  # Enable/disable sequence-based error detection
+    "min_sequence_length": 3,  # Minimum frames to form a sequence (default: 3)
+    "severity_aggregation": "mean",  # Severity calculation method: "mean", "max", "median"
+}
+
 # Định nghĩa keypoints (theo COCO format)
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",

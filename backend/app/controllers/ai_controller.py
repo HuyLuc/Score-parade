@@ -21,7 +21,8 @@ from backend.app.services.keypoint_normalization import normalize_keypoints_rela
 from backend.app.services.temporal_smoothing import TemporalSmoother, KeypointSmoother
 from backend.app.services.adaptive_threshold import AdaptiveThresholdManager
 from backend.app.services.dtw_alignment import DTWAligner
-from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG, DTW_CONFIG
+from backend.app.services.sequence_comparison import SequenceComparator
+from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG, DTW_CONFIG, SEQUENCE_COMPARISON_CONFIG
 
 
 class AIController:
@@ -67,6 +68,17 @@ class AIController:
             )
         else:
             self.adaptive_threshold_manager = None
+        
+        # Initialize sequence comparator
+        sequence_enabled = SEQUENCE_COMPARISON_CONFIG.get("enabled", True)
+        if sequence_enabled:
+            self.sequence_comparator = SequenceComparator(
+                min_sequence_length=SEQUENCE_COMPARISON_CONFIG.get("min_sequence_length", 3),
+                severity_aggregation=SEQUENCE_COMPARISON_CONFIG.get("severity_aggregation", "mean"),
+                enabled=True
+            )
+        else:
+            self.sequence_comparator = None
 
     # ===================== Helper =====================
     def _build_error(
@@ -921,4 +933,68 @@ class AIController:
             errors.extend(frame_errors)
         
         return errors, alignment_info
+    
+    def process_video_sequence(
+        self,
+        frame_errors: List[Dict],
+        initial_score: Optional[float] = None
+    ) -> Tuple[float, List[Dict]]:
+        """
+        Process entire video with sequence-based error grouping
+        
+        This method groups consecutive frame errors into sequences to avoid over-penalization.
+        Instead of penalizing each frame independently (600 errors → -300 points),
+        it groups consecutive errors (600 frames → 1 sequence → -2.6 points).
+        
+        Args:
+            frame_errors: List of frame-by-frame error dicts from detect_posture_errors()
+                Each error should have: type, body_part, side (optional), frame_number,
+                severity, deduction, description
+            initial_score: Starting score (default: from SCORING_CONFIG)
+        
+        Returns:
+            Tuple (final_score, sequence_errors):
+                - final_score: Score after applying sequence penalties
+                - sequence_errors: List of sequence error dicts with aggregated severity
+        
+        Example:
+            # Detect errors for each frame
+            frame_errors = []
+            for frame_num, keypoints in enumerate(video_keypoints):
+                errors = controller.detect_posture_errors(
+                    keypoints=keypoints,
+                    frame_number=frame_num
+                )
+                # Add frame_number to each error
+                for error in errors:
+                    error["frame_number"] = frame_num
+                frame_errors.extend(errors)
+            
+            # Process with sequence grouping
+            final_score, sequence_errors = controller.process_video_sequence(frame_errors)
+            
+            # Result: 600 frame errors → 1 sequence error
+            # Deduction: -300 → -2.6 points
+        """
+        # Check if sequence comparison is enabled
+        if self.sequence_comparator is None:
+            # Fallback to frame-by-frame scoring
+            if initial_score is None:
+                initial_score = SCORING_CONFIG.get("initial_score", 100.0)
+            
+            total_deduction = sum(e.get("deduction", 0.0) for e in frame_errors)
+            final_score = initial_score - total_deduction
+            
+            return final_score, frame_errors
+        
+        # Use sequence comparator
+        if initial_score is None:
+            initial_score = SCORING_CONFIG.get("initial_score", 100.0)
+        
+        final_score, sequence_errors = self.sequence_comparator.calculate_sequence_score(
+            frame_errors=frame_errors,
+            initial_score=initial_score
+        )
+        
+        return final_score, sequence_errors
 

@@ -16,6 +16,10 @@ from backend.app.services.geometry import (
     calculate_head_angle,
 )
 
+# Constants
+NUM_KEYPOINTS = 17  # COCO format has 17 keypoints
+MIN_KEYPOINT_DIMENSIONS = 3  # x, y, confidence
+
 
 class DTWAligner:
     """
@@ -165,22 +169,32 @@ class DTWAligner:
         """
         # Extract features from both sequences
         test_features = []
+        feature_dim = None  # Will be set from first valid frame
+        
         for kps in test_keypoints_sequence:
-            if kps.shape[0] >= 17 and kps.shape[1] >= 3:
+            if kps.shape[0] >= NUM_KEYPOINTS and kps.shape[1] >= MIN_KEYPOINT_DIMENSIONS:
                 features = self.extract_pose_features(kps)
+                if feature_dim is None:
+                    feature_dim = len(features)
                 test_features.append(features)
             else:
                 # Invalid keypoints, use zero vector
-                test_features.append(np.zeros(17, dtype=np.float32))
+                if feature_dim is None:
+                    feature_dim = 17  # Default feature dimension
+                test_features.append(np.zeros(feature_dim, dtype=np.float32))
         
         golden_features = []
         for kps in golden_keypoints_sequence:
-            if kps.shape[0] >= 17 and kps.shape[1] >= 3:
+            if kps.shape[0] >= NUM_KEYPOINTS and kps.shape[1] >= MIN_KEYPOINT_DIMENSIONS:
                 features = self.extract_pose_features(kps)
+                if feature_dim is None:
+                    feature_dim = len(features)
                 golden_features.append(features)
             else:
                 # Invalid keypoints, use zero vector
-                golden_features.append(np.zeros(17, dtype=np.float32))
+                if feature_dim is None:
+                    feature_dim = 17  # Default feature dimension
+                golden_features.append(np.zeros(feature_dim, dtype=np.float32))
         
         # Convert to numpy arrays
         test_features_array = np.array(test_features)

@@ -186,6 +186,67 @@ MULTI_PERSON_CONFIG = {
     "batch_size": 8,  # Batch size for multi-person detection
 }
 
+# Visualization configuration for multi-person tracking
+VISUALIZATION_CONFIG = {
+    "enabled": True,  # Enable/disable visualization
+    "enable_skeleton": True,  # Draw skeleton overlay
+    "enable_bbox": True,  # Draw bounding boxes
+    "enable_trajectories": True,  # Draw movement trajectories
+    "save_visualizations": True,  # Save visualization videos to disk
+    "trajectory_length": 30,  # Number of frames to keep in trajectory
+}
+
+# Performance optimization configuration
+PERFORMANCE_CONFIG = {
+    "enable_batch_processing": True,  # Enable batch processing for multi-person
+    "batch_size": 8,  # Number of frames to process at once
+    "enable_gpu": True,  # Use GPU acceleration if available
+    "enable_caching": True,  # Enable result caching
+    "num_workers": 4,  # Number of worker threads for parallel processing
+}
+
+# Error recovery configuration for tracking
+ERROR_RECOVERY_CONFIG = {
+    "enable_reidentification": True,  # Enable person re-identification
+    "reid_similarity_threshold": 0.7,  # Similarity threshold for re-identification
+    "max_disappeared_frames": 60,  # Maximum frames before giving up on re-identification
+    "reid_check_interval": 5,  # Check for re-identification every N frames
+    "spatial_distance_weight": 0.3,  # Weight for spatial proximity (0-1)
+    "pose_similarity_weight": 0.7,  # Weight for pose similarity (0-1)
+}
+
+# Video validation configuration
+VIDEO_VALIDATION_CONFIG = {
+    "enable_validation": True,  # Enable video validation
+    "min_resolution": (640, 480),  # Minimum resolution (width, height)
+    "min_fps": 15,  # Minimum frames per second
+    "max_duration": 600,  # Maximum duration in seconds (10 minutes)
+    "check_lighting": True,  # Check lighting quality
+    "check_blur": True,  # Check for motion blur
+    "check_noise": True,  # Check for noise levels
+    "lighting_threshold": 50,  # Minimum average brightness (0-255)
+    "blur_threshold": 100,  # Maximum acceptable blur (Laplacian variance)
+}
+
+# Progress tracking configuration
+PROGRESS_TRACKING_CONFIG = {
+    "enable_progress_bar": True,  # Show progress bar
+    "show_eta": True,  # Show estimated time remaining
+    "show_fps": True,  # Show processing speed
+    "update_interval": 1.0,  # Update progress every N seconds
+    "bar_length": 50,  # Progress bar length in characters
+}
+
+# Caching configuration
+CACHING_CONFIG = {
+    "enabled": True,  # Enable caching
+    "cache_keypoints": True,  # Cache extracted keypoints
+    "cache_templates": True,  # Cache golden templates
+    "cache_dir": DATA_DIR / "cache",  # Cache directory
+    "max_cache_size_mb": 500,  # Maximum cache size in MB
+    "cache_expiry_days": 7,  # Cache expiry in days
+}
+
 # Định nghĩa keypoints (theo COCO format)
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",

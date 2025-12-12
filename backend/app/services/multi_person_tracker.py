@@ -12,23 +12,31 @@ EPSILON = 1e-8  # Small value for numerical stability in divisions
 
 
 class PersonTracker:
-    """Track multiple persons across frames using IoU-based matching"""
+    """Track multiple persons across frames using IoU-based matching with optional re-identification"""
     
-    def __init__(self, max_disappeared: int = 30, iou_threshold: float = 0.5):
+    def __init__(self, max_disappeared: int = 30, iou_threshold: float = 0.5, enable_reid: bool = False):
         """
         Initialize person tracker
         
         Args:
             max_disappeared: Maximum frames a person can be missing before deregistration
             iou_threshold: Minimum IoU for matching detections to existing tracks
+            enable_reid: Enable person re-identification after occlusion
         """
         self.max_disappeared = max_disappeared
         self.iou_threshold = iou_threshold
+        self.enable_reid = enable_reid
         
         # Tracking state
         self.next_person_id = 0
         self.persons = {}  # {person_id: {"keypoints": np.ndarray, "frame_num": int}}
         self.disappeared = {}  # {person_id: disappeared_count}
+        
+        # Re-identification support
+        self.reidentifier = None
+        if enable_reid:
+            from backend.app.services.person_reidentification import PersonReIdentifier
+            self.reidentifier = PersonReIdentifier()
     
     def register(self, keypoints: np.ndarray, frame_num: int) -> int:
         """
@@ -59,7 +67,7 @@ class PersonTracker:
     
     def update(self, detections: List[np.ndarray], frame_num: int) -> Dict[int, np.ndarray]:
         """
-        Update tracker with new detections
+        Update tracker with new detections (with optional re-identification)
         
         Args:
             detections: List of keypoints arrays, each [17, 3]
@@ -78,44 +86,88 @@ class PersonTracker:
         if len(detections) == 0:
             for person_id in list(self.persons.keys()):
                 self.disappeared[person_id] += 1
+                
+                # Register for re-identification if enabled
+                if self.enable_reid and self.reidentifier and self.disappeared[person_id] == 1:
+                    self.reidentifier.register_disappeared(person_id, self.persons[person_id]["keypoints"])
+                
                 if self.disappeared[person_id] > self.max_disappeared:
                     self.deregister(person_id)
+            
+            # Update re-identifier
+            if self.enable_reid and self.reidentifier:
+                self.reidentifier.update_disappeared()
+            
             return {}
         
-        # Match detections to existing persons using Hungarian algorithm
+        # Attempt re-identification first if enabled
+        unmatched_detections = list(range(len(detections)))
+        if self.enable_reid and self.reidentifier:
+            reidentified = self.reidentifier.attempt_reidentification(detections)
+            
+            for person_id, (keypoints, confidence) in reidentified.items():
+                # Find which detection was used
+                det_idx = next((i for i, det in enumerate(detections) if np.array_equal(det, keypoints)), None)
+                if det_idx is not None and det_idx in unmatched_detections:
+                    # Re-register the person with same ID
+                    self.persons[person_id] = {
+                        "keypoints": keypoints,
+                        "frame_num": frame_num
+                    }
+                    self.disappeared[person_id] = 0
+                    unmatched_detections.remove(det_idx)
+        
+        # Match remaining detections to existing persons using Hungarian algorithm
         person_ids = list(self.persons.keys())
-        cost_matrix = self._compute_cost_matrix(detections, person_ids)
+        remaining_detections = [detections[i] for i in unmatched_detections]
         
-        # Solve assignment problem
-        row_indices, col_indices = linear_sum_assignment(cost_matrix)
+        if len(person_ids) > 0 and len(remaining_detections) > 0:
+            cost_matrix = self._compute_cost_matrix(remaining_detections, person_ids)
+            
+            # Solve assignment problem
+            row_indices, col_indices = linear_sum_assignment(cost_matrix)
+            
+            # Track which persons and detections are matched
+            matched_persons = set()
+            matched_detections = set()
+            
+            # Update matched persons
+            for row_idx, col_idx in zip(row_indices, col_indices):
+                # Check if IoU is above threshold
+                iou = 1.0 - cost_matrix[row_idx, col_idx]  # Convert cost back to IoU
+                if iou >= self.iou_threshold:
+                    person_id = person_ids[col_idx]
+                    det_idx = unmatched_detections[row_idx]
+                    self.persons[person_id]["keypoints"] = detections[det_idx]
+                    self.persons[person_id]["frame_num"] = frame_num
+                    self.disappeared[person_id] = 0
+                    matched_persons.add(person_id)
+                    matched_detections.add(det_idx)
+            
+            # Handle unmatched persons (increment disappeared counter)
+            for person_id in person_ids:
+                if person_id not in matched_persons:
+                    self.disappeared[person_id] += 1
+                    
+                    # Register for re-identification if enabled
+                    if self.enable_reid and self.reidentifier and self.disappeared[person_id] == 1:
+                        self.reidentifier.register_disappeared(person_id, self.persons[person_id]["keypoints"])
+                    
+                    if self.disappeared[person_id] > self.max_disappeared:
+                        self.deregister(person_id)
+            
+            # Register unmatched detections as new persons
+            for det_idx in unmatched_detections:
+                if det_idx not in matched_detections:
+                    self.register(detections[det_idx], frame_num)
+        else:
+            # No persons to match, all detections are new
+            for det_idx in unmatched_detections:
+                self.register(detections[det_idx], frame_num)
         
-        # Track which persons and detections are matched
-        matched_persons = set()
-        matched_detections = set()
-        
-        # Update matched persons
-        for row_idx, col_idx in zip(row_indices, col_indices):
-            # Check if IoU is above threshold
-            iou = 1.0 - cost_matrix[row_idx, col_idx]  # Convert cost back to IoU
-            if iou >= self.iou_threshold:
-                person_id = person_ids[col_idx]
-                self.persons[person_id]["keypoints"] = detections[row_idx]
-                self.persons[person_id]["frame_num"] = frame_num
-                self.disappeared[person_id] = 0
-                matched_persons.add(person_id)
-                matched_detections.add(row_idx)
-        
-        # Handle unmatched persons (increment disappeared counter)
-        for person_id in person_ids:
-            if person_id not in matched_persons:
-                self.disappeared[person_id] += 1
-                if self.disappeared[person_id] > self.max_disappeared:
-                    self.deregister(person_id)
-        
-        # Register unmatched detections as new persons
-        for det_idx, keypoints in enumerate(detections):
-            if det_idx not in matched_detections:
-                self.register(keypoints, frame_num)
+        # Update re-identifier
+        if self.enable_reid and self.reidentifier:
+            self.reidentifier.update_disappeared()
         
         # Return current tracked persons
         return {pid: data["keypoints"] for pid, data in self.persons.items()}
@@ -214,6 +266,10 @@ class PersonTracker:
         self.next_person_id = 0
         self.persons = {}
         self.disappeared = {}
+        
+        # Reset re-identifier if enabled
+        if self.enable_reid and self.reidentifier:
+            self.reidentifier.reset()
 
 
 class MultiPersonManager:

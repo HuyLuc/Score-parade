@@ -20,7 +20,11 @@ from backend.app.services.geometry import (
 from backend.app.services.keypoint_normalization import normalize_keypoints_relative
 from backend.app.services.temporal_smoothing import TemporalSmoother, KeypointSmoother
 from backend.app.services.adaptive_threshold import AdaptiveThresholdManager
-from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG
+from backend.app.services.sequence_comparison import SequenceComparator
+from backend.app.config import (
+    GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG,
+    TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG, SEQUENCE_COMPARISON_CONFIG
+)
 
 
 class AIController:
@@ -833,4 +837,68 @@ class AIController:
         if self.metric_smoothers is not None:
             for smoother in self.metric_smoothers.values():
                 smoother.reset()
+    
+    def process_video_sequence(self, frame_errors: List[Dict]) -> Dict:
+        """
+        Process all frame errors and group them into sequences to avoid over-penalization.
+        
+        This method addresses the issue where persistent errors (e.g., arm 2° off for 600 frames)
+        were being penalized 600 times instead of once. By grouping consecutive errors into
+        sequences, we apply a single deduction per sequence.
+        
+        Args:
+            frame_errors: List of all error dicts from all frames, each containing:
+                {
+                    "type": str,
+                    "description": str,
+                    "severity": float,
+                    "deduction": float,
+                    "body_part": str,
+                    "side": Optional[str],
+                    "frame_number": int,
+                    "timestamp": float
+                }
+        
+        Returns:
+            Dict containing:
+                {
+                    "sequences": List[Dict],  # List of error sequences
+                    "total_deduction": float,  # Total deduction from all sequences
+                    "sequence_count": int,     # Number of sequences
+                    "original_error_count": int  # Original number of frame errors
+                }
+        
+        Example:
+            Before: 600 frames with 2° error → 600 errors → -300 points
+            After: 1 sequence (frames 1-600) → 1 error → -2.6 points
+        """
+        # Check if sequence comparison is enabled
+        if not SEQUENCE_COMPARISON_CONFIG.get("enabled", True):
+            # Return frame errors as-is without grouping
+            total_deduction = sum(e.get("deduction", 0.0) for e in frame_errors)
+            return {
+                "sequences": frame_errors,
+                "total_deduction": total_deduction,
+                "sequence_count": len(frame_errors),
+                "original_error_count": len(frame_errors)
+            }
+        
+        # Create sequence comparator
+        comparator = SequenceComparator(
+            min_sequence_length=SEQUENCE_COMPARISON_CONFIG.get("min_sequence_length", 3),
+            severity_aggregation=SEQUENCE_COMPARISON_CONFIG.get("severity_aggregation", "mean")
+        )
+        
+        # Group errors into sequences
+        sequences = comparator.group_errors_into_sequences(frame_errors)
+        
+        # Calculate total deduction from sequences
+        total_deduction = sum(seq.get("deduction", 0.0) for seq in sequences)
+        
+        return {
+            "sequences": sequences,
+            "total_deduction": total_deduction,
+            "sequence_count": len(sequences),
+            "original_error_count": len(frame_errors)
+        }
 

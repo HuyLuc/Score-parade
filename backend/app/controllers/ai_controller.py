@@ -997,4 +997,209 @@ class AIController:
         )
         
         return final_score, sequence_errors
+    
+    # ===================== Multi-Person Methods =====================
+    
+    def enable_multi_person_mode(self, golden_templates: Dict[str, Dict]):
+        """
+        Enable multi-person mode with multiple golden templates
+        
+        Args:
+            golden_templates: Dict mapping template_id to template data
+                {
+                    "template_id": {
+                        "keypoints": np.ndarray [n_frames, 17, 3] or [17, 3],
+                        "profile": dict (optional)
+                    }
+                }
+        """
+        from backend.app.services.multi_person_tracker import MultiPersonManager
+        from backend.app.config import MULTI_PERSON_CONFIG
+        
+        similarity_threshold = MULTI_PERSON_CONFIG.get("similarity_threshold", 0.6)
+        self.multi_person_manager = MultiPersonManager(similarity_threshold=similarity_threshold)
+        
+        # Add all golden templates
+        for template_id, template_data in golden_templates.items():
+            keypoints = template_data.get("keypoints")
+            profile = template_data.get("profile", {})
+            self.multi_person_manager.add_golden_template(template_id, keypoints, profile)
+        
+        # Initialize person tracker
+        max_disappeared = MULTI_PERSON_CONFIG.get("max_disappeared", 30)
+        iou_threshold = MULTI_PERSON_CONFIG.get("iou_threshold", 0.5)
+        from backend.app.services.multi_person_tracker import PersonTracker
+        self.person_tracker = PersonTracker(
+            max_disappeared=max_disappeared,
+            iou_threshold=iou_threshold
+        )
+        
+        print(f"✅ Multi-person mode enabled with {len(golden_templates)} templates")
+    
+    def process_frame_multi_person(self, frame: np.ndarray, frame_number: int) -> Dict[int, List[Dict]]:
+        """
+        Process frame with multiple people, return errors per person
+        
+        Args:
+            frame: Input frame
+            frame_number: Frame number
+            
+        Returns:
+            Dict mapping person_id to list of errors for that person
+        """
+        if not hasattr(self, 'person_tracker') or not hasattr(self, 'multi_person_manager'):
+            raise ValueError("Multi-person mode not enabled. Call enable_multi_person_mode() first.")
+        
+        # Detect all persons in frame
+        detections = self.pose_service.predict_multi_person(frame)
+        detection_keypoints = [d["keypoints"] for d in detections]
+        
+        # Track persons across frames
+        tracked_persons = self.person_tracker.update(detection_keypoints, frame_number)
+        
+        # Match test persons to golden templates
+        matches = self.multi_person_manager.match_test_to_golden(tracked_persons)
+        
+        # Detect errors for each matched person independently
+        person_errors = {}
+        for person_id, keypoints in tracked_persons.items():
+            # Get matched template
+            template_id = matches.get(person_id)
+            if template_id is None:
+                # Person not matched to any template, skip
+                continue
+            
+            # Get template data
+            template_data = self.multi_person_manager.get_template_data(template_id)
+            if template_data is None:
+                continue
+            
+            # Temporarily set golden template for this person
+            original_profile = self.golden_profile
+            original_keypoints = self.golden_keypoints
+            
+            self.golden_profile = template_data.get("profile", {})
+            template_keypoints = template_data.get("keypoints")
+            
+            # If template has multiple frames, use them; otherwise use single frame
+            if template_keypoints.ndim == 3:
+                self.golden_keypoints = template_keypoints
+            else:
+                self.golden_keypoints = template_keypoints[np.newaxis, :]
+            
+            # Detect errors for this person
+            errors = self.detect_posture_errors(keypoints, frame_number=frame_number)
+            
+            # Add template information to errors
+            for error in errors:
+                error["person_id"] = person_id
+                error["template_id"] = template_id
+            
+            person_errors[person_id] = errors
+            
+            # Restore original golden template
+            self.golden_profile = original_profile
+            self.golden_keypoints = original_keypoints
+        
+        return person_errors
+    
+    def process_video_multi_person(self, video_path: str) -> Dict[int, Dict]:
+        """
+        Process entire video with multiple people
+        
+        Args:
+            video_path: Path to video file
+            
+        Returns:
+            Dict mapping person_id to results:
+            {
+                person_id: {
+                    "score": float,
+                    "errors": List[Dict],
+                    "matched_template": str,
+                    "frame_count": int
+                }
+            }
+        """
+        import cv2
+        from backend.app.config import MULTI_PERSON_CONFIG
+        
+        if not hasattr(self, 'person_tracker') or not hasattr(self, 'multi_person_manager'):
+            raise ValueError("Multi-person mode not enabled. Call enable_multi_person_mode() first.")
+        
+        # Reset trackers
+        self.person_tracker.reset()
+        self.multi_person_manager.reset_matches()
+        
+        # Reset smoothers if enabled
+        if self.keypoint_smoother is not None:
+            self.keypoint_smoother.reset()
+        if self.metric_smoothers is not None:
+            for smoother in self.metric_smoothers.values():
+                smoother.reset()
+        
+        # Open video
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise ValueError(f"Cannot open video: {video_path}")
+        
+        # Collect all frame errors per person
+        person_frame_errors = {}  # {person_id: [errors]}
+        person_frame_counts = {}  # {person_id: frame_count}
+        
+        frame_number = 0
+        batch_size = MULTI_PERSON_CONFIG.get("batch_size", 8)
+        
+        # Process video frame by frame
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            # Process frame for all persons
+            frame_errors = self.process_frame_multi_person(frame, frame_number)
+            
+            # Accumulate errors per person
+            for person_id, errors in frame_errors.items():
+                if person_id not in person_frame_errors:
+                    person_frame_errors[person_id] = []
+                    person_frame_counts[person_id] = 0
+                
+                person_frame_errors[person_id].extend(errors)
+                person_frame_counts[person_id] += 1
+            
+            frame_number += 1
+        
+        cap.release()
+        
+        # Calculate scores and aggregate results per person
+        results = {}
+        initial_score = SCORING_CONFIG.get("initial_score", 100.0)
+        
+        for person_id in person_frame_errors.keys():
+            errors = person_frame_errors[person_id]
+            
+            # Use sequence comparator if enabled
+            if self.sequence_comparator is not None:
+                score, sequence_errors = self.sequence_comparator.calculate_sequence_score(
+                    frame_errors=errors,
+                    initial_score=initial_score
+                )
+            else:
+                # Simple scoring without sequence comparison
+                total_deduction = sum(e.get("deduction", 0) for e in errors)
+                score = max(0.0, initial_score - total_deduction)
+                sequence_errors = errors
+            
+            # Get matched template
+            template_id = self.multi_person_manager.get_template_for_person(person_id)
+            
+            results[person_id] = {
+                "score": score,
+                "errors": sequence_errors,
+                "matched_template": template_id,
+                "frame_count": person_frame_counts[person_id]
+            }
+        
+        return results
 

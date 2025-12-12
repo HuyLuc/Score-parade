@@ -175,6 +175,17 @@ SEQUENCE_COMPARISON_CONFIG = {
     "severity_aggregation": "mean",  # Severity calculation method: "mean", "max", "median"
 }
 
+# Multi-Person Tracking configuration
+MULTI_PERSON_CONFIG = {
+    "enabled": False,  # Enable/disable multi-person mode (default: False for backward compatibility)
+    "max_persons": 10,  # Maximum number of persons to track
+    "max_disappeared": 30,  # Max frames before person considered disappeared
+    "iou_threshold": 0.5,  # IoU threshold for tracking (0.0-1.0)
+    "similarity_threshold": 0.6,  # Pose similarity threshold for matching (0.0-1.0)
+    "enable_visualization": True,  # Draw tracking boxes and IDs
+    "batch_size": 8,  # Batch size for multi-person detection
+}
+
 # Định nghĩa keypoints (theo COCO format)
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",

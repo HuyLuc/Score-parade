@@ -20,7 +20,8 @@ from backend.app.services.geometry import (
 from backend.app.services.keypoint_normalization import normalize_keypoints_relative
 from backend.app.services.temporal_smoothing import TemporalSmoother, KeypointSmoother
 from backend.app.services.adaptive_threshold import AdaptiveThresholdManager
-from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG
+from backend.app.services.dtw_alignment import DTWAligner
+from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG, DTW_CONFIG
 
 
 class AIController:
@@ -833,4 +834,91 @@ class AIController:
         if self.metric_smoothers is not None:
             for smoother in self.metric_smoothers.values():
                 smoother.reset()
+    
+    def process_video_with_dtw(
+        self,
+        test_keypoints_sequence: List[np.ndarray],
+        golden_keypoints_sequence: Optional[List[np.ndarray]] = None
+    ) -> Tuple[List[Dict], Dict]:
+        """
+        Xử lý video test với DTW alignment để xử lý tempo variations
+        
+        Args:
+            test_keypoints_sequence: List of keypoints arrays từ test video
+            golden_keypoints_sequence: List of keypoints arrays từ golden video
+                                       (nếu None, sẽ dùng self.golden_keypoints)
+        
+        Returns:
+            Tuple (errors, alignment_info):
+                - errors: List các error dicts từ việc so sánh aligned frames
+                - alignment_info: Dict chứa thông tin về alignment (tempo ratio, etc.)
+        """
+        # Check if DTW is enabled
+        if not DTW_CONFIG.get("enabled", False):
+            print("⚠️ DTW is disabled in config. Enable it by setting DTW_CONFIG['enabled'] = True")
+            return [], {}
+        
+        # Use golden keypoints from loaded template if not provided
+        if golden_keypoints_sequence is None:
+            if self.golden_keypoints is None:
+                print("⚠️ No golden keypoints available. Load golden template first.")
+                return [], {}
+            golden_keypoints_sequence = self.golden_keypoints
+        
+        # Validate inputs
+        if not test_keypoints_sequence or not golden_keypoints_sequence:
+            print("⚠️ Empty keypoints sequences provided")
+            return [], {}
+        
+        # Initialize DTW aligner with config
+        window_size = DTW_CONFIG.get("window_size", 50)
+        distance_metric = DTW_CONFIG.get("distance_metric", "euclidean")
+        
+        aligner = DTWAligner(window_size=window_size, distance_metric=distance_metric)
+        
+        # Align sequences
+        print(f"🔄 Aligning {len(test_keypoints_sequence)} test frames with {len(golden_keypoints_sequence)} golden frames...")
+        dtw_distance, alignment_path = aligner.align_sequences(
+            test_keypoints_sequence,
+            golden_keypoints_sequence
+        )
+        
+        # Get alignment info
+        alignment_info = aligner.get_alignment_info()
+        if alignment_info:
+            print(f"✅ DTW Alignment complete:")
+            print(f"   - Tempo ratio: {alignment_info['tempo_ratio']:.2f}x")
+            print(f"   - Path length: {alignment_info['path_length']}")
+            print(f"   - DTW distance: {dtw_distance:.2f}")
+        
+        # Compare aligned frames
+        errors = []
+        for test_idx in range(len(test_keypoints_sequence)):
+            golden_idx = aligner.get_aligned_frame(test_idx)
+            
+            if golden_idx is None or golden_idx >= len(golden_keypoints_sequence):
+                continue
+            
+            test_keypoints = test_keypoints_sequence[test_idx]
+            golden_keypoints = golden_keypoints_sequence[golden_idx]
+            
+            # Validate keypoints shape
+            if test_keypoints.shape[0] < 17 or test_keypoints.shape[1] < 3:
+                continue
+            
+            # Detect posture errors for this aligned pair
+            frame_errors = self.detect_posture_errors(
+                keypoints=test_keypoints,
+                frame_number=test_idx,
+                timestamp=test_idx / 30.0  # Assume 30 fps
+            )
+            
+            # Add golden frame info to errors
+            for error in frame_errors:
+                error["golden_frame"] = golden_idx
+                error["test_frame"] = test_idx
+            
+            errors.extend(frame_errors)
+        
+        return errors, alignment_info
 

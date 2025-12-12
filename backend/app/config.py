@@ -161,6 +161,13 @@ ADAPTIVE_THRESHOLD_CONFIG = {
     "cache_thresholds": True,  # Cache computed thresholds per session
 }
 
+# Cấu hình DTW (Dynamic Time Warping) cho xử lý tempo variation
+DTW_CONFIG = {
+    "enabled": False,  # Bật/tắt DTW alignment (default: False để tránh ảnh hưởng hệ thống hiện tại)
+    "window_size": 50,  # Window size cho DTW alignment
+    "distance_metric": "euclidean",  # Distance metric: "euclidean", "manhattan", "cosine"
+}
+
 # Định nghĩa keypoints (theo COCO format)
 KEYPOINT_NAMES = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",

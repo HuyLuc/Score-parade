@@ -34,6 +34,7 @@ class ProgressTracker:
         self.current = 0
         self.start_time = time.time()
         self.last_update_time = self.start_time
+        self.last_print_time = self.start_time
         self.update_interval = self.config.get("update_interval", 1.0)
         
         # Performance metrics
@@ -182,9 +183,8 @@ class ProgressTracker:
         self.current = 0
         self.start_time = time.time()
         self.last_update_time = self.start_time
+        self.last_print_time = self.start_time
         self.fps_history = []
-        if hasattr(self, 'last_print_time'):
-            del self.last_print_time
     
     def close(self):
         """Close progress tracker and print final stats"""

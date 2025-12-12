@@ -231,9 +231,15 @@ class PersonReIdentifier:
             (old_position[1] - new_center_y) ** 2
         )
         
-        # Normalize by typical frame size (assume 1920x1080)
+        # Estimate frame dimensions from keypoint positions
+        # Use the range of keypoints as a proxy for frame size
+        all_x = valid_points[:, 0]
+        all_y = valid_points[:, 1]
+        estimated_width = max(1920, np.max(all_x) * 2)  # Estimate, min 1920
+        estimated_height = max(1080, np.max(all_y) * 2)  # Estimate, min 1080
+        
         # Maximum reasonable distance is about 1/4 of frame diagonal
-        max_distance = np.sqrt(1920**2 + 1080**2) / 4
+        max_distance = np.sqrt(estimated_width**2 + estimated_height**2) / 4
         
         # Convert distance to similarity
         similarity = max(0.0, 1.0 - (distance / max_distance))

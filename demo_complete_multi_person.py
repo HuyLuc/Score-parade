@@ -29,6 +29,9 @@ from backend.app.config import (
     VIDEO_VALIDATION_CONFIG
 )
 
+# Cache configuration hash for demo
+DEMO_CACHE_VERSION = "demo_v1"
+
 
 def load_golden_templates(template_dir: str):
     """
@@ -116,7 +119,7 @@ def demo_complete_workflow(
         cache_manager.print_cache_stats()
         
         # Try to load from cache
-        cached_data = cache_manager.get_cached_keypoints(test_video_path, config_hash="demo_v1")
+        cached_data = cache_manager.get_cached_keypoints(test_video_path, config_hash=DEMO_CACHE_VERSION)
         
         if cached_data:
             print("✅ Found cached keypoints! Loading from cache...")
@@ -293,7 +296,7 @@ def demo_complete_workflow(
             cache_manager.save_keypoints(
                 test_video_path,
                 all_keypoints,
-                config_hash="demo_v1",
+                config_hash=DEMO_CACHE_VERSION,
                 additional_metadata={
                     "total_frames": total_frames,
                     "fps": fps,

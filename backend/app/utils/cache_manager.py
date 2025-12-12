@@ -357,4 +357,46 @@ class CacheManager:
         
         if stats["total_size_mb"] > max_size_mb:
             print(f"⚠️  Cache size ({stats['total_size_mb']:.1f} MB) exceeds limit ({max_size_mb} MB)")
-            print("   Consider running clear_cache() or increasing max_cache_size_mb")
+            print("   Automatically cleaning oldest entries...")
+            self._cleanup_old_entries(target_size_mb=max_size_mb * 0.8)  # Clean to 80% of limit
+    
+    def _cleanup_old_entries(self, target_size_mb: float):
+        """
+        Clean up oldest cache entries until target size is reached
+        
+        Args:
+            target_size_mb: Target cache size in MB
+        """
+        import os
+        from datetime import datetime
+        
+        # Get all cache files with timestamps
+        cache_files = []
+        for directory in [self.keypoints_dir, self.templates_dir, self.metadata_dir]:
+            for file_path in directory.rglob("*"):
+                if file_path.is_file():
+                    mtime = file_path.stat().st_mtime
+                    size = file_path.stat().st_size
+                    cache_files.append((file_path, mtime, size))
+        
+        # Sort by modification time (oldest first)
+        cache_files.sort(key=lambda x: x[1])
+        
+        # Delete oldest files until we reach target size
+        current_size_mb = sum(f[2] for f in cache_files) / (1024 * 1024)
+        deleted_count = 0
+        
+        for file_path, mtime, size in cache_files:
+            if current_size_mb <= target_size_mb:
+                break
+            
+            try:
+                file_path.unlink()
+                current_size_mb -= size / (1024 * 1024)
+                deleted_count += 1
+            except Exception as e:
+                print(f"   Failed to delete {file_path}: {e}")
+        
+        if deleted_count > 0:
+            print(f"   ✅ Deleted {deleted_count} old cache files")
+            print(f"   Cache size reduced to {current_size_mb:.1f} MB")

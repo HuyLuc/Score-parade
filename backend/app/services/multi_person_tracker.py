@@ -6,6 +6,10 @@ from typing import Dict, List, Optional, Tuple
 from scipy.optimize import linear_sum_assignment
 from sklearn.metrics.pairwise import cosine_similarity
 
+# Constants for numerical stability and bbox calculations
+MIN_BBOX_SIZE = 1.0  # Minimum bounding box size to handle degenerate cases
+EPSILON = 1e-8  # Small value for numerical stability in divisions
+
 
 class PersonTracker:
     """Track multiple persons across frames using IoU-based matching"""
@@ -162,11 +166,10 @@ class PersonTracker:
         
         # Add small padding to handle degenerate cases where all points are at same location
         # This ensures bbox has some area for IoU calculation
-        min_size = 1.0
-        if x2 - x1 < min_size:
-            x2 = x1 + min_size
-        if y2 - y1 < min_size:
-            y2 = y1 + min_size
+        if x2 - x1 < MIN_BBOX_SIZE:
+            x2 = x1 + MIN_BBOX_SIZE
+        if y2 - y1 < MIN_BBOX_SIZE:
+            y2 = y1 + MIN_BBOX_SIZE
         
         return (x1, y1, x2, y2)
     
@@ -311,9 +314,9 @@ class MultiPersonManager:
         points1_centered = points1 - mean1
         points2_centered = points2 - mean2
         
-        # Scale to unit variance
-        scale1 = np.std(points1_centered) + 1e-8
-        scale2 = np.std(points2_centered) + 1e-8
+        # Scale to unit variance (add EPSILON for numerical stability)
+        scale1 = np.std(points1_centered) + EPSILON
+        scale2 = np.std(points2_centered) + EPSILON
         
         points1_normalized = points1_centered / scale1
         points2_normalized = points2_centered / scale2

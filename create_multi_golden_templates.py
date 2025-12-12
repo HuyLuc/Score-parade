@@ -252,10 +252,12 @@ def create_multi_golden_templates(video_path: str, output_dir: str):
         }
         
         # Save template
+        # Note: valid_skeletons is kept for backward compatibility with existing code
+        # that expects this key. Both keys point to the same numpy array (no duplication).
         template_data = {
             "keypoints": keypoints_sequence,
             "profile": profile,
-            "valid_skeletons": keypoints_sequence  # For compatibility
+            "valid_skeletons": keypoints_sequence  # Backward compatibility
         }
         
         # Save as pickle

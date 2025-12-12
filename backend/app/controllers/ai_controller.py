@@ -1075,6 +1075,10 @@ class AIController:
                 continue
             
             # Temporarily set golden template for this person
+            # Note: This modifies instance state but is safe because:
+            # 1. We save and restore original values in same method call
+            # 2. detect_posture_errors is designed to use instance variables
+            # 3. Not intended for concurrent use (single-threaded processing)
             original_profile = self.golden_profile
             original_keypoints = self.golden_keypoints
             

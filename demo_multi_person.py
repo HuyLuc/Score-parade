@@ -43,7 +43,10 @@ def load_golden_templates(template_dir: str):
                 template_data = pickle.load(f)
             
             # Extract keypoints and profile
-            keypoints = template_data.get("keypoints") or template_data.get("valid_skeletons")
+            # Check for keypoints first, fallback to valid_skeletons for backward compatibility
+            keypoints = template_data.get("keypoints")
+            if keypoints is None:
+                keypoints = template_data.get("valid_skeletons")
             profile = template_data.get("profile", {})
             
             templates[person_id] = {

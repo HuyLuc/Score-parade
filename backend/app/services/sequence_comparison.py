@@ -12,7 +12,6 @@ and apply penalty once per sequence rather than per frame.
 import logging
 from typing import List, Dict, Optional, Tuple
 from statistics import mean, median
-import numpy as np
 
 logger = logging.getLogger(__name__)
 

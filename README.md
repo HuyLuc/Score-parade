@@ -118,20 +118,29 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### Bước 3: Cài Đặt Phụ Thuộc
+### Bước 3: Cài Đặt Phụ Thuộc Backend
 
 ```bash
-# Cài đặt phụ thuộc cốt lõi
+# Cài đặt phụ thuộc Python cho backend
+cd backend
 pip install -r requirements.txt
 
-# Cài đặt phụ thuộc phát triển (tùy chọn)
-pip install -r requirements-dev.txt
-
-# Cài đặt gói ở chế độ có thể chỉnh sửa
-pip install -e .
+# Quay lại thư mục gốc
+cd ..
 ```
 
-### Bước 4: Cài Đặt FFmpeg
+### Bước 4: Cài Đặt Phụ Thuộc Frontend
+
+```bash
+# Cài đặt Node.js dependencies (yêu cầu Node.js 16+)
+cd frontend
+npm install
+
+# Quay lại thư mục gốc
+cd ..
+```
+
+### Bước 5: Cài Đặt FFmpeg
 
 **Windows:**
 ```bash
@@ -152,7 +161,7 @@ sudo apt-get update
 sudo apt-get install ffmpeg
 ```
 
-### Bước 5: Cấu Hình Môi Trường
+### Bước 6: Cấu Hình Môi Trường
 
 ```bash
 # Sao chép mẫu biến môi trường
@@ -162,60 +171,207 @@ cp .env.example .env
 nano .env
 ```
 
-### Bước 6: Xác Minh Cài Đặt
+### Bước 7: Xác Minh Cài Đặt
 
 ```bash
-# Chạy script xác minh
-python -c "import mediapipe; import cv2; print('Cài đặt thành công!')"
+# Kiểm tra backend dependencies
+python -c "import cv2; import numpy; import ultralytics; print('✅ Backend dependencies OK')"
+
+# Kiểm tra frontend
+cd frontend
+npm list --depth=0
+cd ..
 ```
 
 ## 💻 Sử Dụng
 
-### Giao Diện Dòng Lệnh (CLI)
+### 🚀 Chạy Ứng Dụng
 
-#### Sử Dụng Cơ Bản
+#### Cách 1: Chạy Full Stack (Backend + Frontend)
 
+**Bước 1: Khởi động Backend API**
+
+Mở Terminal 1:
 ```bash
-# Phân tích một video
-python -m src.main --video path/to/dance_video.mp4 --reference path/to/reference.mp4
+# Từ thư mục gốc của project
+cd F:\Score-parade\Score-parade
 
-# Với cấu hình tùy chỉnh
-python -m src.main --video input.mp4 --reference ref.mp4 --config config/custom.yaml
-
-# Bật ghi log chi tiết
-python -m src.main --video input.mp4 --reference ref.mp4 --verbose
-
-# Lưu trực quan hóa đầu ra
-python -m src.main --video input.mp4 --reference ref.mp4 --output results/output.mp4
+# Chạy backend
+python -c "import sys; sys.path.insert(0, '.'); from backend.app.main import app; import uvicorn; uvicorn.run(app, host='0.0.0.0', port=8000)"
 ```
 
-#### Tùy Chọn Nâng Cao
-
+Hoặc sử dụng uvicorn trực tiếp:
 ```bash
-# Xử lý hàng loạt
-python -m src.main --batch data/videos/ --reference ref.mp4 --output-dir results/
+# Cài đặt uvicorn nếu chưa có
+pip install uvicorn
 
-# Trọng số chấm điểm tùy chỉnh
-python -m src.main --video input.mp4 --reference ref.mp4 \
-  --weight-position 0.4 --weight-timing 0.3 --weight-smoothness 0.3
-
-# Bật phát hiện nhịp
-python -m src.main --video input.mp4 --reference ref.mp4 --enable-beat-detection
-
-# Xuất chỉ số chi tiết
-python -m src.main --video input.mp4 --reference ref.mp4 --export-metrics results/metrics.json
+# Chạy từ thư mục gốc
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Chế Độ API
+Backend sẽ chạy tại: `http://localhost:8000`
+- API Docs: `http://localhost:8000/docs`
+- Health Check: `http://localhost:8000/health`
 
-#### Khởi Động Máy Chủ
+**Bước 2: Khởi động Frontend**
+
+Mở Terminal 2:
+```bash
+# Vào thư mục frontend
+cd frontend
+
+# Cài đặt dependencies (chỉ lần đầu)
+npm install
+
+# Chạy development server
+npm run dev
+```
+
+Frontend sẽ chạy tại: `http://localhost:3000`
+
+**Kiểm tra kết nối:**
+- Mở trình duyệt và truy cập `http://localhost:3000`
+- Dashboard sẽ hiển thị trạng thái kết nối backend
+- Nếu thấy "Backend API: Hoạt động bình thường" là thành công!
+
+#### Cách 2: Chạy CLI Scoring (Không cần Backend/Frontend)
+
+Sử dụng script CLI để tạo golden template và chấm điểm video:
 
 ```bash
-# Chế độ phát triển
-python -m src.api.server --host 0.0.0.0 --port 8000 --reload
+# Tạo golden template từ video mẫu
+python run_scoring.py create_golden "data/golden_template/golden_video.mp4" --output-dir data/golden_template
 
-# Chế độ sản xuất
-gunicorn src.api.server:app --bind 0.0.0.0:8000 --workers 4
+# Đánh giá video test so với golden template
+python run_scoring.py evaluate "data/input_videos/video1.mp4" --golden-dir data/golden_template --output-dir data/output
+```
+
+### 📋 Giao Diện Dòng Lệnh (CLI)
+
+#### Tạo Golden Template
+
+```bash
+python run_scoring.py create_golden <video_path> --output-dir <output_directory>
+```
+
+Ví dụ:
+```bash
+python run_scoring.py create_golden "data/input_videos/golden.mp4" --output-dir data/golden_template
+```
+
+#### Đánh Giá Video
+
+```bash
+python run_scoring.py evaluate <video_path> --golden-dir <golden_directory> --output-dir <output_directory>
+```
+
+Ví dụ:
+```bash
+python run_scoring.py evaluate "data/input_videos/test.mp4" --golden-dir data/golden_template --output-dir data/output
+```
+
+### 🌐 Chế Độ API (Backend)
+
+#### Khởi Động Máy Chủ Backend
+
+**Cách 1: Sử dụng Python trực tiếp (Khuyến nghị)**
+```bash
+# Từ thư mục gốc project
+python -c "import sys; sys.path.insert(0, '.'); from backend.app.main import app; import uvicorn; uvicorn.run(app, host='0.0.0.0', port=8000)"
+```
+
+**Cách 2: Sử dụng uvicorn**
+```bash
+# Cài đặt uvicorn
+pip install uvicorn
+
+# Chạy từ thư mục gốc
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+**Cách 3: Chạy trực tiếp main.py**
+```bash
+# Từ thư mục gốc
+python -m backend.app.main
+```
+
+#### Điểm Cuối API
+
+**1. Kiểm Tra Sức Khỏe**
+```bash
+curl http://localhost:8000/health
+```
+
+**2. Bắt Đầu Session (Global Mode)**
+```bash
+curl -X POST http://localhost:8000/api/global/{session_id}/start \
+  -F "mode=testing" \
+  -F "audio_file=@path/to/audio.wav"
+```
+
+**3. Xử Lý Frame**
+```bash
+curl -X POST http://localhost:8000/api/global/{session_id}/process-frame \
+  -F "frame_data=@frame.jpg" \
+  -F "timestamp=123.45" \
+  -F "frame_number=1"
+```
+
+**4. Lấy Điểm Số**
+```bash
+curl http://localhost:8000/api/global/{session_id}/score
+```
+
+**5. Lấy Danh Sách Lỗi**
+```bash
+curl http://localhost:8000/api/global/{session_id}/errors
+```
+
+**6. Reset Session**
+```bash
+curl -X POST http://localhost:8000/api/global/{session_id}/reset
+```
+
+**7. Xóa Session**
+```bash
+curl -X DELETE http://localhost:8000/api/global/{session_id}
+```
+
+### 🎨 Frontend Web Interface
+
+#### Khởi Động Frontend
+
+```bash
+# Vào thư mục frontend
+cd frontend
+
+# Cài đặt dependencies (chỉ lần đầu)
+npm install
+
+# Chạy development server
+npm run dev
+```
+
+Frontend sẽ chạy tại: `http://localhost:3000`
+
+#### Các Trang Chính
+
+1. **Dashboard** (`/`) - Trang chủ với thống kê tổng quan
+2. **Upload Video** (`/upload`) - Upload và xử lý video
+3. **Real-time Monitoring** (`/monitoring`) - Giám sát thời gian thực qua webcam
+4. **Kết Quả** (`/results/:sessionId`) - Xem chi tiết kết quả chấm điểm
+5. **Sessions** (`/sessions`) - Quản lý và xem lịch sử sessions
+6. **So Sánh** (`/comparison`) - So sánh nhiều sessions với nhau
+
+#### Build Production
+
+```bash
+# Build frontend cho production
+cd frontend
+npm run build
+
+# Output sẽ ở trong thư mục dist/
+# Deploy thư mục dist/ lên hosting service
 ```
 
 #### Điểm Cuối API
@@ -591,7 +747,43 @@ Video Đầu Vào → Trích Xuất Khung Hình → Phát Hiện Tư Thế → C
 
 ### Các Vấn Đề Thường Gặp & Giải Pháp
 
-#### 1. **Lỗi "No module named 'mediapipe'"**
+#### 1. **Lỗi "ModuleNotFoundError: No module named 'backend'" khi chạy backend**
+
+**Vấn Đề:** Chạy backend từ thư mục sai hoặc Python không tìm thấy module
+
+**Giải Pháp:**
+```bash
+# Đảm bảo bạn đang ở thư mục GỐC của project
+cd F:\Score-parade\Score-parade
+
+# Chạy backend từ thư mục gốc
+python -c "import sys; sys.path.insert(0, '.'); from backend.app.main import app; import uvicorn; uvicorn.run(app, host='0.0.0.0', port=8000)"
+
+# Hoặc sử dụng uvicorn
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+```
+
+#### 2. **Lỗi "Cannot find module" trong Frontend**
+
+**Vấn Đề:** Dependencies chưa được cài đặt
+
+**Giải Pháp:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+#### 3. **Lỗi "ERR_CONNECTION_REFUSED" trong Frontend**
+
+**Vấn Đề:** Backend chưa chạy hoặc chạy sai port
+
+**Giải Pháp:**
+- Kiểm tra backend đang chạy tại `http://localhost:8000`
+- Kiểm tra file `frontend/.env` có `VITE_API_URL=http://localhost:8000`
+- Đảm bảo CORS đã được cấu hình trong backend
+
+#### 4. **Lỗi "No module named 'mediapipe'"**
 
 **Vấn Đề:** MediaPipe chưa được cài đặt hoặc không tìm thấy
 
@@ -608,7 +800,7 @@ pip install mediapipe-silicon
 python -c "import mediapipe; print(mediapipe.__version__)"
 ```
 
-#### 2. **Lỗi "Video file cannot be opened"**
+#### 5. **Lỗi "Video file cannot be opened"**
 
 **Vấn Đề:** FFmpeg chưa được cài đặt hoặc định dạng video không được hỗ trợ
 
@@ -623,7 +815,7 @@ ffmpeg -i input.avi -c:v libx264 -c:a aac output.mp4
 ffmpeg -v error -i video.mp4 -f null -
 ```
 
-#### 3. **FPS Thấp / Xử Lý Chậm**
+#### 6. **FPS Thấp / Xử Lý Chậm**
 
 **Vấn Đề:** Xử lý quá chậm cho phân tích thời gian thực
 
@@ -647,7 +839,7 @@ performance:
 python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 ```
 
-#### 4. **Cảnh Báo "No person detected"**
+#### 7. **Cảnh Báo "No person detected"**
 
 **Vấn Đề:** Ước tính tư thế không phát hiện được người
 
@@ -662,7 +854,7 @@ pose_estimation:
 # Tránh nền lộn xộn
 ```
 
-#### 5. **Sử Dụng Bộ Nhớ Cao**
+#### 8. **Sử Dụng Bộ Nhớ Cao**
 
 **Vấn Đề:** Ứng dụng tiêu thụ quá nhiều RAM
 
@@ -683,7 +875,7 @@ batch_processing:
 python -m memory_profiler src/main.py --video input.mp4
 ```
 
-#### 6. **Điểm Không Nhất Quán**
+#### 9. **Điểm Không Nhất Quán**
 
 **Vấn Đề:** Điểm thay đổi đáng kể giữa các lần chạy
 

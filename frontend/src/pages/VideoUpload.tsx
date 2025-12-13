@@ -13,15 +13,18 @@ import {
   TextField,
   MenuItem,
   InputAdornment,
+  Paper,
 } from '@mui/material'
 import {
   CloudUpload,
   VideoFile,
   CheckCircle,
+  Visibility,
 } from '@mui/icons-material'
 import { toast } from 'react-toastify'
 import { globalModeAPI } from '../services/api'
 import { useSessionStore } from '../store/useSessionStore'
+import ReactPlayer from 'react-player'
 
 export default function VideoUpload() {
   const navigate = useNavigate()
@@ -31,6 +34,8 @@ export default function VideoUpload() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [mode, setMode] = useState<'testing' | 'practising'>('testing')
   const [sessionId, setSessionId] = useState('')
+  const [skeletonVideoUrl, setSkeletonVideoUrl] = useState<string | null>(null)
+  const [showSkeletonVideo, setShowSkeletonVideo] = useState(false)
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -94,22 +99,32 @@ export default function VideoUpload() {
       clearInterval(progressInterval)
       setProgress(100)
 
-      // Update session with results (including errors)
+      // Set skeleton video URL if available
+      let skeletonVideoUrlFull = null
+      if (result.skeleton_video_url) {
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+        skeletonVideoUrlFull = `${apiBaseUrl}${result.skeleton_video_url}`
+        setSkeletonVideoUrl(skeletonVideoUrlFull)
+        setShowSkeletonVideo(true)
+      }
+
+      // Update session with results (including errors and skeleton video URL)
       updateSession(sessionId, {
         score: result.score || 100,
         totalErrors: result.total_errors || 0,
         status: 'completed',
         errors: result.errors || [],  // Store errors in session
+        skeletonVideoUrl: skeletonVideoUrlFull,  // Store skeleton video URL
       })
 
       toast.success(
         `Xử lý hoàn tất! Đã phát hiện ${result.total_errors || 0} lỗi. Điểm: ${(result.score || 100).toFixed(1)}`
       )
       
-      // Navigate to results page
+      // Navigate to results page after a delay (allow user to see skeleton video)
       setTimeout(() => {
         navigate(`/results/${sessionId}`)
-      }, 1000)
+      }, 5000)
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Có lỗi xảy ra khi upload và xử lý video')
       setProgress(0)
@@ -186,6 +201,63 @@ export default function VideoUpload() {
                   <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
                     Đang upload: {progress}%
                   </Typography>
+                </Box>
+              )}
+
+              {/* Skeleton Video Preview */}
+              {showSkeletonVideo && skeletonVideoUrl && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Video với Khớp Xương (Skeleton Overlay)
+                  </Typography>
+                  <Paper
+                    elevation={2}
+                    sx={{
+                      position: 'relative',
+                      paddingTop: '56.25%', // 16:9 aspect ratio
+                      backgroundColor: '#000',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                      }}
+                    >
+                      <ReactPlayer
+                        url={skeletonVideoUrl}
+                        controls
+                        playing={false}
+                        width="100%"
+                        height="100%"
+                        config={{
+                          file: {
+                            attributes: {
+                              controlsList: 'nodownload',
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                  <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                    Video này hiển thị khớp xương được phát hiện bởi mô hình YOLOv8-Pose. 
+                    Mỗi khớp xương được vẽ bằng màu sắc khác nhau để dễ phân biệt.
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<Visibility />}
+                    onClick={() => setShowSkeletonVideo(false)}
+                    sx={{ mt: 1 }}
+                  >
+                    Ẩn Video
+                  </Button>
                 </Box>
               )}
             </CardContent>

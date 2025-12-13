@@ -3,9 +3,11 @@ FastAPI Main Application
 Score Parade - Hệ thống chấm điểm điều lệnh tự động
 """
 import logging
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+import tempfile
+from pathlib import Path
 
 from backend.app.api import global_mode, config
 from backend.app.config import API_CONFIG
@@ -38,6 +40,20 @@ app.add_middleware(
 # Include routers
 app.include_router(global_mode.router)
 app.include_router(config.router)
+
+# Serve skeleton videos from temp directory
+temp_dir = Path(tempfile.gettempdir())
+@app.get("/api/videos/{filename}")
+async def get_skeleton_video(filename: str):
+    """Serve skeleton video files"""
+    video_path = temp_dir / filename
+    if video_path.exists() and video_path.suffix in ['.mp4', '.avi', '.mov', '.mkv']:
+        return FileResponse(
+            str(video_path),
+            media_type='video/mp4',
+            filename=filename
+        )
+    raise HTTPException(status_code=404, detail="Video not found")
 
 
 @app.exception_handler(CustomException)

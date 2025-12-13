@@ -10,6 +10,7 @@ export interface Session {
   status: 'active' | 'completed' | 'stopped'
   audioSet: boolean
   errors?: any[]  // Store errors for completed sessions
+  skeletonVideoUrl?: string  // URL to skeleton video with overlay
 }
 
 interface SessionState {

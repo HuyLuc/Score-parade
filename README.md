@@ -215,12 +215,12 @@ Backend sẽ chạy tại: `http://localhost:8000`
 
 **Bước 2: Khởi động Frontend**
 
-Mở Terminal 2:
+Mở Terminal 2 (PowerShell hoặc Command Prompt):
 ```bash
-# Vào thư mục frontend
-cd frontend
+# Vào thư mục frontend (từ thư mục gốc project)
+cd F:\Score-parade\Score-parade\frontend
 
-# Cài đặt dependencies (chỉ lần đầu)
+# Cài đặt dependencies (chỉ lần đầu tiên)
 npm install
 
 # Chạy development server
@@ -229,10 +229,20 @@ npm run dev
 
 Frontend sẽ chạy tại: `http://localhost:3000`
 
+**Lưu ý:**
+- ✅ Đảm bảo backend đã chạy trước khi mở frontend
+- ✅ Kiểm tra file `frontend/.env` có `VITE_API_URL=http://localhost:8000`
+- ✅ Nếu port 3000 đã được sử dụng, Vite sẽ tự động đề xuất port khác
+
 **Kiểm tra kết nối:**
 - Mở trình duyệt và truy cập `http://localhost:3000`
 - Dashboard sẽ hiển thị trạng thái kết nối backend
 - Nếu thấy "Backend API: Hoạt động bình thường" là thành công!
+
+**Troubleshooting:**
+- Nếu backend không chạy được, đảm bảo bạn đang ở thư mục gốc và đã cài đặt tất cả dependencies
+- Nếu frontend không kết nối được backend, kiểm tra file `frontend/.env` có `VITE_API_URL=http://localhost:8000`
+- Nếu port 8000 hoặc 3000 đã được sử dụng, dừng process cũ hoặc đổi port
 
 #### Cách 2: Chạy CLI Scoring (Không cần Backend/Frontend)
 
@@ -274,26 +284,29 @@ python run_scoring.py evaluate "data/input_videos/test.mp4" --golden-dir data/go
 
 #### Khởi Động Máy Chủ Backend
 
-**Cách 1: Sử dụng Python trực tiếp (Khuyến nghị)**
+**Cách 1: Sử dụng uvicorn (Khuyến nghị)**
 ```bash
-# Từ thư mục gốc project
-python -c "import sys; sys.path.insert(0, '.'); from backend.app.main import app; import uvicorn; uvicorn.run(app, host='0.0.0.0', port=8000)"
-```
+# Đảm bảo bạn đang ở thư mục GỐC của project
+cd F:\Score-parade\Score-parade
 
-**Cách 2: Sử dụng uvicorn**
-```bash
-# Cài đặt uvicorn
+# Cài đặt uvicorn nếu chưa có
 pip install uvicorn
 
-# Chạy từ thư mục gốc
+# Chạy backend từ thư mục gốc
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**Cách 3: Chạy trực tiếp main.py**
+**Cách 2: Sử dụng Python trực tiếp**
 ```bash
-# Từ thư mục gốc
-python -m backend.app.main
+# Từ thư mục gốc project
+cd F:\Score-parade\Score-parade
+python -c "import sys; sys.path.insert(0, '.'); from backend.app.main import app; import uvicorn; uvicorn.run(app, host='0.0.0.0', port=8000, reload=True)"
 ```
+
+**Lưu ý:**
+- ⚠️ **QUAN TRỌNG:** Luôn chạy từ **thư mục gốc** của project, không phải từ thư mục `backend/`
+- ✅ Sử dụng `python -m uvicorn` để đảm bảo Python tìm đúng module paths
+- ✅ Flag `--reload` cho phép tự động reload khi code thay đổi (chỉ dùng trong development)
 
 #### Điểm Cuối API
 
@@ -342,10 +355,10 @@ curl -X DELETE http://localhost:8000/api/global/{session_id}
 #### Khởi Động Frontend
 
 ```bash
-# Vào thư mục frontend
-cd frontend
+# Vào thư mục frontend (từ thư mục gốc project)
+cd F:\Score-parade\Score-parade\frontend
 
-# Cài đặt dependencies (chỉ lần đầu)
+# Cài đặt dependencies (chỉ lần đầu tiên)
 npm install
 
 # Chạy development server
@@ -353,6 +366,11 @@ npm run dev
 ```
 
 Frontend sẽ chạy tại: `http://localhost:3000`
+
+**Lưu ý:**
+- ✅ Đảm bảo backend đã chạy trước khi mở frontend
+- ✅ Kiểm tra file `frontend/.env` có `VITE_API_URL=http://localhost:8000`
+- ✅ Nếu port 3000 đã được sử dụng, Vite sẽ tự động đề xuất port khác
 
 #### Các Trang Chính
 

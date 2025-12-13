@@ -25,11 +25,14 @@ import {
   Download,
   ArrowBack,
   Assessment,
+  Visibility,
+  VisibilityOff,
 } from '@mui/icons-material'
 import { globalModeAPI } from '../services/api'
 import { useSessionStore } from '../store/useSessionStore'
 import ErrorChart from '../components/Results/ErrorChart'
 import { exportToPDF, exportToExcel } from '../utils/export'
+import ReactPlayer from 'react-player'
 
 interface Error {
   frame_number?: number
@@ -320,6 +323,70 @@ export default function Results() {
             </Grid>
           </Grid>
         </Grid>
+
+        {/* Skeleton Video */}
+        {session?.skeletonVideoUrl && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography variant="h6">
+                    Video với Khớp Xương (Skeleton Overlay)
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={showSkeletonVideo ? <VisibilityOff /> : <Visibility />}
+                    onClick={() => setShowSkeletonVideo(!showSkeletonVideo)}
+                  >
+                    {showSkeletonVideo ? 'Ẩn Video' : 'Hiển Thị Video'}
+                  </Button>
+                </Box>
+                {showSkeletonVideo && (
+                  <Paper
+                    elevation={2}
+                    sx={{
+                      position: 'relative',
+                      paddingTop: '56.25%', // 16:9 aspect ratio
+                      backgroundColor: '#000',
+                      borderRadius: 2,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                      }}
+                    >
+                      <ReactPlayer
+                        url={session.skeletonVideoUrl}
+                        controls
+                        playing={false}
+                        width="100%"
+                        height="100%"
+                        config={{
+                          file: {
+                            attributes: {
+                              controlsList: 'nodownload',
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                )}
+                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                  Video này hiển thị khớp xương được phát hiện bởi mô hình YOLOv8-Pose. 
+                  Mỗi khớp xương được vẽ bằng màu sắc khác nhau để dễ phân biệt.
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
 
         {/* Error Chart */}
         <Grid item xs={12}>

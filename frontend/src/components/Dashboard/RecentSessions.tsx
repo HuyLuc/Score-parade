@@ -86,9 +86,9 @@ export default function RecentSessions() {
             >
               <ListItemText
                 primary={
-                  <Box display="flex" alignItems="center" gap={1}>
+                  <Box display="flex" alignItems="center" gap={1} component="div">
                     {getStatusIcon(session.status)}
-                    <Typography variant="subtitle1">{session.id}</Typography>
+                    <Typography variant="subtitle1" component="span">{session.id}</Typography>
                     <Chip
                       label={session.status}
                       size="small"
@@ -97,19 +97,19 @@ export default function RecentSessions() {
                   </Box>
                 }
                 secondary={
-                  <>
-                    <Typography variant="body2" color="textSecondary">
+                  <Box component="div">
+                    <Box component="span" display="block" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                       {format(
                         typeof session.startTime === 'string' 
                           ? new Date(session.startTime) 
                           : session.startTime, 
                         'dd/MM/yyyy HH:mm'
                       )}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
+                    </Box>
+                    <Box component="span" display="block" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
                       Điểm: {session.score.toFixed(1)} | Lỗi: {session.totalErrors}
-                    </Typography>
-                  </>
+                    </Box>
+                  </Box>
                 }
               />
               <ListItemSecondaryAction>

@@ -208,16 +208,19 @@ def create_skeleton_video(
     
     logger.info(f"Creating skeleton video: {output_video_path} ({width}x{height}, {fps} fps)")
     
-    # Create video writer - Use H.264 codec for better browser compatibility
-    # Try different codecs in order of preference
+    # Create video writer - Try different codecs in order of preference
+    # On Windows, some codecs may not be available, so we try multiple options
     codecs_to_try = [
-        ('avc1', 'H.264'),  # Best browser support
-        ('mp4v', 'MPEG-4'),  # Fallback
-        ('XVID', 'Xvid'),   # Another fallback
+        ('mp4v', 'MPEG-4'),  # Most compatible on Windows
+        ('XVID', 'Xvid'),     # Good fallback
+        ('avc1', 'H.264'),   # Best browser support (may not work on Windows without codec)
+        ('MJPG', 'Motion JPEG'),  # Another fallback
     ]
     
     out = None
     codec_used = None
+    
+    logger.info(f"🔧 Trying to create video writer with codecs: {[c[1] for c in codecs_to_try]}")
     
     for fourcc_str, codec_name in codecs_to_try:
         try:
@@ -232,21 +235,29 @@ def create_skeleton_video(
             # ✅ VALIDATE video writer
             if out.isOpened():
                 codec_used = codec_name
-                logger.info(f"✅ Video writer opened with codec: {codec_name}")
+                logger.info(f"✅ Video writer opened successfully with codec: {codec_name} (fourcc: {fourcc_str})")
                 break
             else:
-                out.release()
-                out = None
-                logger.warning(f"⚠️ Failed to open video writer with codec: {codec_name}")
+                logger.warning(f"⚠️ Video writer created but not opened with codec: {codec_name}")
+                if out:
+                    out.release()
+                    out = None
         except Exception as e:
-            logger.warning(f"⚠️ Error trying codec {codec_name}: {e}")
+            logger.warning(f"⚠️ Exception trying codec {codec_name}: {e}")
             if out:
-                out.release()
+                try:
+                    out.release()
+                except:
+                    pass
                 out = None
     
     if out is None or not out.isOpened():
         cap.release()
-        raise RuntimeError(f"❌ Cannot create video writer for: {output_video_path}. Tried codecs: {[c[1] for c in codecs_to_try]}")
+        error_msg = f"❌ Cannot create video writer for: {output_video_path}. Tried codecs: {[c[1] for c in codecs_to_try]}"
+        logger.error(error_msg)
+        logger.error(f"   Video path: {output_video_path}")
+        logger.error(f"   Video dimensions: {width}x{height}, FPS: {fps}")
+        raise RuntimeError(error_msg)
     
     frame_count = 0
     processed_frames = 0

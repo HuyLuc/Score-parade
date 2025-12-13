@@ -42,7 +42,8 @@ app.include_router(global_mode.router)
 app.include_router(config.router)
 
 # Serve skeleton videos from temp directory
-temp_dir = Path(tempfile.gettempdir())
+temp_dir_str = tempfile.gettempdir()
+temp_dir = Path(temp_dir_str)
 @app.get("/api/videos/{filename}")
 async def get_skeleton_video(filename: str):
     """Serve skeleton video files"""

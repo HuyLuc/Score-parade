@@ -293,8 +293,9 @@ async def upload_and_process_video(
     controller.ai_controller.load_golden_template()
     
     # Save uploaded video to temp file
-    temp_dir = tempfile.gettempdir()
-    temp_video_path = Path(temp_dir) / f"{session_id}_video_{video_file.filename}"
+    temp_dir_str = tempfile.gettempdir()
+    temp_dir = Path(temp_dir_str)
+    temp_video_path = temp_dir / f"{session_id}_video_{video_file.filename}"
     
     # Variables for skeleton video (needed in finally block)
     skeleton_video_filename = None
@@ -343,59 +344,97 @@ async def upload_and_process_video(
         logger.info(f"Hoàn thành xử lý video: {frame_number} frames, {len(final_errors)} lỗi, điểm: {final_score}")
         
         # Create video with skeleton overlay BEFORE cleaning up input video
+        logger.info(f"🎬 ========== BẮT ĐẦU TẠO SKELETON VIDEO ==========")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Temp dir: {temp_dir}")
+        
         try:
             from backend.app.services.skeleton_visualization import create_skeleton_video
             
-            skeleton_video_path = Path(temp_dir) / f"{session_id}_skeleton.mp4"
+            skeleton_video_path = temp_dir / f"{session_id}_skeleton.mp4"
             logger.info(f"🎬 Bắt đầu tạo video với skeleton từ: {temp_video_path}")
+            logger.info(f"🎬 Output path sẽ là: {skeleton_video_path}")
             
             # Make sure input video still exists
             if not temp_video_path.exists():
                 logger.error(f"❌ Input video không tồn tại: {temp_video_path}")
+                logger.error(f"   Current working directory: {Path.cwd()}")
+                logger.error(f"   Temp dir exists: {Path(temp_dir).exists()}")
                 skeleton_video_url = None
             else:
                 input_size = temp_video_path.stat().st_size
                 logger.info(f"📹 Input video exists: {input_size} bytes")
+                logger.info(f"📹 Input video path: {temp_video_path}")
                 
-                try:
-                    logger.info(f"🔄 Đang gọi create_skeleton_video với confidence_threshold=0.3...")
-                    skeleton_metadata = create_skeleton_video(
-                        str(temp_video_path),
-                        str(skeleton_video_path),
-                        controller.pose_service,
-                        confidence_threshold=0.3
-                    )
-                    
-                    logger.info(f"📊 create_skeleton_video returned: {skeleton_metadata}")
-                    
-                    if skeleton_video_path.exists():
-                        file_size = skeleton_video_path.stat().st_size
-                        processed_frames = skeleton_metadata.get('processed_frames', 0)
-                        total_frames = skeleton_metadata.get('total_frames', 0)
-                        codec = skeleton_metadata.get('codec', 'unknown')
-                        
-                        skeleton_video_filename = skeleton_video_path.name
-                        skeleton_video_url = f"/api/videos/{skeleton_video_filename}"
-                        
-                        logger.info(f"✅ Đã tạo video với skeleton:")
-                        logger.info(f"   📁 Path: {skeleton_video_path}")
-                        logger.info(f"   📏 Size: {file_size} bytes")
-                        logger.info(f"   🎞️ Frames: {processed_frames}/{total_frames} có skeleton")
-                        logger.info(f"   🎬 Codec: {codec}")
-                        logger.info(f"   🔗 URL: {skeleton_video_url}")
-                        
-                        if processed_frames == 0:
-                            logger.warning(f"⚠️ CẢNH BÁO: Không có skeleton nào được phát hiện trong video!")
-                    else:
-                        logger.error(f"❌ Video skeleton không được tạo (file không tồn tại): {skeleton_video_path}")
-                        skeleton_video_url = None
-                except Exception as create_error:
-                    logger.error(f"❌ Lỗi trong create_skeleton_video: {create_error}", exc_info=True)
+                # Check pose_service
+                if controller.pose_service is None:
+                    logger.error(f"❌ pose_service is None!")
                     skeleton_video_url = None
-        except Exception as e:
-            logger.error(f"❌ Lỗi khi tạo video với skeleton: {e}", exc_info=True)
+                else:
+                    logger.info(f"✅ pose_service is available: {type(controller.pose_service)}")
+                    
+                    try:
+                        logger.info(f"🔄 Đang gọi create_skeleton_video...")
+                        logger.info(f"   Input: {temp_video_path}")
+                        logger.info(f"   Output: {skeleton_video_path}")
+                        logger.info(f"   Confidence threshold: 0.3")
+                        
+                        skeleton_metadata = create_skeleton_video(
+                            str(temp_video_path),
+                            str(skeleton_video_path),
+                            controller.pose_service,
+                            confidence_threshold=0.3
+                        )
+                        
+                        logger.info(f"📊 create_skeleton_video returned successfully!")
+                        logger.info(f"📊 Metadata: {skeleton_metadata}")
+                        
+                        # Check if file exists immediately after function returns
+                        if skeleton_video_path.exists():
+                            file_size = skeleton_video_path.stat().st_size
+                            processed_frames = skeleton_metadata.get('processed_frames', 0)
+                            total_frames = skeleton_metadata.get('total_frames', 0)
+                            codec = skeleton_metadata.get('codec', 'unknown')
+                            
+                            skeleton_video_filename = skeleton_video_path.name
+                            skeleton_video_url = f"/api/videos/{skeleton_video_filename}"
+                            
+                            logger.info(f"✅ Đã tạo video với skeleton:")
+                            logger.info(f"   📁 Path: {skeleton_video_path}")
+                            logger.info(f"   📏 Size: {file_size} bytes")
+                            logger.info(f"   🎞️ Frames: {processed_frames}/{total_frames} có skeleton")
+                            logger.info(f"   🎬 Codec: {codec}")
+                            logger.info(f"   🔗 URL: {skeleton_video_url}")
+                            
+                            if processed_frames == 0:
+                                logger.warning(f"⚠️ CẢNH BÁO: Không có skeleton nào được phát hiện trong video!")
+                        else:
+                            logger.error(f"❌ Video skeleton không được tạo (file không tồn tại): {skeleton_video_path}")
+                            logger.error(f"   Parent dir exists: {skeleton_video_path.parent.exists()}")
+                            logger.error(f"   Parent dir: {skeleton_video_path.parent}")
+                            skeleton_video_url = None
+                    except RuntimeError as runtime_error:
+                        logger.error(f"❌ RuntimeError trong create_skeleton_video: {runtime_error}", exc_info=True)
+                        skeleton_video_url = None
+                    except Exception as create_error:
+                        logger.error(f"❌ Exception trong create_skeleton_video: {type(create_error).__name__}: {create_error}", exc_info=True)
+                        import traceback
+                        logger.error(f"   Traceback: {traceback.format_exc()}")
+                        skeleton_video_url = None
+        except ImportError as import_error:
+            logger.error(f"❌ ImportError khi import create_skeleton_video: {import_error}", exc_info=True)
             skeleton_video_filename = None
             skeleton_video_url = None
+        except Exception as e:
+            logger.error(f"❌ Lỗi khi tạo video với skeleton: {type(e).__name__}: {e}", exc_info=True)
+            import traceback
+            logger.error(f"   Full traceback: {traceback.format_exc()}")
+            skeleton_video_filename = None
+            skeleton_video_url = None
+        
+        logger.info(f"🎬 ========== KẾT THÚC TẠO SKELETON VIDEO ==========")
+        logger.info(f"Final skeleton_video_url: {skeleton_video_url}")
+        logger.info(f"Final skeleton_video_filename: {skeleton_video_filename}")
         
         return {
             "success": True,

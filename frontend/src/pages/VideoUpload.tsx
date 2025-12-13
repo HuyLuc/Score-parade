@@ -101,6 +101,11 @@ export default function VideoUpload() {
       clearInterval(progressInterval)
       setProgress(100)
 
+      // Log full response for debugging
+      console.log('📦 Full API response:', result)
+      console.log('🔍 skeleton_video_url:', result.skeleton_video_url)
+      console.log('🔍 skeleton_video_filename:', result.skeleton_video_filename)
+
       // Set skeleton video URL if available
       let skeletonVideoUrlFull = null
       if (result.skeleton_video_url) {
@@ -112,8 +117,10 @@ export default function VideoUpload() {
         setVideoLoading(true)
         setVideoError(null)
       } else {
-        console.warn('⚠️ No skeleton video URL in response:', result)
-        setVideoError('Video skeleton không được tạo. Có thể không phát hiện được keypoints.')
+        console.warn('⚠️ No skeleton video URL in response')
+        console.warn('⚠️ Response keys:', Object.keys(result))
+        console.warn('⚠️ Full response:', JSON.stringify(result, null, 2))
+        setVideoError('Video skeleton không được tạo. Kiểm tra backend logs để xem chi tiết lỗi.')
       }
 
       // Update session with results (including errors and skeleton video URL)

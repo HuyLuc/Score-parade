@@ -97,19 +97,19 @@ export default function RecentSessions() {
                   </Box>
                 }
                 secondary={
-                  <Box component="div">
-                    <Box component="span" display="block" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                  <>
+                    <Typography component="span" variant="body2" color="textSecondary" display="block">
                       {format(
                         typeof session.startTime === 'string' 
                           ? new Date(session.startTime) 
                           : session.startTime, 
                         'dd/MM/yyyy HH:mm'
                       )}
-                    </Box>
-                    <Box component="span" display="block" sx={{ fontSize: '0.875rem', color: 'text.secondary' }}>
+                    </Typography>
+                    <Typography component="span" variant="body2" color="textSecondary" display="block">
                       Điểm: {session.score.toFixed(1)} | Lỗi: {session.totalErrors}
-                    </Box>
-                  </Box>
+                    </Typography>
+                  </>
                 }
               />
               <ListItemSecondaryAction>

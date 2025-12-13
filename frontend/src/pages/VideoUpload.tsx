@@ -36,6 +36,8 @@ export default function VideoUpload() {
   const [sessionId, setSessionId] = useState('')
   const [skeletonVideoUrl, setSkeletonVideoUrl] = useState<string | null>(null)
   const [showSkeletonVideo, setShowSkeletonVideo] = useState(false)
+  const [videoError, setVideoError] = useState<string | null>(null)
+  const [videoLoading, setVideoLoading] = useState(false)
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: {
@@ -104,8 +106,14 @@ export default function VideoUpload() {
       if (result.skeleton_video_url) {
         const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
         skeletonVideoUrlFull = `${apiBaseUrl}${result.skeleton_video_url}`
+        console.log('✅ Skeleton video URL:', skeletonVideoUrlFull)
         setSkeletonVideoUrl(skeletonVideoUrlFull)
         setShowSkeletonVideo(true)
+        setVideoLoading(true)
+        setVideoError(null)
+      } else {
+        console.warn('⚠️ No skeleton video URL in response:', result)
+        setVideoError('Video skeleton không được tạo. Có thể không phát hiện được keypoints.')
       }
 
       // Update session with results (including errors and skeleton video URL)
@@ -227,14 +235,41 @@ export default function VideoUpload() {
                         left: 0,
                         width: '100%',
                         height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
+                      {videoLoading && (
+                        <Box sx={{ position: 'absolute', zIndex: 2 }}>
+                          <CircularProgress />
+                        </Box>
+                      )}
+                      {videoError && (
+                        <Alert severity="error" sx={{ position: 'absolute', zIndex: 2, width: '90%' }}>
+                          {videoError}
+                        </Alert>
+                      )}
                       <ReactPlayer
                         url={skeletonVideoUrl}
                         controls
                         playing={false}
                         width="100%"
                         height="100%"
+                        onReady={() => {
+                          console.log('✅ Skeleton video loaded successfully')
+                          setVideoLoading(false)
+                          setVideoError(null)
+                        }}
+                        onError={(error) => {
+                          console.error('❌ Skeleton video error:', error)
+                          setVideoError('Không thể tải video skeleton. Có thể do codec không được hỗ trợ hoặc file bị lỗi.')
+                          setVideoLoading(false)
+                        }}
+                        onStart={() => {
+                          console.log('▶️ Skeleton video started playing')
+                          setVideoLoading(false)
+                        }}
                         config={{
                           file: {
                             attributes: {

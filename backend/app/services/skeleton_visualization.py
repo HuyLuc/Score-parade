@@ -193,8 +193,11 @@ def create_skeleton_video(
     Returns:
         Dict với metadata về video đã tạo
     """
+    import logging
     from backend.app.services.video_utils import load_video, get_frames
     from pathlib import Path
+    
+    logger = logging.getLogger(__name__)
     
     # Load video (convert string to Path if needed)
     video_path = Path(input_video_path) if isinstance(input_video_path, str) else input_video_path
@@ -203,41 +206,104 @@ def create_skeleton_video(
     width = metadata.get('width', 640)
     height = metadata.get('height', 480)
     
-    # Create video writer
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(
-        str(output_video_path),
-        fourcc,
-        fps,
-        (width, height)
-    )
+    logger.info(f"Creating skeleton video: {output_video_path} ({width}x{height}, {fps} fps)")
+    
+    # Create video writer - Use H.264 codec for better browser compatibility
+    # Try different codecs in order of preference
+    codecs_to_try = [
+        ('avc1', 'H.264'),  # Best browser support
+        ('mp4v', 'MPEG-4'),  # Fallback
+        ('XVID', 'Xvid'),   # Another fallback
+    ]
+    
+    out = None
+    codec_used = None
+    
+    for fourcc_str, codec_name in codecs_to_try:
+        try:
+            fourcc = cv2.VideoWriter_fourcc(*fourcc_str)
+            out = cv2.VideoWriter(
+                str(output_video_path),
+                fourcc,
+                fps,
+                (width, height)
+            )
+            
+            # ✅ VALIDATE video writer
+            if out.isOpened():
+                codec_used = codec_name
+                logger.info(f"✅ Video writer opened with codec: {codec_name}")
+                break
+            else:
+                out.release()
+                out = None
+                logger.warning(f"⚠️ Failed to open video writer with codec: {codec_name}")
+        except Exception as e:
+            logger.warning(f"⚠️ Error trying codec {codec_name}: {e}")
+            if out:
+                out.release()
+                out = None
+    
+    if out is None or not out.isOpened():
+        cap.release()
+        raise RuntimeError(f"❌ Cannot create video writer for: {output_video_path}. Tried codecs: {[c[1] for c in codecs_to_try]}")
     
     frame_count = 0
     processed_frames = 0
     
-    # Process each frame
-    for frame in get_frames(cap):
-        frame_count += 1
-        
-        # Predict keypoints
-        keypoints_list = pose_service.predict(frame)
-        
-        # Draw skeleton if keypoints detected
-        if len(keypoints_list) > 0:
-            frame_with_skeleton = draw_skeletons_multiple_persons(
-                frame,
-                keypoints_list,
-                confidence_threshold
-            )
-            processed_frames += 1
-        else:
-            frame_with_skeleton = frame
-        
-        # Write frame
-        out.write(frame_with_skeleton)
+    try:
+        # Process each frame
+        for frame in get_frames(cap):
+            frame_count += 1
+            
+            # Predict keypoints
+            keypoints_list = pose_service.predict(frame)
+            
+            # Draw skeleton if keypoints detected
+            if len(keypoints_list) > 0:
+                frame_with_skeleton = draw_skeletons_multiple_persons(
+                    frame,
+                    keypoints_list,
+                    confidence_threshold
+                )
+                processed_frames += 1
+            else:
+                frame_with_skeleton = frame
+            
+            # ✅ CHECK write success
+            success = out.write(frame_with_skeleton)
+            if not success:
+                logger.error(f"❌ Failed to write frame {frame_count}")
+            
+            # Log progress every 30 frames
+            if frame_count % 30 == 0:
+                logger.info(f"Processed {frame_count} frames, {processed_frames} with skeletons")
     
-    cap.release()
-    out.release()
+    except Exception as e:
+        logger.error(f"❌ Error processing frames: {e}", exc_info=True)
+        raise
+    finally:
+        # ✅ Always release resources
+        cap.release()
+        out.release()
+        logger.info(f"Released video resources after {frame_count} frames")
+    
+    # ✅ VALIDATE output
+    output_path = Path(output_video_path)
+    if not output_path.exists():
+        raise RuntimeError(f"❌ Video file was not created: {output_video_path}")
+    
+    file_size = output_path.stat().st_size
+    if file_size == 0:
+        raise RuntimeError(f"❌ Video file is empty: {output_video_path}")
+    
+    # ✅ WARN if no skeletons detected
+    if processed_frames == 0:
+        logger.warning(f"⚠️ No skeletons detected in {frame_count} frames! Video created but without skeleton overlay.")
+    else:
+        logger.info(f"✅ Skeleton video created: {processed_frames}/{frame_count} frames have skeletons")
+    
+    logger.info(f"✅ Video file size: {file_size} bytes, codec: {codec_used}")
     
     return {
         'total_frames': frame_count,
@@ -245,6 +311,8 @@ def create_skeleton_video(
         'fps': fps,
         'width': width,
         'height': height,
-        'output_path': str(output_video_path)
+        'output_path': str(output_video_path),
+        'file_size': file_size,
+        'codec': codec_used
     }
 

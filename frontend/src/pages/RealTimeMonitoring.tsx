@@ -88,7 +88,7 @@ export default function RealTimeMonitoring() {
   }
 
   const captureAndProcess = useCallback(async () => {
-    if (!webcamRef.current || !isRunning || processing) return
+    if (!webcamRef.current || !isRunning || processing || !sessionId) return
 
     const imageSrc = webcamRef.current.getScreenshot()
     if (!imageSrc) return
@@ -101,20 +101,21 @@ export default function RealTimeMonitoring() {
       const blob = await response.blob()
 
       const timestamp = Date.now() / 1000
+      const currentFrame = frameNumber
       const result = await globalModeAPI.processFrame(
         sessionId,
         blob,
         timestamp,
-        frameNumber
+        currentFrame
       )
 
-      setCurrentScore(result.score)
-      setTotalErrors(result.total_errors || 0)
+      setCurrentScore(result.score || 100)
+      setTotalErrors(result.total_errors || result.errors?.length || 0)
       setFrameNumber((prev) => prev + 1)
 
       updateSession(sessionId, {
-        score: result.score,
-        totalErrors: result.total_errors || 0,
+        score: result.score || 100,
+        totalErrors: result.total_errors || result.errors?.length || 0,
       })
 
       if (result.stopped) {
@@ -124,22 +125,24 @@ export default function RealTimeMonitoring() {
       }
     } catch (error: any) {
       console.error('Error processing frame:', error)
+      // Don't show toast for every frame error to avoid spam
     } finally {
       setProcessing(false)
     }
   }, [isRunning, sessionId, frameNumber, processing, navigate, updateSession])
 
   useEffect(() => {
+    if (!isRunning) return
+    
     let interval: NodeJS.Timeout | null = null
-    if (isRunning) {
-      interval = setInterval(() => {
-        captureAndProcess()
-      }, 100) // Process every 100ms (~10 FPS)
-    }
+    interval = setInterval(() => {
+      captureAndProcess()
+    }, 100) // Process every 100ms (~10 FPS)
+    
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [isRunning, captureAndProcess])
+  }, [isRunning]) // Remove captureAndProcess from deps to avoid re-render loop
 
   const fetchScore = async () => {
     if (!sessionId) return

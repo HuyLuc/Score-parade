@@ -35,7 +35,28 @@ export default function Sessions() {
   const [searchTerm, setSearchTerm] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const filteredSessions = sessions.filter((session) =>
+  // Deduplicate sessions by ID (keep the most recent one)
+  const uniqueSessions = sessions.reduce((acc, session) => {
+    const existing = acc.find(s => s.id === session.id)
+    if (!existing) {
+      acc.push(session)
+    } else {
+      // Replace with newer session (compare by startTime)
+      const existingTime = typeof existing.startTime === 'string' 
+        ? new Date(existing.startTime).getTime() 
+        : existing.startTime.getTime()
+      const newTime = typeof session.startTime === 'string' 
+        ? new Date(session.startTime).getTime() 
+        : session.startTime.getTime()
+      if (newTime > existingTime) {
+        const index = acc.indexOf(existing)
+        acc[index] = session
+      }
+    }
+    return acc
+  }, [] as typeof sessions)
+
+  const filteredSessions = uniqueSessions.filter((session) =>
     session.id.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -46,11 +67,36 @@ export default function Sessions() {
 
     setDeletingId(sessionId)
     try {
-      await globalModeAPI.deleteSession(sessionId)
-      removeSession(sessionId)
+      // Try to delete from backend (suppress toast for expected 404)
+      // Backend now returns success even if session not found, but we suppress toast anyway
+      try {
+        await globalModeAPI.deleteSession(sessionId, true)  // suppressToast = true
+      } catch (error: any) {
+        // If backend returns error (shouldn't happen after our fix, but just in case)
+        if (error.response?.status !== 404) {
+          // Only log non-404 errors
+          console.warn('Backend delete failed (non-404):', error)
+        }
+      }
+      
+      // Remove ALL sessions with this ID from frontend store (in case of duplicates)
+      // Use setState directly to ensure immediate update
+      const currentSessions = useSessionStore.getState().sessions
+      const sessionsToKeep = currentSessions.filter(s => s.id !== sessionId)
+      
+      // Update store and clear activeSessionId if needed
+      useSessionStore.setState((state) => ({
+        sessions: sessionsToKeep,
+        activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId
+      }))
+      
       toast.success('Session đã được xóa')
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Không thể xóa session')
+      // If something else goes wrong, still try to remove from store
+      const currentSessions = useSessionStore.getState().sessions
+      const sessionsToKeep = currentSessions.filter(s => s.id !== sessionId)
+      useSessionStore.setState({ sessions: sessionsToKeep })
+      toast.success('Session đã được xóa khỏi danh sách')
     } finally {
       setDeletingId(null)
     }
@@ -127,8 +173,8 @@ export default function Sessions() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredSessions.map((session) => (
-                    <TableRow key={session.id} hover>
+                  filteredSessions.map((session, index) => (
+                    <TableRow key={`${session.id}-${index}-${session.startTime}`} hover>
                       <TableCell>
                         <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                           {session.id}
@@ -142,7 +188,12 @@ export default function Sessions() {
                         />
                       </TableCell>
                       <TableCell>
-                        {format(new Date(session.startTime), 'dd/MM/yyyy HH:mm')}
+                        {format(
+                          typeof session.startTime === 'string' 
+                            ? new Date(session.startTime) 
+                            : session.startTime, 
+                          'dd/MM/yyyy HH:mm'
+                        )}
                       </TableCell>
                       <TableCell>
                         <Typography

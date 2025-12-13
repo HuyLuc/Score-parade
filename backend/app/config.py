@@ -175,6 +175,16 @@ SEQUENCE_COMPARISON_CONFIG = {
     "severity_aggregation": "mean",  # Severity calculation method: "mean", "max", "median"
 }
 
+# Error Grouping configuration - Nhóm các lỗi liên tiếp để tránh phạt trùng lặp
+ERROR_GROUPING_CONFIG = {
+    "enabled": True,  # Bật/tắt error grouping
+    "min_sequence_length": 5,  # Số frames tối thiểu để coi là một sequence lỗi (default: 5)
+    "max_gap_frames": 3,  # Số frames tối đa giữa các lỗi để vẫn coi là cùng sequence (default: 3)
+    "severity_aggregation": "mean",  # Cách tính severity: "mean", "max", "median"
+    "sequence_deduction": 1.0,  # Điểm trừ cho mỗi sequence lỗi (thay vì trừ từng frame)
+    "max_deduction_per_error_type": 10.0,  # Điểm trừ tối đa cho mỗi loại lỗi trong toàn bộ video
+}
+
 # Multi-Person Tracking configuration
 MULTI_PERSON_CONFIG = {
     "enabled": False,  # Enable/disable multi-person mode (default: False for backward compatibility)

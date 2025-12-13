@@ -4,11 +4,15 @@ import { Session } from '../store/useSessionStore'
 import { format } from 'date-fns'
 
 interface Error {
-  frame_number: number
+  frame_number?: number
+  start_frame?: number
+  end_frame?: number
   timestamp: number
-  error_type: string
+  error_type?: string
+  type?: string
   severity: number
   description: string
+  is_sequence?: boolean
 }
 
 export function exportToPDF(session: Session, errors: Error[], score: number) {
@@ -51,8 +55,13 @@ export function exportToPDF(session: Session, errors: Error[], score: number) {
       doc.addPage()
       y = 20
     }
-    doc.text(error.frame_number.toString(), 20, y)
-    doc.text(error.error_type, 50, y)
+    const frameNumber = error.frame_number || error.start_frame || 0
+    const frameDisplay = error.is_sequence && error.end_frame
+      ? `${error.start_frame}-${error.end_frame}`
+      : frameNumber.toString()
+    const errorType = error.error_type || error.type || 'unknown'
+    doc.text(frameDisplay, 20, y)
+    doc.text(errorType, 50, y)
     doc.text(error.severity.toFixed(2), 100, y)
     doc.text(error.description.substring(0, 40), 130, y)
     y += 7
@@ -77,13 +86,20 @@ export function exportToExcel(session: Session, errors: Error[], score: number) 
   XLSX.utils.book_append_sheet(wb, summarySheet, 'Tổng Quan')
   
   // Errors sheet
-  const errorsData = errors.map((error) => [
-    error.frame_number,
-    new Date(error.timestamp * 1000).toLocaleString(),
-    error.error_type,
-    error.severity.toFixed(2),
-    error.description,
-  ])
+  const errorsData = errors.map((error) => {
+    const frameNumber = error.frame_number || error.start_frame || 0
+    const frameDisplay = error.is_sequence && error.end_frame
+      ? `${error.start_frame}-${error.end_frame}`
+      : frameNumber.toString()
+    const errorType = error.error_type || error.type || 'unknown'
+    return [
+      frameDisplay,
+      error.timestamp ? new Date(error.timestamp * 1000).toLocaleString() : '-',
+      errorType,
+      error.severity.toFixed(2),
+      error.description,
+    ]
+  })
   errorsData.unshift(['Frame', 'Thời Gian', 'Loại Lỗi', 'Mức Độ', 'Mô Tả'])
   const errorsSheet = XLSX.utils.aoa_to_sheet(errorsData)
   XLSX.utils.book_append_sheet(wb, errorsSheet, 'Chi Tiết Lỗi')

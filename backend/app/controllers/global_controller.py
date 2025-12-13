@@ -6,7 +6,8 @@ import numpy as np
 from typing import Dict, List, Optional, Tuple
 from backend.app.services.pose_service import PoseService
 from backend.app.controllers.ai_controller import AIController
-from backend.app.config import MOTION_DETECTION_CONFIG, KEYPOINT_INDICES
+from backend.app.services.sequence_comparison import SequenceComparator
+from backend.app.config import MOTION_DETECTION_CONFIG, KEYPOINT_INDICES, SEQUENCE_COMPARISON_CONFIG
 
 
 class GlobalController:
@@ -33,13 +34,25 @@ class GlobalController:
         self.prev_timestamp = None
         
         # Error tracking
-        self.errors = []
+        self.errors = []  # All errors (including sequences)
+        self.frame_errors_buffer = []  # Buffer để nhóm lỗi liên tiếp
         
         # Score tracking (may be overridden in subclasses)
         self.score = 100.0
         
         # Configuration
         self.config = MOTION_DETECTION_CONFIG
+        
+        # Initialize sequence comparator for error grouping
+        sequence_enabled = SEQUENCE_COMPARISON_CONFIG.get("enabled", True)
+        if sequence_enabled:
+            self.sequence_comparator = SequenceComparator(
+                min_sequence_length=SEQUENCE_COMPARISON_CONFIG.get("min_sequence_length", 5),
+                severity_aggregation=SEQUENCE_COMPARISON_CONFIG.get("severity_aggregation", "mean"),
+                enabled=True
+            )
+        else:
+            self.sequence_comparator = None
         
     def set_audio(self, audio_path: str):
         """
@@ -142,9 +155,20 @@ class GlobalController:
         # 1. Detect pose
         keypoints_list = self.pose_service.predict(frame)
         
-        # 2. Detect motion events if pose detected
+        # 2. Detect motion events and posture errors if pose detected
         if len(keypoints_list) > 0:
             keypoints = keypoints_list[0]  # Take first person
+            
+            # Detect posture errors (Local Mode style)
+            posture_errors = self.ai_controller.detect_posture_errors(
+                keypoints,
+                frame_number=frame_number,
+                timestamp=timestamp
+            )
+            
+            # Add to buffer for sequence grouping
+            if posture_errors:
+                self.frame_errors_buffer.extend(posture_errors)
             
             # Detect motion
             motion_type = self._detect_motion_event(keypoints, timestamp)
@@ -159,7 +183,12 @@ class GlobalController:
             self.prev_keypoints = keypoints.copy()
             self.prev_timestamp = timestamp
         
-        # 3. Batch rhythm error detection
+        # 3. Group consecutive errors into sequences (every N frames or at end)
+        # Process error grouping periodically to avoid memory buildup
+        if len(self.frame_errors_buffer) >= 30:  # Process every 30 frames
+            self._process_error_grouping()
+        
+        # 4. Batch rhythm error detection
         if len(self.motion_events) >= self.config["batch_size"]:
             self._process_rhythm_batch(frame_number, timestamp)
         
@@ -171,6 +200,47 @@ class GlobalController:
             "score": self.score,
             "motion_events_pending": len(self.motion_events)
         }
+    
+    def _process_error_grouping(self):
+        """
+        Nhóm các lỗi liên tiếp trong buffer thành sequences
+        Tránh phạt nhiều lần cho cùng một lỗi kéo dài
+        """
+        if not self.frame_errors_buffer:
+            return
+        
+        if self.sequence_comparator is None:
+            # Nếu không bật sequence grouping, thêm tất cả lỗi trực tiếp
+            for error in self.frame_errors_buffer:
+                self.errors.append(error)
+                self._handle_error(error)
+            self.frame_errors_buffer = []
+            return
+        
+        # Nhóm lỗi thành sequences
+        sequence_errors = self.sequence_comparator.group_errors_into_sequences(
+            self.frame_errors_buffer
+        )
+        
+        # Thêm các sequence errors vào danh sách lỗi
+        # Chỉ thêm các sequence mới (chưa được xử lý)
+        for seq_error in sequence_errors:
+            # Kiểm tra xem sequence này đã được thêm chưa
+            # (dựa trên start_frame và error type)
+            is_duplicate = any(
+                e.get("start_frame") == seq_error.get("start_frame") and
+                e.get("type") == seq_error.get("type") and
+                e.get("is_sequence", False)
+                for e in self.errors
+            )
+            
+            if not is_duplicate:
+                self.errors.append(seq_error)
+                # Xử lý lỗi (trừ điểm) - sẽ được override trong subclass
+                self._handle_error(seq_error)
+        
+        # Clear buffer sau khi đã xử lý
+        self.frame_errors_buffer = []
     
     def _process_rhythm_batch(self, frame_number: int, timestamp: float):
         """
@@ -217,11 +287,23 @@ class GlobalController:
     
     def get_score(self) -> float:
         """Get current score"""
+        # Finalize errors trước khi trả về score
+        self.finalize_errors()
         return self.score
     
     def get_errors(self) -> List[Dict]:
         """Get all detected errors"""
+        # Finalize errors trước khi trả về
+        self.finalize_errors()
         return self.errors
+    
+    def finalize_errors(self):
+        """
+        Finalize error grouping khi video kết thúc
+        Xử lý các lỗi còn lại trong buffer
+        """
+        if self.frame_errors_buffer:
+            self._process_error_grouping()
     
     def reset(self):
         """Reset controller state"""
@@ -229,4 +311,5 @@ class GlobalController:
         self.prev_keypoints = None
         self.prev_timestamp = None
         self.errors = []
+        self.frame_errors_buffer = []
         self.score = 100.0

@@ -6,6 +6,7 @@ import RealTimeMonitoring from './pages/RealTimeMonitoring'
 import Results from './pages/Results'
 import Sessions from './pages/Sessions'
 import Comparison from './pages/Comparison'
+import Settings from './pages/Settings'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/results/:sessionId?" element={<Results />} />
         <Route path="/sessions" element={<Sessions />} />
         <Route path="/comparison" element={<Comparison />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </Layout>
   )

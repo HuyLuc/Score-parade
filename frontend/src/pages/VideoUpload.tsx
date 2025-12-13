@@ -12,6 +12,7 @@ import {
   Grid,
   TextField,
   MenuItem,
+  InputAdornment,
 } from '@mui/material'
 import {
   CloudUpload,
@@ -24,7 +25,7 @@ import { useSessionStore } from '../store/useSessionStore'
 
 export default function VideoUpload() {
   const navigate = useNavigate()
-  const { addSession } = useSessionStore()
+  const { addSession, updateSession } = useSessionStore()
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState(0)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
@@ -59,23 +60,10 @@ export default function VideoUpload() {
     setProgress(0)
 
     try {
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return 90
-          }
-          return prev + 10
-        })
-      }, 200)
-
-      // Start session
-      const result = await globalModeAPI.startSession(sessionId, mode)
+      // Step 1: Start session
+      toast.info('Đang khởi tạo session...')
+      const sessionResult = await globalModeAPI.startSession(sessionId, mode)
       
-      clearInterval(progressInterval)
-      setProgress(100)
-
       // Add session to store
       addSession({
         id: sessionId,
@@ -84,17 +72,46 @@ export default function VideoUpload() {
         score: 100,
         totalErrors: 0,
         status: 'active',
-        audioSet: result.audio_set || false,
+        audioSet: sessionResult.audio_set || false,
       })
 
-      toast.success('Upload thành công! Đang xử lý video...')
+      // Step 2: Upload and process video
+      toast.info('Đang upload và xử lý video...')
+      
+      // Simulate progress (we don't have real progress from backend yet)
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 95) {
+            clearInterval(progressInterval)
+            return 95
+          }
+          return prev + 5
+        })
+      }, 500)
+
+      const result = await globalModeAPI.uploadAndProcessVideo(sessionId, uploadedFile)
+      
+      clearInterval(progressInterval)
+      setProgress(100)
+
+      // Update session with results (including errors)
+      updateSession(sessionId, {
+        score: result.score || 100,
+        totalErrors: result.total_errors || 0,
+        status: 'completed',
+        errors: result.errors || [],  // Store errors in session
+      })
+
+      toast.success(
+        `Xử lý hoàn tất! Đã phát hiện ${result.total_errors || 0} lỗi. Điểm: ${(result.score || 100).toFixed(1)}`
+      )
       
       // Navigate to results page
       setTimeout(() => {
         navigate(`/results/${sessionId}`)
       }, 1000)
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Có lỗi xảy ra khi upload')
+      toast.error(error.response?.data?.detail || 'Có lỗi xảy ra khi upload và xử lý video')
       setProgress(0)
     } finally {
       setUploading(false)
@@ -191,9 +208,11 @@ export default function VideoUpload() {
                 helperText="ID duy nhất cho session này"
                 InputProps={{
                   endAdornment: (
-                    <Button size="small" onClick={generateSessionId}>
-                      Tạo ID
-                    </Button>
+                    <InputAdornment position="end">
+                      <Button size="small" onClick={generateSessionId}>
+                        Tạo ID
+                      </Button>
+                    </InputAdornment>
                   ),
                 }}
               />

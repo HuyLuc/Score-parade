@@ -23,6 +23,7 @@ import VideocamIcon from '@mui/icons-material/Videocam'
 import AssessmentIcon from '@mui/icons-material/Assessment'
 import HistoryIcon from '@mui/icons-material/History'
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
+import SettingsIcon from '@mui/icons-material/Settings'
 
 const drawerWidth = 280
 
@@ -33,6 +34,7 @@ const menuItems = [
   { text: 'Kết Quả', icon: <AssessmentIcon />, path: '/results' },
   { text: 'Sessions', icon: <HistoryIcon />, path: '/sessions' },
   { text: 'So Sánh', icon: <CompareArrowsIcon />, path: '/comparison' },
+  { text: 'Cấu Hình', icon: <SettingsIcon />, path: '/settings' },
 ]
 
 interface LayoutProps {

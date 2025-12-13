@@ -263,6 +263,107 @@ async def reset_session(session_id: str):
     }
 
 
+@router.post("/{session_id}/upload-video")
+async def upload_and_process_video(
+    session_id: str,
+    video_file: UploadFile = File(...)
+):
+    """
+    Upload và xử lý toàn bộ video file
+    
+    Args:
+        session_id: Session identifier
+        video_file: Video file to upload and process
+        
+    Returns:
+        Processing result with errors and score
+    """
+    import tempfile
+    import os
+    from pathlib import Path
+    from backend.app.services.video_utils import load_video, get_frames
+    
+    # Get controller
+    if session_id not in _controllers:
+        raise NotFoundException("Session", session_id)
+    
+    controller = _controllers[session_id]
+    
+    # Load golden template trước khi xử lý
+    controller.ai_controller.load_golden_template()
+    
+    # Save uploaded video to temp file
+    temp_dir = tempfile.gettempdir()
+    temp_video_path = Path(temp_dir) / f"{session_id}_video_{video_file.filename}"
+    
+    try:
+        # Save video file
+        with open(temp_video_path, "wb") as f:
+            content = await video_file.read()
+            f.write(content)
+        
+        # Load video
+        cap, metadata = load_video(temp_video_path)
+        fps = metadata.get('fps', 30.0)
+        
+        # Process video frame by frame
+        frame_number = 0
+        total_frames = metadata.get('frame_count', 0)
+        
+        logger.info(f"Bắt đầu xử lý video: {total_frames} frames, FPS: {fps}")
+        
+        for frame in get_frames(cap):
+            frame_number += 1
+            timestamp = frame_number / fps
+            
+            # Process frame
+            controller.process_frame(frame, timestamp, frame_number)
+            
+            # Update progress every 30 frames
+            if frame_number % 30 == 0:
+                logger.info(f"Đã xử lý {frame_number}/{total_frames} frames cho session {session_id}")
+        
+        cap.release()
+        
+        # Finalize error grouping
+        controller.finalize_errors()
+        
+        # Get final results
+        final_score = controller.get_score()
+        final_errors = controller.get_errors()
+        
+        # Update session status to completed
+        if isinstance(controller, GlobalTestingController):
+            controller.stopped = False  # Reset stopped flag
+        
+        logger.info(f"Hoàn thành xử lý video: {frame_number} frames, {len(final_errors)} lỗi, điểm: {final_score}")
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "total_frames": total_frames,
+            "processed_frames": frame_number,
+            "score": final_score,
+            "total_errors": len(final_errors),
+            "errors": final_errors,
+            "message": f"Đã xử lý {frame_number} frames, phát hiện {len(final_errors)} lỗi"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error processing video: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi xử lý video: {str(e)}"
+        )
+    finally:
+        # Clean up temp file
+        if temp_video_path.exists():
+            try:
+                temp_video_path.unlink()
+            except:
+                pass
+
+
 @router.delete("/{session_id}")
 async def delete_session(session_id: str):
     """
@@ -274,11 +375,14 @@ async def delete_session(session_id: str):
     Returns:
         Deletion confirmation
     """
-    if session_id not in _controllers:
-        raise NotFoundException("Session", session_id)
-    
-    # Remove controller
-    del _controllers[session_id]
+    # Idempotent delete: if session exists, remove it; otherwise, return success anyway
+    # This allows frontend to clean up sessions that may have been lost due to backend restart
+    if session_id in _controllers:
+        # Remove controller
+        del _controllers[session_id]
+        logger.info(f"Session {session_id} đã được xóa khỏi backend memory")
+    else:
+        logger.info(f"Session {session_id} không tồn tại trong backend memory (có thể đã bị xóa hoặc backend đã restart)")
     
     return {
         "success": True,

@@ -272,7 +272,23 @@ def evaluate_video(test_video_path: Path, golden_template_dir: Path = None):
         return None
     
     print(f"✅ Đã phân tích {valid_frames}/{frame_count} frames hợp lệ")
-    print(f"   Tổng số lỗi phát hiện: {len(all_errors)}")
+    print(f"   Tổng số lỗi phát hiện (trước khi nhóm): {len(all_errors)}")
+    
+    # Nhóm các lỗi liên tiếp thành sequences để tránh phạt trùng lặp
+    from backend.app.services.sequence_comparison import SequenceComparator
+    from backend.app.config import SEQUENCE_COMPARISON_CONFIG
+    
+    sequence_enabled = SEQUENCE_COMPARISON_CONFIG.get("enabled", True)
+    if sequence_enabled:
+        sequence_comparator = SequenceComparator(
+            min_sequence_length=SEQUENCE_COMPARISON_CONFIG.get("min_sequence_length", 5),
+            severity_aggregation=SEQUENCE_COMPARISON_CONFIG.get("severity_aggregation", "mean"),
+            enabled=True
+        )
+        grouped_errors = sequence_comparator.group_errors_into_sequences(all_errors)
+        print(f"   Tổng số lỗi sau khi nhóm: {len(grouped_errors)}")
+        print(f"   Giảm: {len(all_errors) - len(grouped_errors)} lỗi ({(len(all_errors) - len(grouped_errors)) / max(len(all_errors), 1) * 100:.1f}%)")
+        all_errors = grouped_errors
     
     # Tính điểm
     total_deduction = sum(error.get("deduction", 0.0) for error in all_errors)

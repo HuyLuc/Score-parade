@@ -20,7 +20,11 @@ export default function RecentSessions() {
   const navigate = useNavigate()
 
   const recentSessions = sessions
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+    .sort((a, b) => {
+      const timeA = typeof a.startTime === 'string' ? new Date(a.startTime).getTime() : a.startTime.getTime()
+      const timeB = typeof b.startTime === 'string' ? new Date(b.startTime).getTime() : b.startTime.getTime()
+      return timeB - timeA
+    })
     .slice(0, 5)
 
   const getStatusIcon = (status: string) => {
@@ -95,7 +99,12 @@ export default function RecentSessions() {
                 secondary={
                   <>
                     <Typography variant="body2" color="textSecondary">
-                      {format(new Date(session.startTime), 'dd/MM/yyyy HH:mm')}
+                      {format(
+                        typeof session.startTime === 'string' 
+                          ? new Date(session.startTime) 
+                          : session.startTime, 
+                        'dd/MM/yyyy HH:mm'
+                      )}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
                       Điểm: {session.score.toFixed(1)} | Lỗi: {session.totalErrors}

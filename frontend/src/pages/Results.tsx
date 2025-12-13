@@ -16,30 +16,37 @@ import {
   Paper,
   Chip,
   CircularProgress,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
 } from '@mui/material'
 import {
   Download,
   ArrowBack,
   Assessment,
 } from '@mui/icons-material'
-import ReactPlayer from 'react-player'
 import { globalModeAPI } from '../services/api'
 import { useSessionStore } from '../store/useSessionStore'
 import ErrorChart from '../components/Results/ErrorChart'
 import { exportToPDF, exportToExcel } from '../utils/export'
 
 interface Error {
-  frame_number: number
+  frame_number?: number
+  start_frame?: number  // For sequence errors
+  end_frame?: number    // For sequence errors
   timestamp: number
-  error_type: string
+  error_type?: string
+  type?: string  // Alternative field name
   severity: number
   description: string
+  is_sequence?: boolean  // Flag for sequence errors
 }
 
 export default function Results() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
-  const { getSession } = useSessionStore()
+  const { getSession, sessions } = useSessionStore()
   const [errors, setErrors] = useState<Error[]>([])
   const [score, setScore] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -49,7 +56,11 @@ export default function Results() {
   useEffect(() => {
     if (sessionId) {
       fetchResults()
+    } else {
+      // If no sessionId, stop loading immediately
+      setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId])
 
   const fetchResults = async () => {
@@ -57,15 +68,50 @@ export default function Results() {
 
     setLoading(true)
     try {
-      const [scoreData, errorsData] = await Promise.all([
-        globalModeAPI.getScore(sessionId),
-        globalModeAPI.getErrors(sessionId),
-      ])
+      // Try to get from API first (suppress toast for expected 404)
+      try {
+        const [scoreData, errorsData] = await Promise.all([
+          globalModeAPI.getScore(sessionId, true),  // suppressToast = true
+          globalModeAPI.getErrors(sessionId, true),  // suppressToast = true
+        ])
 
-      setScore(scoreData.score)
-      setErrors(errorsData.errors || [])
+        setScore(scoreData.score)
+        setErrors(errorsData.errors || [])
+      } catch (apiError: any) {
+        // If API fails (e.g., session not found in backend memory),
+        // try to get from session store
+        console.warn('API fetch failed, trying store:', apiError)
+        
+        if (session) {
+          // Use data from store
+          setScore(session.score || 0)
+          // Try to get errors from store first, then API
+          if (session.errors && session.errors.length > 0) {
+            setErrors(session.errors)
+          } else {
+            // Try API as fallback (silently, don't show error if it fails)
+            try {
+              const errorsData = await globalModeAPI.getErrors(sessionId, true)
+              setErrors(errorsData.errors || [])
+            } catch {
+              // Silently fail, use empty errors
+              setErrors([])
+            }
+          }
+        } else {
+          // No session in store either
+          console.warn('Session not found in API or store, showing empty results')
+          setScore(0)
+          setErrors([])
+        }
+      }
     } catch (error) {
       console.error('Error fetching results:', error)
+      // Fallback to store data if available
+      if (session) {
+        setScore(session.score || 0)
+        setErrors([])
+      }
     } finally {
       setLoading(false)
     }
@@ -90,14 +136,72 @@ export default function Results() {
   }
 
   if (!session && !sessionId) {
+    // Show list of sessions to choose from
+    const completedSessions = sessions.filter(s => s.status === 'completed')
+    
     return (
       <Box>
         <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 700 }}>
-          Kết Quả
+          Kết Quả Chấm Điểm
         </Typography>
         <Card>
           <CardContent>
-            <Typography>Vui lòng chọn một session để xem kết quả</Typography>
+            {completedSessions.length === 0 ? (
+              <>
+                <Typography variant="h6" gutterBottom>
+                  Chưa có session nào hoàn thành
+                </Typography>
+                <Typography color="textSecondary" sx={{ mb: 3 }}>
+                  Vui lòng upload video hoặc thực hiện chấm điểm real-time để xem kết quả.
+                </Typography>
+                <Box display="flex" gap={2}>
+                  <Button
+                    variant="contained"
+                    onClick={() => navigate('/upload')}
+                  >
+                    Upload Video
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate('/monitoring')}
+                  >
+                    Real-time Monitoring
+                  </Button>
+                </Box>
+              </>
+            ) : (
+              <>
+                <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+                  Chọn session để xem kết quả:
+                </Typography>
+                <List>
+                  {completedSessions.map((s) => (
+                    <ListItem key={s.id} disablePadding>
+                      <ListItemButton onClick={() => navigate(`/results/${s.id}`)}>
+                        <Assessment sx={{ mr: 2, color: 'primary.main' }} />
+                        <ListItemText
+                          primary={`Session: ${s.id}`}
+                          secondary={`Điểm: ${s.score.toFixed(1)} | Lỗi: ${s.totalErrors} | ${s.startTime instanceof Date ? s.startTime.toLocaleString() : new Date(s.startTime).toLocaleString()}`}
+                        />
+                        <Chip
+                          label={s.score >= 80 ? 'ĐẠT' : s.score >= 60 ? 'TRUNG BÌNH' : 'KHÔNG ĐẠT'}
+                          color={s.score >= 80 ? 'success' : s.score >= 60 ? 'warning' : 'error'}
+                          size="small"
+                        />
+                      </ListItemButton>
+                    </ListItem>
+                  ))}
+                </List>
+                <Box mt={2}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => navigate('/sessions')}
+                  >
+                    Xem tất cả sessions
+                  </Button>
+                </Box>
+              </>
+            )}
           </CardContent>
         </Card>
       </Box>
@@ -257,31 +361,49 @@ export default function Results() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      errors.map((error, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{error.frame_number}</TableCell>
-                          <TableCell>
-                            {new Date(error.timestamp * 1000).toLocaleTimeString()}
-                          </TableCell>
-                          <TableCell>
-                            <Chip label={error.error_type} size="small" />
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={error.severity.toFixed(2)}
-                              size="small"
-                              color={
-                                error.severity > 0.7
-                                  ? 'error'
-                                  : error.severity > 0.4
-                                  ? 'warning'
-                                  : 'info'
-                              }
-                            />
-                          </TableCell>
-                          <TableCell>{error.description}</TableCell>
-                        </TableRow>
-                      ))
+                      errors.map((error, index) => {
+                        const errorType = error.error_type || error.type || 'unknown'
+                        const frameNumber = error.frame_number || error.start_frame || 0
+                        const frameDisplay = error.is_sequence && error.end_frame
+                          ? `${error.start_frame}-${error.end_frame}`
+                          : frameNumber.toString()
+                        
+                        return (
+                          <TableRow key={index}>
+                            <TableCell>{frameDisplay}</TableCell>
+                            <TableCell>
+                              {error.timestamp 
+                                ? new Date(error.timestamp * 1000).toLocaleTimeString()
+                                : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={errorType} size="small" />
+                              {error.is_sequence && (
+                                <Chip 
+                                  label="Sequence" 
+                                  size="small" 
+                                  color="info" 
+                                  sx={{ ml: 1 }}
+                                />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={error.severity.toFixed(2)}
+                                size="small"
+                                color={
+                                  error.severity > 0.7
+                                    ? 'error'
+                                    : error.severity > 0.4
+                                    ? 'warning'
+                                    : 'info'
+                                }
+                              />
+                            </TableCell>
+                            <TableCell>{error.description}</TableCell>
+                          </TableRow>
+                        )
+                      })
                     )}
                   </TableBody>
                 </Table>

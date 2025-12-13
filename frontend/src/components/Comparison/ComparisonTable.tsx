@@ -17,10 +17,15 @@ interface ComparisonTableProps {
 }
 
 export default function ComparisonTable({ session1, session2 }: ComparisonTableProps) {
+  const formatStartTime = (startTime: Date | string) => {
+    const date = typeof startTime === 'string' ? new Date(startTime) : startTime
+    return format(date, 'dd/MM/yyyy HH:mm')
+  }
+
   const rows = [
     { label: 'Session ID', value1: session1.id, value2: session2.id },
     { label: 'Chế Độ', value1: session1.mode, value2: session2.mode },
-    { label: 'Thời Gian Bắt Đầu', value1: format(new Date(session1.startTime), 'dd/MM/yyyy HH:mm'), value2: format(new Date(session2.startTime), 'dd/MM/yyyy HH:mm') },
+    { label: 'Thời Gian Bắt Đầu', value1: formatStartTime(session1.startTime), value2: formatStartTime(session2.startTime) },
     { label: 'Điểm Số', value1: session1.score.toFixed(1), value2: session2.score.toFixed(1) },
     { label: 'Tổng Lỗi', value1: session1.totalErrors, value2: session2.totalErrors },
     { label: 'Trạng Thái', value1: session1.status, value2: session2.status },

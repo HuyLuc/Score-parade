@@ -331,6 +331,7 @@ class AIController:
     def _check_arm_posture(self, keypoints: np.ndarray) -> List[Dict]:
         """Kiểm tra tư thế tay"""
         errors = []
+        threshold = ERROR_THRESHOLDS.get("arm_angle", 50.0)
         
         # Tính góc tay
         left_arm_angle = calculate_arm_angle(keypoints, "left")
@@ -348,7 +349,7 @@ class AIController:
                         left_arm_angle,
                         golden_left,
                         golden_std,
-                        ERROR_THRESHOLDS.get("arm_angle", 10.0),
+                        threshold,
                         error_type="arm_angle"
                     )
                     if is_out:
@@ -357,6 +358,36 @@ class AIController:
                             "arm_angle",
                             desc,
                             diff,
+                            "arm",
+                            "left"
+                        ))
+            else:
+                # Không có golden cho tay trái, dùng threshold tuyệt đối
+                # Giả định tư thế chuẩn là tay ở góc ~90-120° (tùy động tác)
+                # Kiểm tra nếu góc quá nhỏ (< 30°) hoặc quá lớn (> 180°)
+                if left_arm_angle is not None:
+                    if left_arm_angle < 30 or left_arm_angle > 180:
+                        diff = abs(left_arm_angle - 90) if left_arm_angle < 30 else abs(left_arm_angle - 180)
+                        if diff > threshold:
+                            desc = f"Tay trái ở góc bất thường ({left_arm_angle:.1f}°)"
+                            errors.append(self._build_error(
+                                "arm_angle",
+                                desc,
+                                diff - threshold,
+                                "arm",
+                                "left"
+                            ))
+        else:
+            # Không có golden template, dùng threshold tuyệt đối
+            if left_arm_angle is not None:
+                if left_arm_angle < 30 or left_arm_angle > 180:
+                    diff = abs(left_arm_angle - 90) if left_arm_angle < 30 else abs(left_arm_angle - 180)
+                    if diff > threshold:
+                        desc = f"Tay trái ở góc bất thường ({left_arm_angle:.1f}°)"
+                        errors.append(self._build_error(
+                            "arm_angle",
+                            desc,
+                            diff - threshold,
                             "arm",
                             "left"
                         ))
@@ -373,7 +404,7 @@ class AIController:
                         right_arm_angle,
                         golden_right,
                         golden_std,
-                        ERROR_THRESHOLDS.get("arm_angle", 10.0),
+                        threshold,
                         error_type="arm_angle"
                     )
                     if is_out:
@@ -385,12 +416,41 @@ class AIController:
                             "arm",
                             "right"
                         ))
+            else:
+                # Không có golden cho tay phải, dùng threshold tuyệt đối
+                if right_arm_angle is not None:
+                    if right_arm_angle < 30 or right_arm_angle > 180:
+                        diff = abs(right_arm_angle - 90) if right_arm_angle < 30 else abs(right_arm_angle - 180)
+                        if diff > threshold:
+                            desc = f"Tay phải ở góc bất thường ({right_arm_angle:.1f}°)"
+                            errors.append(self._build_error(
+                                "arm_angle",
+                                desc,
+                                diff - threshold,
+                                "arm",
+                                "right"
+                            ))
+        else:
+            # Không có golden template, dùng threshold tuyệt đối
+            if right_arm_angle is not None:
+                if right_arm_angle < 30 or right_arm_angle > 180:
+                    diff = abs(right_arm_angle - 90) if right_arm_angle < 30 else abs(right_arm_angle - 180)
+                    if diff > threshold:
+                        desc = f"Tay phải ở góc bất thường ({right_arm_angle:.1f}°)"
+                        errors.append(self._build_error(
+                            "arm_angle",
+                            desc,
+                            diff - threshold,
+                            "arm",
+                            "right"
+                        ))
         
         return errors
     
     def _check_leg_posture(self, keypoints: np.ndarray) -> List[Dict]:
         """Kiểm tra tư thế chân"""
         errors = []
+        threshold = ERROR_THRESHOLDS.get("leg_angle", 45.0)
         
         left_leg_angle = calculate_leg_angle(keypoints, "left")
         right_leg_angle = calculate_leg_angle(keypoints, "right")
@@ -407,7 +467,7 @@ class AIController:
                         left_leg_angle,
                         golden_left,
                         golden_std,
-                        ERROR_THRESHOLDS.get("leg_angle", 10.0),
+                        threshold,
                         error_type="leg_angle"
                     )
                     if is_out:
@@ -419,6 +479,21 @@ class AIController:
                             "leg",
                             "left"
                         ))
+                else:
+                    # Không có golden cho chân trái, dùng threshold tuyệt đối
+                    if left_leg_angle is not None:
+                        # Giả định tư thế chuẩn là chân ở góc ~150-180° (đứng thẳng)
+                        if left_leg_angle < 120 or left_leg_angle > 200:
+                            diff = abs(left_leg_angle - 180) if left_leg_angle < 120 else abs(left_leg_angle - 200)
+                            if diff > threshold:
+                                desc = f"Chân trái ở góc bất thường ({left_leg_angle:.1f}°)"
+                                errors.append(self._build_error(
+                                    "leg_angle",
+                                    desc,
+                                    diff - threshold,
+                                    "leg",
+                                    "left"
+                                ))
                 
                 # Kiểm tra chân phải
                 if "right" in stats["leg_angle"] and right_leg_angle is not None:
@@ -428,7 +503,7 @@ class AIController:
                         right_leg_angle,
                         golden_right,
                         golden_std,
-                        ERROR_THRESHOLDS.get("leg_angle", 10.0),
+                        threshold,
                         error_type="leg_angle"
                     )
                     if is_out:
@@ -437,6 +512,47 @@ class AIController:
                             "leg_angle",
                             desc,
                             diff,
+                            "leg",
+                            "right"
+                        ))
+                else:
+                    # Không có golden cho chân phải, dùng threshold tuyệt đối
+                    if right_leg_angle is not None:
+                        if right_leg_angle < 120 or right_leg_angle > 200:
+                            diff = abs(right_leg_angle - 180) if right_leg_angle < 120 else abs(right_leg_angle - 200)
+                            if diff > threshold:
+                                desc = f"Chân phải ở góc bất thường ({right_leg_angle:.1f}°)"
+                                errors.append(self._build_error(
+                                    "leg_angle",
+                                    desc,
+                                    diff - threshold,
+                                    "leg",
+                                    "right"
+                                ))
+        else:
+            # Không có golden template, dùng threshold tuyệt đối
+            if left_leg_angle is not None:
+                if left_leg_angle < 120 or left_leg_angle > 200:
+                    diff = abs(left_leg_angle - 180) if left_leg_angle < 120 else abs(left_leg_angle - 200)
+                    if diff > threshold:
+                        desc = f"Chân trái ở góc bất thường ({left_leg_angle:.1f}°)"
+                        errors.append(self._build_error(
+                            "leg_angle",
+                            desc,
+                            diff - threshold,
+                            "leg",
+                            "left"
+                        ))
+            
+            if right_leg_angle is not None:
+                if right_leg_angle < 120 or right_leg_angle > 200:
+                    diff = abs(right_leg_angle - 180) if right_leg_angle < 120 else abs(right_leg_angle - 200)
+                    if diff > threshold:
+                        desc = f"Chân phải ở góc bất thường ({right_leg_angle:.1f}°)"
+                        errors.append(self._build_error(
+                            "leg_angle",
+                            desc,
+                            diff - threshold,
                             "leg",
                             "right"
                         ))

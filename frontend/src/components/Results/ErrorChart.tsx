@@ -16,7 +16,9 @@ export default function ErrorChart({ errors }: ErrorChartProps) {
     const errorCounts: Record<string, number> = {}
     
     errors.forEach((error) => {
-      errorCounts[error.error_type] = (errorCounts[error.error_type] || 0) + 1
+      // Support both 'error_type' and 'type' fields
+      const errorType = (error as any).error_type || (error as any).type || 'unknown'
+      errorCounts[errorType] = (errorCounts[errorType] || 0) + 1
     })
 
     return Object.entries(errorCounts).map(([type, count]) => ({

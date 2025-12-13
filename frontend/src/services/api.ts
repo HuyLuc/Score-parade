@@ -26,6 +26,14 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
+    // Check if we should suppress toast for this error
+    const suppressToast = error.config?.suppressToast === true
+    
+    // Don't show toast for expected 404 errors when suppressToast is true
+    if (suppressToast && error.response?.status === 404) {
+      return Promise.reject(error)
+    }
+    
     const message = error.response?.data?.detail || error.message || 'Có lỗi xảy ra'
     toast.error(message)
     return Promise.reject(error)
@@ -74,14 +82,18 @@ export const globalModeAPI = {
   },
 
   // Get current score
-  getScore: async (sessionId: string) => {
-    const response = await api.get(`/api/global/${sessionId}/score`)
+  getScore: async (sessionId: string, suppressToast: boolean = false) => {
+    const response = await api.get(`/api/global/${sessionId}/score`, {
+      suppressToast: suppressToast
+    } as any)
     return response.data
   },
 
   // Get all errors
-  getErrors: async (sessionId: string) => {
-    const response = await api.get(`/api/global/${sessionId}/errors`)
+  getErrors: async (sessionId: string, suppressToast: boolean = false) => {
+    const response = await api.get(`/api/global/${sessionId}/errors`, {
+      suppressToast: suppressToast
+    } as any)
     return response.data
   },
 
@@ -92,8 +104,50 @@ export const globalModeAPI = {
   },
 
   // Delete session
-  deleteSession: async (sessionId: string) => {
-    const response = await api.delete(`/api/global/${sessionId}`)
+  deleteSession: async (sessionId: string, suppressToast: boolean = false) => {
+    const response = await api.delete(`/api/global/${sessionId}`, {
+      suppressToast: suppressToast
+    } as any)
+    return response.data
+  },
+
+  // Upload and process video
+  uploadAndProcessVideo: async (sessionId: string, videoFile: File) => {
+    const formData = new FormData()
+    formData.append('video_file', videoFile)
+
+    const response = await api.post(`/api/global/${sessionId}/upload-video`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+}
+
+// Config API
+export const configAPI = {
+  // Get scoring configuration
+  getScoringConfig: async () => {
+    const response = await api.get('/api/config/scoring')
+    return response.data
+  },
+
+  // Update scoring configuration
+  updateScoringConfig: async (config: {
+    error_weights?: Record<string, number>
+    initial_score?: number
+    fail_threshold?: number
+    error_thresholds?: Record<string, number>
+    error_grouping?: Record<string, any>
+  }) => {
+    const response = await api.put('/api/config/scoring', config)
+    return response.data
+  },
+
+  // Reset scoring configuration
+  resetScoringConfig: async () => {
+    const response = await api.post('/api/config/scoring/reset')
     return response.data
   },
 }

@@ -36,6 +36,7 @@ export default function Dashboard() {
       }
     }
     checkHealth()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const activeSessions = sessions.filter((s) => s.status === 'active').length

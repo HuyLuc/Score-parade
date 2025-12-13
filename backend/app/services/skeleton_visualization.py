@@ -284,7 +284,9 @@ def create_skeleton_video(
             # ✅ CHECK write success
             success = out.write(frame_with_skeleton)
             if not success:
-                logger.error(f"❌ Failed to write frame {frame_count}")
+                # Only log first few failures to avoid spam
+                if frame_count <= 5:
+                    logger.warning(f"⚠️ Failed to write frame {frame_count} (this may be normal for some codecs)")
             
             # Log progress every 30 frames
             if frame_count % 30 == 0:

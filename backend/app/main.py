@@ -41,13 +41,22 @@ app.add_middleware(
 app.include_router(global_mode.router)
 app.include_router(config.router)
 
-# Serve skeleton videos from temp directory
-temp_dir_str = tempfile.gettempdir()
-temp_dir = Path(temp_dir_str)
-@app.get("/api/videos/{filename}")
-async def get_skeleton_video(filename: str):
-    """Serve skeleton video files"""
-    video_path = temp_dir / filename
+# Serve skeleton videos from data/output directory
+# Support both direct files and subdirectories (e.g., session_id/skeleton_video.mp4)
+output_dir = Path("data") / "output"
+@app.get("/api/videos/{filepath:path}")
+async def get_skeleton_video(filepath: str):
+    """
+    Serve skeleton video files from data/output directory
+    Supports paths like: session_id/skeleton_video.mp4
+    """
+    # Security: Prevent directory traversal attacks
+    video_path = (output_dir / filepath).resolve()
+    if not str(video_path).startswith(str(output_dir.resolve())):
+        logger.error(f"❌ Security: Attempted directory traversal: {filepath}")
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    video_path = output_dir / filepath
     
     # ✅ LOGGING
     logger.info(f"Request for skeleton video: {filename}")

@@ -53,6 +53,7 @@ export default function Results() {
   const [errors, setErrors] = useState<Error[]>([])
   const [score, setScore] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [showSkeletonVideo, setShowSkeletonVideo] = useState(false)
 
   const session = sessionId ? getSession(sessionId) : null
 

@@ -14,6 +14,7 @@ import {
   MenuItem,
   InputAdornment,
   Paper,
+  CircularProgress,
 } from '@mui/material'
 import {
   CloudUpload,
@@ -128,8 +129,8 @@ export default function VideoUpload() {
         score: result.score || 100,
         totalErrors: result.total_errors || 0,
         status: 'completed',
-        errors: result.errors || [],  // Store errors in session
-        skeletonVideoUrl: skeletonVideoUrlFull,  // Store skeleton video URL
+        errors: result.errors || [], // Store errors in session
+        skeletonVideoUrl: skeletonVideoUrlFull || undefined, // Normalize null -> undefined
       })
 
       toast.success(

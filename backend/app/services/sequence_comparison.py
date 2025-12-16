@@ -25,6 +25,7 @@ class SequenceComparator:
         self,
         min_sequence_length: int = 3,
         severity_aggregation: str = "mean",
+        max_gap_frames: int = 1,
         enabled: bool = True
     ):
         """
@@ -32,6 +33,7 @@ class SequenceComparator:
         
         Args:
             min_sequence_length: Minimum number of consecutive frames to form a sequence (default: 3)
+            max_gap_frames: Maximum gap (frames) still considered consecutive inside a sequence
             severity_aggregation: How to aggregate severity across sequence ("mean", "max", "median")
             enabled: Whether sequence comparison is enabled
         
@@ -48,11 +50,13 @@ class SequenceComparator:
         
         self.min_sequence_length = min_sequence_length
         self.severity_aggregation = severity_aggregation
+        self.max_gap_frames = max_gap_frames
         self.enabled = enabled
         
         logger.info(
             f"SequenceComparator initialized: "
             f"min_sequence_length={min_sequence_length}, "
+            f"max_gap_frames={max_gap_frames}, "
             f"severity_aggregation={severity_aggregation}, "
             f"enabled={enabled}"
         )
@@ -117,8 +121,9 @@ class SequenceComparator:
                 last_key = self._get_error_key(last_error)
                 last_frame = last_error.get("frame_number", 0)
                 
-                # Sequence continues if: same error type AND consecutive frames
-                if error_key == last_key and frame_num == last_frame + 1:
+                # Sequence continues if: same error type AND frame gap within allowed max_gap_frames
+                frame_gap = frame_num - last_frame
+                if error_key == last_key and 0 < frame_gap <= self.max_gap_frames:
                     current_sequence.append(error)
                 else:
                     # Sequence breaks - process current sequence and start new one

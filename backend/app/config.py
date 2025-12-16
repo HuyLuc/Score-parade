@@ -146,7 +146,8 @@ NORMALIZATION_CONFIG = {
 # Cấu hình temporal smoothing cho noise reduction
 TEMPORAL_SMOOTHING_CONFIG = {
     "enabled": True,  # Bật/tắt temporal smoothing
-    "window_size": 5,  # Số frames để làm mượt (5 frames @ 30fps = 167ms latency)
+    # Tăng nhẹ window để giảm nhiễu frame đơn lẻ (giảm false positive giữa A→C)
+    "window_size": 7,  # 7 frames @ 30fps ~ 233ms latency
     "method": "moving_average",  # "moving_average" hoặc "median"
     "smooth_keypoints": True,  # Làm mượt keypoint coordinates
     "smooth_metrics": True,  # Làm mượt các metric (góc, chiều cao)
@@ -171,8 +172,12 @@ DTW_CONFIG = {
 # Sequence Comparison configuration for grouping consecutive errors
 SEQUENCE_COMPARISON_CONFIG = {
     "enabled": True,  # Enable/disable sequence-based error detection
-    "min_sequence_length": 3,  # Minimum frames to form a sequence (default: 3)
-    "severity_aggregation": "mean",  # Severity calculation method: "mean", "max", "median"
+    # Yêu cầu lỗi phải kéo dài lâu hơn để tránh phạt vì 1 frame trung gian
+    "min_sequence_length": 5,  # Minimum frames to form a sequence
+    # Cho phép thiếu 1-2 frame nhưng vẫn coi là cùng sequence (giảm false positive do frame rớt)
+    "max_gap_frames": 2,  # Frames gap allowed inside a sequence
+    # Dùng median để giảm ảnh hưởng của frame outlier
+    "severity_aggregation": "median",  # "mean", "max", "median"
 }
 
 # Error Grouping configuration - Nhóm các lỗi liên tiếp để tránh phạt trùng lặp

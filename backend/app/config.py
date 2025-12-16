@@ -187,7 +187,7 @@ ERROR_GROUPING_CONFIG = {
     "max_gap_frames": 3,  # Số frames tối đa giữa các lỗi để vẫn coi là cùng sequence (default: 3)
     "severity_aggregation": "mean",  # Cách tính severity: "mean", "max", "median"
     "sequence_deduction": 1.0,  # Điểm trừ cho mỗi sequence lỗi (thay vì trừ từng frame)
-    "max_deduction_per_error_type": 10.0,  # Điểm trừ tối đa cho mỗi loại lỗi trong toàn bộ video
+    # Không giới hạn trần trừ điểm theo loại lỗi để cho phép rớt dưới 50 đúng yêu cầu
 }
 
 # Multi-Person Tracking configuration

@@ -5,7 +5,7 @@ Deducts score on errors and stops when score falls below threshold
 import logging
 from typing import Dict
 from backend.app.controllers.global_controller import GlobalController
-from backend.app.config import SCORING_CONFIG, ERROR_GROUPING_CONFIG
+from backend.app.config import SCORING_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -25,41 +25,19 @@ class GlobalTestingController(GlobalController):
     
     def _handle_error(self, error: Dict):
         """
-        Handle error by deducting score
-        Stop if score falls below threshold
-        
-        Args:
-            error: Error dictionary with deduction value
+        Handle error by deducting score.
+        Stop if score falls below threshold.
+
+        Không giới hạn điểm trừ theo từng loại lỗi (theo yêu cầu mới).
         """
         if self.stopped:
             return
         
-        # Deduct score
-        # Nếu là sequence error, chỉ trừ một lần (deduction đã được tính cho toàn sequence)
-        # Nếu là frame error đơn lẻ, trừ điểm như bình thường
+        # Trừ điểm đúng theo deduction đã tính
         deduction = error.get("deduction", 0)
-        
-        # Giới hạn deduction tối đa cho mỗi loại lỗi (tránh trừ quá nhiều)
-        error_type = error.get("type", "unknown")
-        max_deduction = ERROR_GROUPING_CONFIG.get("max_deduction_per_error_type", 10.0)
-        
-        # Đếm tổng deduction đã trừ cho loại lỗi này
-        total_deduction_for_type = sum(
-            e.get("deduction", 0) for e in self.errors 
-            if e.get("type") == error_type
-        )
-        
-        # Chỉ trừ nếu chưa vượt quá max
-        if total_deduction_for_type < max_deduction:
-            remaining_quota = max_deduction - total_deduction_for_type
-            actual_deduction = min(deduction, remaining_quota)
-            self.score -= actual_deduction
-            
-            # Cập nhật deduction thực tế trong error
-            error["deduction"] = actual_deduction
-            if actual_deduction < deduction:
-                error["deduction_original"] = deduction
-                error["deduction_capped"] = True
+        self.score -= deduction
+        if self.score < 0:
+            self.score = 0
         
         # Check if should stop
         if self.score < self.fail_threshold:

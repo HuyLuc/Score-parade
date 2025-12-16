@@ -73,17 +73,23 @@ ALIGNMENT_CONFIG = {
 # Cấu hình scoring
 SCORING_CONFIG = {
     "initial_score": 100,  # Điểm ban đầu
-    "fail_threshold": 50,  # Điểm tối thiểu để đạt
+    # Ngưỡng đạt/trượt theo chế độ
+    "fail_thresholds": {
+        "testing": 60.0,     # Thi / kiểm tra: chặt hơn 50
+        "practising": 0.0,   # Luyện tập: luôn coi là để học, không trượt
+        "default": 50.0,     # Dự phòng cho các nơi cũ chưa truyền mode
+    },
     "error_weights": {
-        "arm_angle": 1.0,  # Giảm từ 2.0 → 1.0 (giảm 50%)
-        "leg_angle": 1.0,  # Giảm từ 2.0 → 1.0
-        "arm_height": 0.8,  # Giảm từ 1.5 → 0.8
-        "leg_height": 0.8,  # Giảm từ 1.5 → 0.8
-        "head_angle": 0.5,  # Giảm từ 1.0 → 0.5 (QUAN TRỌNG - giảm 50%)
-        "torso_stability": 0.5,  # Giảm từ 1.0 → 0.5
-        "rhythm": 1.0,  # Giảm từ 2.0 → 1.0
-        "distance": 0.8,  # Giảm từ 1.5 → 0.8
-        "speed": 0.8,  # Giảm từ 1.5 → 0.8
+        "arm_angle": 1.0,
+        "leg_angle": 1.0,
+        "arm_height": 0.8,
+        "leg_height": 0.8,
+        # Đầu / head quan trọng ngang tay/chân trong điều lệnh
+        "head_angle": 1.0,
+        "torso_stability": 0.8,
+        "rhythm": 1.0,
+        "distance": 0.8,
+        "speed": 0.8,
     },
 }
 
@@ -172,10 +178,10 @@ DTW_CONFIG = {
 # Sequence Comparison configuration for grouping consecutive errors
 SEQUENCE_COMPARISON_CONFIG = {
     "enabled": True,  # Enable/disable sequence-based error detection
-    # Yêu cầu lỗi phải kéo dài lâu hơn để tránh phạt vì 1 frame trung gian
-    "min_sequence_length": 5,  # Minimum frames to form a sequence
-    # Cho phép thiếu 1-2 frame nhưng vẫn coi là cùng sequence (giảm false positive do frame rớt)
-    "max_gap_frames": 2,  # Frames gap allowed inside a sequence
+    # Gộp từ 2 frame liên tiếp trở lên thành 1 lỗi để chỉ trừ điểm một lần
+    "min_sequence_length": 2,  # Minimum frames to form a sequence
+    # Cho phép hụt tối đa 1 frame giữa chuỗi
+    "max_gap_frames": 1,  # Frames gap allowed inside a sequence
     # Dùng median để giảm ảnh hưởng của frame outlier
     "severity_aggregation": "median",  # "mean", "max", "median"
 }
@@ -183,8 +189,8 @@ SEQUENCE_COMPARISON_CONFIG = {
 # Error Grouping configuration - Nhóm các lỗi liên tiếp để tránh phạt trùng lặp
 ERROR_GROUPING_CONFIG = {
     "enabled": True,  # Bật/tắt error grouping
-    "min_sequence_length": 5,  # Số frames tối thiểu để coi là một sequence lỗi (default: 5)
-    "max_gap_frames": 3,  # Số frames tối đa giữa các lỗi để vẫn coi là cùng sequence (default: 3)
+    "min_sequence_length": 2,  # Gộp từ 2 frame liên tiếp thành 1 sequence lỗi
+    "max_gap_frames": 1,  # Cho phép hụt 1 frame giữa chuỗi
     "severity_aggregation": "mean",  # Cách tính severity: "mean", "max", "median"
     "sequence_deduction": 1.0,  # Điểm trừ cho mỗi sequence lỗi (thay vì trừ từng frame)
     # Không giới hạn trần trừ điểm theo loại lỗi để cho phép rớt dưới 50 đúng yêu cầu

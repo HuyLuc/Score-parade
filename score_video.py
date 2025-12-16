@@ -223,7 +223,8 @@ def evaluate_video(test_video_path: Path, golden_template_dir: Path = None):
     # Khởi tạo services
     pose_service = PoseService()
     ai_controller = AIController(pose_service)
-    scoring_service = ScoringService()
+    # Đây là đánh giá kiểu "thi" -> dùng ngưỡng testing
+    scoring_service = ScoringService(mode="testing")
     
     # Load golden template
     ai_controller.load_golden_template()

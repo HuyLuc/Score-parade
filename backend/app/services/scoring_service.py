@@ -9,9 +9,13 @@ from backend.app.config import SCORING_CONFIG
 class ScoringService:
     """Service cho scoring"""
     
-    def __init__(self):
+    def __init__(self, mode: str = "testing"):
+        """
+        mode: "testing" hoặc "practising" để chọn ngưỡng đạt/trượt phù hợp
+        """
         self.initial_score = SCORING_CONFIG["initial_score"]
-        self.fail_threshold = SCORING_CONFIG["fail_threshold"]
+        thresholds = SCORING_CONFIG.get("fail_thresholds", {})
+        self.fail_threshold = thresholds.get(mode, thresholds.get("default", 50.0))
         self.error_weights = SCORING_CONFIG["error_weights"]
     
     def calculate_score(self, errors: Dict) -> float:

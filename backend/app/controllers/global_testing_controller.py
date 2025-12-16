@@ -21,7 +21,9 @@ class GlobalTestingController(GlobalController):
         """Initialize testing controller"""
         super().__init__(session_id, pose_service)
         self.stopped = False
-        self.fail_threshold = SCORING_CONFIG.get("fail_threshold", SCORING_CONFIG["fail_threshold"])
+        # Dùng ngưỡng cho chế độ testing, fallback về default nếu thiếu
+        thresholds = SCORING_CONFIG.get("fail_thresholds", {})
+        self.fail_threshold = thresholds.get("testing", thresholds.get("default", 50.0))
     
     def _handle_error(self, error: Dict):
         """

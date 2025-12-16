@@ -27,7 +27,7 @@ class ScoringConfigUpdate(BaseModel):
     """Request model for updating scoring configuration"""
     error_weights: Dict[str, float] = None
     initial_score: float = None
-    fail_threshold: float = None
+    fail_threshold: float = None  # Giữ để tương thích, sẽ map sang fail_thresholds["testing"]
     error_thresholds: Dict[str, float] = None
     error_grouping: Dict[str, Any] = None
 
@@ -44,7 +44,7 @@ async def get_scoring_config():
         return ScoringConfigResponse(
             error_weights=SCORING_CONFIG.get("error_weights", {}),
             initial_score=SCORING_CONFIG.get("initial_score", 100.0),
-            fail_threshold=SCORING_CONFIG.get("fail_threshold", 50.0),
+            fail_threshold=SCORING_CONFIG.get("fail_thresholds", {}).get("testing", 60.0),
             error_thresholds=ERROR_THRESHOLDS,
             error_grouping=ERROR_GROUPING_CONFIG
         )
@@ -76,7 +76,9 @@ async def update_scoring_config(config: ScoringConfigUpdate):
             SCORING_CONFIG["initial_score"] = config.initial_score
         
         if config.fail_threshold is not None:
-            SCORING_CONFIG["fail_threshold"] = config.fail_threshold
+            # Map fail_threshold cũ sang ngưỡng cho chế độ testing
+            thresholds = SCORING_CONFIG.setdefault("fail_thresholds", {})
+            thresholds["testing"] = config.fail_threshold
         
         # Update ERROR_THRESHOLDS
         if config.error_thresholds is not None:
@@ -94,7 +96,7 @@ async def update_scoring_config(config: ScoringConfigUpdate):
             "config": {
                 "error_weights": SCORING_CONFIG.get("error_weights", {}),
                 "initial_score": SCORING_CONFIG.get("initial_score", 100.0),
-                "fail_threshold": SCORING_CONFIG.get("fail_threshold", 50.0),
+                "fail_threshold": SCORING_CONFIG.get("fail_thresholds", {}).get("testing", 60.0),
                 "error_thresholds": ERROR_THRESHOLDS,
                 "error_grouping": ERROR_GROUPING_CONFIG
             }
@@ -125,14 +127,18 @@ async def reset_scoring_config():
             "leg_angle": 1.0,
             "arm_height": 0.8,
             "leg_height": 0.8,
-            "head_angle": 0.5,
-            "torso_stability": 0.5,
+            "head_angle": 1.0,
+            "torso_stability": 0.8,
             "rhythm": 1.0,
             "distance": 0.8,
             "speed": 0.8,
         }
         SCORING_CONFIG["initial_score"] = 100.0
-        SCORING_CONFIG["fail_threshold"] = 50.0
+        SCORING_CONFIG["fail_thresholds"] = {
+            "testing": 60.0,
+            "practising": 0.0,
+            "default": 50.0,
+        }
         
         # Reset ERROR_THRESHOLDS
         ERROR_THRESHOLDS.update({
@@ -155,7 +161,7 @@ async def reset_scoring_config():
             "config": {
                 "error_weights": SCORING_CONFIG.get("error_weights", {}),
                 "initial_score": SCORING_CONFIG.get("initial_score", 100.0),
-                "fail_threshold": SCORING_CONFIG.get("fail_threshold", 50.0),
+                "fail_threshold": SCORING_CONFIG.get("fail_thresholds", {}).get("testing", 60.0),
                 "error_thresholds": ERROR_THRESHOLDS,
                 "error_grouping": ERROR_GROUPING_CONFIG
             }

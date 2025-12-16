@@ -65,45 +65,80 @@ export default function Layout({ children }: LayoutProps) {
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          px: [1],
+          justifyContent: 'flex-start',
+          px: 2,
+          py: 3,
+          gap: 1.2,
+          background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+          color: 'white',
         }}
       >
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
-          🎵 Score Parade
-        </Typography>
+        <Box
+          sx={{
+            width: 42,
+            height: 42,
+            borderRadius: '12px',
+            backgroundColor: 'rgba(255,255,255,0.16)',
+            display: 'grid',
+            placeItems: 'center',
+            fontWeight: 700,
+            letterSpacing: 0.5,
+          }}
+        >
+          SP
+        </Box>
+        <Box>
+          <Typography variant="subtitle2" sx={{ opacity: 0.85 }}>
+            Score Parade
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.1 }}>
+            Control Scoring
+          </Typography>
+        </Box>
       </Toolbar>
       <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => handleNavigation(item.path)}
-              sx={{
-                '&.Mui-selected': {
-                  backgroundColor: 'primary.main',
-                  color: 'white',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
-                  },
-                  '& .MuiListItemIcon-root': {
-                    color: 'white',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon
+      <List sx={{ px: 1, py: 1 }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path
+          return (
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                selected={isActive}
+                onClick={() => handleNavigation(item.path)}
                 sx={{
-                  color: location.pathname === item.path ? 'white' : 'inherit',
+                  borderRadius: 2,
+                  px: 1.5,
+                  py: 1,
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    backgroundColor: isActive ? 'primary.dark' : 'action.hover',
+                    boxShadow: isActive ? '0 10px 25px -12px rgba(37,99,235,0.65)' : 'none',
+                  },
+                  '&.Mui-selected': {
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    boxShadow: '0 12px 30px -12px rgba(37,99,235,0.7)',
+                    '& .MuiListItemIcon-root': { color: 'white' },
+                    '&:hover': { backgroundColor: 'primary.dark' },
+                  },
                 }}
               >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+                <ListItemIcon
+                  sx={{
+                    color: isActive ? 'white' : 'text.secondary',
+                    minWidth: 38,
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{ fontWeight: isActive ? 700 : 500, fontSize: 15 }}
+                />
+              </ListItemButton>
+            </ListItem>
+          )
+        })}
       </List>
     </Box>
   )
@@ -115,9 +150,9 @@ export default function Layout({ children }: LayoutProps) {
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-          backgroundColor: 'white',
-          color: 'text.primary',
-          boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+          background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+          color: 'white',
+          boxShadow: '0 8px 24px rgba(37, 99, 235, 0.25)',
         }}
       >
         <Toolbar>
@@ -174,14 +209,25 @@ export default function Layout({ children }: LayoutProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
+          px: { xs: 2, md: 4 },
+          py: { xs: 2, md: 4 },
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          backgroundColor: 'background.default',
+          backgroundColor: '#f3f6fb',
           minHeight: '100vh',
         }}
       >
         <Toolbar />
-        {children}
+        <Box
+          sx={{
+            maxWidth: 1400,
+            mx: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3,
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   )

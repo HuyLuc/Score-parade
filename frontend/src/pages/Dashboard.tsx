@@ -56,9 +56,21 @@ export default function Dashboard() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 700 }}>
-        Dashboard
-      </Typography>
+      <Box
+        sx={{
+          mb: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.5,
+        }}
+      >
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
+          Dashboard
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Tổng quan hệ thống và các phiên chấm điểm gần đây
+        </Typography>
+      </Box>
 
       <Grid container spacing={3}>
         {/* Stat Cards */}
@@ -97,9 +109,15 @@ export default function Dashboard() {
 
         {/* Charts */}
         <Grid item xs={12} md={8}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 12px 40px rgba(15, 23, 42, 0.08)',
+              border: '1px solid rgba(37,99,235,0.08)',
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
                 Biểu Đồ Điểm Số
               </Typography>
               <ScoreChart />
@@ -109,14 +127,32 @@ export default function Dashboard() {
 
         {/* Recent Sessions */}
         <Grid item xs={12} md={4}>
-          <RecentSessions />
+          <Card
+            sx={{
+              height: '100%',
+              borderRadius: 3,
+              boxShadow: '0 12px 40px rgba(15, 23, 42, 0.08)',
+              border: '1px solid rgba(37,99,235,0.08)',
+            }}
+          >
+            <CardContent sx={{ height: '100%' }}>
+              <RecentSessions />
+            </CardContent>
+          </Card>
         </Grid>
 
         {/* System Status */}
         <Grid item xs={12}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 12px 40px rgba(15, 23, 42, 0.08)',
+              border: '1px solid rgba(16,185,129,0.16)',
+              background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(59,130,246,0.06))',
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
                 Trạng Thái Hệ Thống
               </Typography>
               <Box display="flex" alignItems="center" gap={2}>

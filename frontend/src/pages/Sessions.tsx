@@ -120,9 +120,14 @@ export default function Sessions() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Quản Lý Sessions
-        </Typography>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            Quản Lý Sessions
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Tìm kiếm, xem và xoá các phiên chấm điểm đã lưu.
+          </Typography>
+        </Box>
         <Button
           variant="outlined"
           startIcon={<Refresh />}
@@ -132,7 +137,13 @@ export default function Sessions() {
         </Button>
       </Box>
 
-      <Card>
+      <Card
+        sx={{
+          borderRadius: 3,
+          boxShadow: '0 14px 40px rgba(15,23,42,0.08)',
+          border: '1px solid rgba(15,23,42,0.08)',
+        }}
+      >
         <CardContent>
           <Box mb={3}>
             <TextField

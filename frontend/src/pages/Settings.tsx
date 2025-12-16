@@ -156,9 +156,14 @@ export default function Settings() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Cấu Hình Chấm Điểm
-        </Typography>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            Cấu Hình Chấm Điểm
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Điều chỉnh trọng số, ngưỡng và tham số để phù hợp kịch bản của bạn.
+          </Typography>
+        </Box>
         <Box display="flex" gap={2}>
           <Button
             variant="outlined"
@@ -188,9 +193,15 @@ export default function Settings() {
       <Grid container spacing={3}>
         {/* General Settings */}
         <Grid item xs={12} md={6}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15,23,42,0.08)',
+              border: '1px solid rgba(15,23,42,0.08)',
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
                 Cấu Hình Chung
               </Typography>
               <Divider sx={{ my: 2 }} />
@@ -232,10 +243,16 @@ export default function Settings() {
 
         {/* Error Weights */}
         <Grid item xs={12}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15,23,42,0.08)',
+              border: '1px solid rgba(15,23,42,0.08)',
+            }}
+          >
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <Typography variant="h6">
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Trọng Số Trừ Điểm (Error Weights)
                 </Typography>
                 <Tooltip title="Trọng số này quyết định mức độ trừ điểm cho mỗi loại lỗi. Giá trị càng cao, trừ điểm càng nhiều.">
@@ -304,10 +321,16 @@ export default function Settings() {
 
         {/* Error Thresholds */}
         <Grid item xs={12}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15,23,42,0.08)',
+              border: '1px solid rgba(15,23,42,0.08)',
+            }}
+          >
             <CardContent>
               <Box display="flex" alignItems="center" gap={1} mb={2}>
-                <Typography variant="h6">
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Ngưỡng Phát Hiện Lỗi (Error Thresholds)
                 </Typography>
                 <Tooltip title="Ngưỡng này quyết định khi nào một lỗi được coi là đáng kể. Giá trị càng cao, càng khó phát hiện lỗi.">

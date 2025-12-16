@@ -215,9 +215,14 @@ export default function Results() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>
-          Kết Quả Chấm Điểm
-        </Typography>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            Kết Quả Chấm Điểm
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Xem điểm số, lỗi chi tiết và tải xuống báo cáo.
+          </Typography>
+        </Box>
         <Box display="flex" gap={2}>
           <Button
             variant="outlined"
@@ -246,9 +251,15 @@ export default function Results() {
       <Grid container spacing={3}>
         {/* Score Card */}
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 16px 48px rgba(15,23,42,0.08)',
+              border: '1px solid rgba(37,99,235,0.08)',
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
                 Điểm Số
               </Typography>
               <Typography

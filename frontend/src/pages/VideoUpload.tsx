@@ -156,15 +156,33 @@ export default function VideoUpload() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 700 }}>
-        Upload Video
-      </Typography>
+      <Box
+        sx={{
+          mb: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.5,
+        }}
+      >
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
+          Upload Video
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Tải video, hệ thống sẽ chấm điểm và tạo video skeleton minh họa.
+        </Typography>
+      </Box>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15, 23, 42, 0.08)',
+              border: '1px solid rgba(37,99,235,0.08)',
+            }}
+          >
+            <CardContent sx={{ pb: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
                 Chọn Video
               </Typography>
               
@@ -172,16 +190,17 @@ export default function VideoUpload() {
                 {...getRootProps()}
                 sx={{
                   border: '2px dashed',
-                  borderColor: isDragActive ? 'primary.main' : 'grey.300',
-                  borderRadius: 2,
+                  borderColor: isDragActive ? 'primary.main' : 'rgba(15,23,42,0.16)',
+                  borderRadius: 3,
                   p: 4,
                   textAlign: 'center',
                   cursor: uploading ? 'not-allowed' : 'pointer',
-                  backgroundColor: isDragActive ? 'primary.light' : 'grey.50',
-                  transition: 'all 0.3s',
+                  backgroundColor: isDragActive ? 'rgba(37,99,235,0.08)' : 'rgba(15,23,42,0.02)',
+                  transition: 'all 0.25s ease',
+                  boxShadow: isDragActive ? '0 12px 30px rgba(37,99,235,0.2)' : 'none',
                   '&:hover': {
                     borderColor: 'primary.main',
-                    backgroundColor: 'primary.light',
+                    backgroundColor: 'rgba(37,99,235,0.06)',
                   },
                 }}
               >
@@ -213,8 +232,17 @@ export default function VideoUpload() {
 
               {uploading && (
                 <Box sx={{ mt: 2 }}>
-                  <LinearProgress variant="determinate" value={progress} />
-                  <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                  <LinearProgress
+                    variant="determinate"
+                    value={progress}
+                    sx={{
+                      height: 8,
+                      borderRadius: 999,
+                      backgroundColor: 'rgba(37,99,235,0.12)',
+                      '& .MuiLinearProgress-bar': { borderRadius: 999 },
+                    }}
+                  />
+                  <Typography variant="body2" color="textSecondary" sx={{ mt: 1, fontWeight: 600 }}>
                     Đang upload: {progress}%
                   </Typography>
                 </Box>
@@ -223,17 +251,19 @@ export default function VideoUpload() {
               {/* Skeleton Video Preview */}
               {showSkeletonVideo && skeletonVideoUrl && (
                 <Box sx={{ mt: 3 }}>
-                  <Typography variant="h6" gutterBottom>
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
                     Video với Khớp Xương (Skeleton Overlay)
                   </Typography>
                   <Paper
                     elevation={2}
                     sx={{
                       position: 'relative',
-                      paddingTop: '56.25%', // 16:9 aspect ratio
-                      backgroundColor: '#000',
-                      borderRadius: 2,
+                      paddingTop: '56.25%', // 16:9
+                      background: 'linear-gradient(135deg, #0f172a, #111827)',
+                      borderRadius: 3,
                       overflow: 'hidden',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      boxShadow: '0 16px 40px rgba(15,23,42,0.4)',
                     }}
                   >
                     <Box
@@ -249,12 +279,25 @@ export default function VideoUpload() {
                       }}
                     >
                       {videoLoading && (
-                        <Box sx={{ position: 'absolute', zIndex: 2 }}>
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            zIndex: 2,
+                            background: 'rgba(0,0,0,0.35)',
+                            inset: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
                           <CircularProgress />
                         </Box>
                       )}
                       {videoError && (
-                        <Alert severity="error" sx={{ position: 'absolute', zIndex: 2, width: '90%' }}>
+                        <Alert
+                          severity="error"
+                          sx={{ position: 'absolute', zIndex: 2, width: '90%', top: 16 }}
+                        >
                           {videoError}
                         </Alert>
                       )}
@@ -308,9 +351,15 @@ export default function VideoUpload() {
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15, 23, 42, 0.08)',
+              border: '1px solid rgba(15,23,42,0.05)',
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
                 Cấu Hình
               </Typography>
 

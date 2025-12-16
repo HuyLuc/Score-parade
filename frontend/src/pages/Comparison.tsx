@@ -34,16 +34,34 @@ export default function Comparison() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 700 }}>
-        So Sánh Sessions
-      </Typography>
+      <Box
+        sx={{
+          mb: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.5,
+        }}
+      >
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
+          So Sánh Sessions
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Chọn hai phiên đã hoàn thành để xem biểu đồ và bảng so sánh chi tiết.
+        </Typography>
+      </Box>
 
       <Grid container spacing={3}>
         {/* Selection */}
         <Grid item xs={12}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15,23,42,0.08)',
+              border: '1px solid rgba(15,23,42,0.08)',
+            }}
+          >
             <CardContent>
-              <Typography variant="h6" gutterBottom>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
                 Chọn Sessions Để So Sánh
               </Typography>
               <Grid container spacing={2} mt={1}>

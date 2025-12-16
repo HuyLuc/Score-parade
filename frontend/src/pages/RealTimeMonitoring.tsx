@@ -156,16 +156,36 @@ export default function RealTimeMonitoring() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: 700 }}>
-        Real-time Monitoring
-      </Typography>
+      <Box
+        sx={{
+          mb: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0.5,
+        }}
+      >
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
+          Real-time Monitoring
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Giám sát camera trực tiếp, chấm điểm và đếm lỗi theo thời gian thực.
+        </Typography>
+      </Box>
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <Card>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15, 23, 42, 0.08)',
+              border: '1px solid rgba(15,23,42,0.08)',
+            }}
+          >
             <CardContent>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h6">Webcam Feed</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Webcam Feed
+                </Typography>
                 <Chip
                   label={isRunning ? 'Đang chạy' : 'Đã dừng'}
                   color={isRunning ? 'success' : 'default'}
@@ -176,10 +196,12 @@ export default function RealTimeMonitoring() {
                 sx={{
                   position: 'relative',
                   width: '100%',
-                  backgroundColor: 'black',
-                  borderRadius: 2,
+                  backgroundColor: '#0b1224',
+                  borderRadius: 3,
                   overflow: 'hidden',
                   aspectRatio: '16/9',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  boxShadow: '0 18px 48px rgba(15,23,42,0.35)',
                 }}
               >
                 <Webcam
@@ -219,7 +241,7 @@ export default function RealTimeMonitoring() {
                 )}
               </Box>
 
-              <Box display="flex" gap={2} mt={2}>
+                <Box display="flex" gap={2} mt={2}>
                 <Button
                   variant="contained"
                   color="primary"

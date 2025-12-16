@@ -41,25 +41,24 @@ app.add_middleware(
 app.include_router(global_mode.router)
 app.include_router(config.router)
 
-# Serve skeleton videos from data/output directory
-# Support both direct files and subdirectories (e.g., session_id/skeleton_video.mp4)
 output_dir = Path("data") / "output"
+
 @app.get("/api/videos/{filepath:path}")
 async def get_skeleton_video(filepath: str):
     """
     Serve skeleton video files from data/output directory
     Supports paths like: session_id/skeleton_video.mp4
     """
+    # Lấy tên file để log / header
+    filename = Path(filepath).name
+
     # Security: Prevent directory traversal attacks
     video_path = (output_dir / filepath).resolve()
     if not str(video_path).startswith(str(output_dir.resolve())):
         logger.error(f"❌ Security: Attempted directory traversal: {filepath}")
         raise HTTPException(status_code=403, detail="Access denied")
-    
-    video_path = output_dir / filepath
-    
     # ✅ LOGGING
-    logger.info(f"Request for skeleton video: {filename}")
+    logger.info(f"Request for skeleton video: {filename} (raw path: {filepath})")
     
     if not video_path.exists():
         logger.error(f"❌ Video not found: {video_path}")
@@ -81,7 +80,7 @@ async def get_skeleton_video(filepath: str):
         raise HTTPException(status_code=400, detail=f"Invalid video format: {video_path.suffix}")
     
     try:
-        logger.info(f"✅ Serving skeleton video: {filename} ({file_size} bytes)")
+        logger.info(f"✅ Serving skeleton video: {filename} ({file_size} bytes) at path: {video_path}")
         return FileResponse(
             str(video_path),
             media_type='video/mp4',

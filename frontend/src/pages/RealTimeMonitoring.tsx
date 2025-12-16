@@ -34,6 +34,8 @@ export default function RealTimeMonitoring() {
   const [scores, setScores] = useState<Record<number, number>>({ 0: 100 })
   const [errorsCount, setErrorsCount] = useState<Record<number, number>>({ 0: 0 })
   const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null)
+  const [totalPersons, setTotalPersons] = useState<number>(0)
+  const [stablePersonIds, setStablePersonIds] = useState<number[]>([])
   const [frameNumber, setFrameNumber] = useState(0)
   const [processing, setProcessing] = useState(false)
   const { addSession, updateSession, setActiveSession } = useSessionStore()
@@ -126,6 +128,17 @@ export default function RealTimeMonitoring() {
       }
       setScores(nextScores)
       setErrorsCount(nextErrors)
+      // Cập nhật thông tin số người và các ID ổn định từ backend (nếu có)
+      if (Array.isArray(result.stable_person_ids) && result.stable_person_ids.length > 0) {
+        setStablePersonIds(result.stable_person_ids.map((id: any) => Number(id)))
+        setTotalPersons(result.total_persons ?? result.stable_person_ids.length)
+      } else {
+        const idsFromResult = Array.isArray(result.person_ids)
+          ? result.person_ids.map((id: any) => Number(id))
+          : persons.map((p: any) => Number(p.person_id))
+        setStablePersonIds(idsFromResult)
+        setTotalPersons(result.total_persons ?? idsFromResult.length)
+      }
       setFrameNumber((prev) => prev + 1)
 
       updateSession(sessionId, {
@@ -179,7 +192,8 @@ export default function RealTimeMonitoring() {
   }
 
   const personIds = Object.keys(scores).map(Number)
-  const activePid = selectedPersonId ?? (personIds.length ? personIds[0] : 0)
+  const effectivePersonIds = (stablePersonIds.length ? stablePersonIds : personIds)
+  const activePid = selectedPersonId ?? (effectivePersonIds.length ? effectivePersonIds[0] : 0)
   const activeScore = scores[activePid] ?? 100
   const activeErrors = errorsCount[activePid] ?? 0
 
@@ -332,7 +346,7 @@ export default function RealTimeMonitoring() {
               </TextField>
 
               <Alert severity="info" sx={{ mt: 2 }}>
-                Frame: {frameNumber}
+                Frame: {frameNumber} • Số người đang được chấm: {totalPersons || (effectivePersonIds.length || 0)}
               </Alert>
             </CardContent>
           </Card>
@@ -363,14 +377,14 @@ export default function RealTimeMonitoring() {
             </CardContent>
           </Card>
 
-          {personIds.length > 1 && (
+          {effectivePersonIds.length > 1 && (
             <Card sx={{ mt: 2 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Chọn người (ID) đang xem
                 </Typography>
                 <Box display="flex" flexWrap="wrap" gap={1}>
-                  {personIds.map((pid) => (
+                  {effectivePersonIds.map((pid) => (
                     <Chip
                       key={pid}
                       label={`ID ${pid}`}

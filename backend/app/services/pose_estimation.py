@@ -106,13 +106,14 @@ class PoseEstimator:
     
     def _predict_yolov8(self, frame: np.ndarray) -> List[np.ndarray]:
         """Dự đoán bằng YOLOv8-Pose"""
-        conf_threshold = config.POSE_CONFIG.get("conf_threshold", 0.25)
-        kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.3)
+        conf_threshold = config.POSE_CONFIG.get("conf_threshold", 0.20)
+        kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.25)
         
         results = self.model(frame, verbose=False, conf=conf_threshold)
         
         keypoints_list = []
         candidates = []
+        
         for result in results:
             if result.keypoints is not None and len(result.boxes) > 0:
                 keypoints = result.keypoints.data.cpu().numpy()  # [n_people, 17, 3]
@@ -127,13 +128,18 @@ class PoseEstimator:
                     # Đếm số keypoints có confidence cao
                     valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
                     
-                    # Lấy min từ config, mặc định 6 keypoints
-                    min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 6)
+                    # Lấy min từ config, mặc định 5 keypoints
+                    min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 5)
                     if valid_kpts >= min_valid:
-                        candidates.append((float(box_conf), kpts))
+                        # Tính bbox area để ưu tiên người lớn hơn
+                        x1, y1, x2, y2 = boxes[i, :4]
+                        bbox_area = (x2 - x1) * (y2 - y1)
+                        # Sử dụng combination của confidence và size
+                        score = float(box_conf) * 0.7 + (bbox_area / (frame.shape[0] * frame.shape[1])) * 0.3
+                        candidates.append((score, kpts))
         
-        # Giới hạn số người theo cấu hình, ưu tiên confidence cao nhất
-        max_persons = config.MULTI_PERSON_CONFIG.get("max_persons", 10)
+        # Giới hạn số người theo cấu hình, ưu tiên score cao nhất
+        max_persons = config.MULTI_PERSON_CONFIG.get("max_persons", 5)
         candidates.sort(key=lambda x: x[0], reverse=True)
         keypoints_list = [k for _, k in candidates[:max_persons]]
         
@@ -160,21 +166,33 @@ class PoseEstimator:
             for i in range(0, len(frames), batch_size):
                 batch_frames = frames[i:i+batch_size]
                 batch_results = self.model(batch_frames, verbose=False, 
-                                          conf=config.POSE_CONFIG.get("conf_threshold", 0.25))
+                                          conf=config.POSE_CONFIG.get("conf_threshold", 0.20))
                 
                 for result in batch_results:
                     keypoints_list = []
+                    candidates = []
                     if result.keypoints is not None and len(result.boxes) > 0:
                         keypoints = result.keypoints.data.cpu().numpy()
                         boxes = result.boxes.data.cpu().numpy()
-                        kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.3)
+                        kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.25)
+                        conf_threshold = config.POSE_CONFIG.get("conf_threshold", 0.20)
                         
                         for j, kpts in enumerate(keypoints):
-                            if boxes[j, 4] >= config.POSE_CONFIG.get("conf_threshold", 0.25):
+                            if boxes[j, 4] >= conf_threshold:
                                 valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
-                                min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 6)
+                                min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 5)
                                 if valid_kpts >= min_valid:
-                                    keypoints_list.append(kpts)
+                                    # Tính score combination
+                                    x1, y1, x2, y2 = boxes[j, :4]
+                                    bbox_area = (x2 - x1) * (y2 - y1)
+                                    frame_area = result.orig_shape[0] * result.orig_shape[1] if hasattr(result, 'orig_shape') else 1
+                                    score = float(boxes[j, 4]) * 0.7 + (bbox_area / frame_area) * 0.3
+                                    candidates.append((score, kpts))
+                        
+                        # Sắp xếp và giới hạn
+                        max_persons = config.MULTI_PERSON_CONFIG.get("max_persons", 5)
+                        candidates.sort(key=lambda x: x[0], reverse=True)
+                        keypoints_list = [k for _, k in candidates[:max_persons]]
                     results.append(keypoints_list)
         else:
             # Xử lý từng frame

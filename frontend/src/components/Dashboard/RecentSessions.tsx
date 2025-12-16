@@ -19,6 +19,28 @@ export default function RecentSessions() {
   const { sessions } = useSessionStore()
   const navigate = useNavigate()
 
+  const formatScore = (score: unknown) => {
+    if (typeof score === 'number') return score.toFixed(1)
+    if (score && typeof score === 'object') {
+      const values = Object.values(score as Record<string | number, number>)
+      if (values.length > 0 && typeof values[0] === 'number') {
+        return (values[0] as number).toFixed(1)
+      }
+    }
+    return 'N/A'
+  }
+
+  const formatTotalErrors = (totalErrors: unknown) => {
+    if (typeof totalErrors === 'number') return totalErrors
+    if (totalErrors && typeof totalErrors === 'object') {
+      const values = Object.values(totalErrors as Record<string | number, number>)
+      if (values.length > 0 && typeof values[0] === 'number') {
+        return values[0] as number
+      }
+    }
+    return 'N/A'
+  }
+
   const recentSessions = sessions
     .sort((a, b) => {
       const timeA = typeof a.startTime === 'string' ? new Date(a.startTime).getTime() : a.startTime.getTime()
@@ -107,7 +129,7 @@ export default function RecentSessions() {
                       )}
                     </Typography>
                     <Typography component="span" variant="body2" color="textSecondary" display="block">
-                      Điểm: {session.score.toFixed(1)} | Lỗi: {session.totalErrors}
+                    Điểm: {formatScore(session.score)} | Lỗi: {formatTotalErrors(session.totalErrors)}
                     </Typography>
                   </>
                 }

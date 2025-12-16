@@ -2,12 +2,15 @@
 GlobalController - Base controller for Global Mode (Practising and Testing)
 Implements motion detection and rhythm checking with beat detection integration
 """
+from backend.app.services.tracker_service import TrackerService, Detection
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from backend.app.services.pose_service import PoseService
 from backend.app.controllers.ai_controller import AIController
 from backend.app.services.sequence_comparison import SequenceComparator
 from backend.app.services.multi_person_tracker import PersonTracker
+from backend.app.services.tracker_service import TrackerService, Detection
+from backend.app.services.bytetrack_service import ByteTrackService
 from backend.app.config import (
     MOTION_DETECTION_CONFIG,
     KEYPOINT_INDICES,
@@ -40,13 +43,41 @@ class GlobalController:
             "multi_person_enabled",
             MULTI_PERSON_CONFIG.get("enabled", False),
         )
-        self.tracker = None
+        
+        # Tracking method selection
+        tracking_method = MULTI_PERSON_CONFIG.get("tracking_method", "bytetrack")
+        
+        # Legacy keypoint-based tracker (giữ lại để tương thích nếu cần)
+        self.tracker: Optional[PersonTracker] = None
+        # SORT-style tracker
+        self.tracker_service: Optional[TrackerService] = None
+        # ByteTrack tracker (recommended)
+        self.bytetrack_service: Optional[ByteTrackService] = None
+        
         if self.multi_person_enabled:
-            self.tracker = PersonTracker(
-                max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 30),
-                iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.5),
-                enable_reid=MULTI_PERSON_CONFIG.get("enable_reidentification", False),
-            )
+            if tracking_method == "bytetrack":
+                # Use ByteTrack (best performance)
+                bytetrack_config = MULTI_PERSON_CONFIG.get("bytetrack", {})
+                self.bytetrack_service = ByteTrackService(
+                    track_thresh=bytetrack_config.get("track_thresh", 0.5),
+                    track_buffer=bytetrack_config.get("track_buffer", 30),
+                    match_thresh=bytetrack_config.get("match_thresh", 0.8),
+                    high_thresh=bytetrack_config.get("high_thresh", 0.6),
+                    low_thresh=bytetrack_config.get("low_thresh", 0.1),
+                )
+            elif tracking_method == "sort":
+                # Use SORT-style tracker
+                self.tracker_service = TrackerService(
+                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 60),
+                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.25),
+                )
+            else:
+                # Use legacy tracker
+                self.tracker = PersonTracker(
+                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 60),
+                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.25),
+                    enable_reid=False
+                )
         
         # Motion detection state (per person if multi)
         self.motion_events: Dict[int, List] = {}  # person_id -> List[(timestamp, keypoints, motion_type)]
@@ -183,14 +214,48 @@ class GlobalController:
         Process a single video frame (multi-person aware).
         Returns per-person scores and errors.
         """
-        # 1. Detect pose (may return multiple persons)
-        detections = self.pose_service.predict(frame)
-
-        # 2. If multi-person enabled, track and assign IDs
+        # 1. Detect pose + bbox (multi-person)
         persons: Dict[int, np.ndarray] = {}
-        if self.multi_person_enabled and self.tracker:
-            persons = self.tracker.update(detections, frame_number)
+        
+        if self.multi_person_enabled:
+            detections_meta = self.pose_service.predict_multi_person(frame)
+            
+            if self.bytetrack_service:
+                # Use ByteTrack (recommended)
+                detections_for_bytetrack = []
+                for det in detections_meta:
+                    detections_for_bytetrack.append({
+                        "bbox": det["bbox"],
+                        "score": det["confidence"],
+                        "keypoints": det["keypoints"]
+                    })
+                
+                tracks = self.bytetrack_service.update(detections_for_bytetrack, frame_number)
+                for track in tracks:
+                    persons[track.track_id] = track.keypoints
+                    
+            elif self.tracker_service:
+                # Use SORT-style tracker
+                detections_for_tracker = []
+                for det in detections_meta:
+                    kpts = det["keypoints"]
+                    bbox = det["bbox"]
+                    conf = det["confidence"]
+                    detections_for_tracker.append(Detection(bbox=bbox, score=conf, keypoints=kpts))
+                
+                tracks = self.tracker_service.update(detections_for_tracker, frame_number)
+                for tr in tracks:
+                    persons[tr.track_id] = tr.keypoints
+                    
+            elif self.tracker:
+                # Use legacy tracker
+                keypoints_list = [det["keypoints"] for det in detections_meta]
+                if len(keypoints_list) > 0:
+                    tracked = self.tracker.update(keypoints_list, frame_number)
+                    persons = tracked
         else:
+            # Fallback: single-person hoặc không bật multi-person
+            detections = self.pose_service.predict(frame)
             if len(detections) > 0:
                 persons = {0: detections[0]}
 
@@ -239,12 +304,55 @@ class GlobalController:
                 "score": self.scores.get(pid, self.initial_score),
             })
 
+        # Tính danh sách ID "ổn định" (người thật) dựa trên thống kê từ tracker
+        stable_person_ids = []
+        max_persons = MULTI_PERSON_CONFIG.get("max_persons", 5)
+        
+        if self.multi_person_enabled:
+            # Ưu tiên ByteTrack nếu có
+            if self.bytetrack_service:
+                try:
+                    stable_person_ids = self.bytetrack_service.get_stable_track_ids(
+                        min_frames=10,          # Giảm từ 20 → 10 frames (~0.33s @ 30fps) cho video ngắn
+                        min_height=30.0,        # Giảm từ 40.0 → 30.0 pixels
+                        min_frame_ratio=0.40,   # Giảm từ 0.70 → 0.40 (40% frames) cho video ngắn
+                        max_persons=max_persons,
+                    )
+                except Exception as e:
+                    print(f"Warning: Could not get stable track IDs from ByteTrack: {e}")
+                    stable_person_ids = []
+            # Fallback: tracker_service
+            elif self.tracker_service:
+                try:
+                    stable_person_ids = self.tracker_service.get_stable_track_ids(
+                        min_frames=10,
+                        min_height=30.0,
+                        min_frame_ratio=0.40,
+                    )
+                except Exception as e:
+                    print(f"Warning: Could not get stable track IDs from tracker_service: {e}")
+                    stable_person_ids = []
+            # Fallback: legacy tracker
+            elif self.tracker:
+                try:
+                    stable_person_ids = self.tracker.get_stable_person_ids(
+                        min_frames=10,
+                        min_height=30.0,
+                        min_frame_ratio=0.40,
+                    )
+                except Exception as e:
+                    print(f"Warning: Could not get stable person IDs from legacy tracker: {e}")
+                    stable_person_ids = []
+
         return {
             "success": True,
             "timestamp": timestamp,
             "frame_number": frame_number,
             "persons": persons_result,
             "multi_person": self.multi_person_enabled,
+            "person_ids": current_person_ids,
+            "stable_person_ids": stable_person_ids,
+            "total_persons": len(stable_person_ids) if stable_person_ids else len(current_person_ids),
         }
     
     def _process_error_grouping(self, person_id: int):
@@ -326,14 +434,96 @@ class GlobalController:
         pass
     
     def get_score(self) -> Dict[int, float]:
-        """Get current score per person"""
+        """Get current score per person (ưu tiên chỉ trả về các ID ổn định)."""
         self.finalize_errors()
-        return self.scores
+
+        # Nếu không bật multi-person, trả toàn bộ
+        if not self.multi_person_enabled:
+            return self.scores
+
+        # Lấy danh sách ID ổn định từ tracker
+        max_persons = MULTI_PERSON_CONFIG.get("max_persons", 5)
+        stable_ids = []
+        
+        if self.bytetrack_service:
+            try:
+                stable_ids = self.bytetrack_service.get_stable_track_ids(
+                    min_frames=10,          # Giảm từ 20 → 10 cho video ngắn
+                    min_height=30.0,        # Giảm từ 40.0 → 30.0
+                    min_frame_ratio=0.40,   # Giảm từ 0.70 → 0.40
+                    max_persons=max_persons,
+                )
+            except Exception as e:
+                print(f"Warning: Could not get stable track IDs from ByteTrack: {e}")
+        elif self.tracker_service:
+            try:
+                stable_ids = self.tracker_service.get_stable_track_ids(
+                    min_frames=10,
+                    min_height=30.0,
+                    min_frame_ratio=0.40,
+                )
+            except Exception as e:
+                print(f"Warning: Could not get stable track IDs: {e}")
+        elif self.tracker:
+            try:
+                stable_ids = self.tracker.get_stable_person_ids(
+                    min_frames=10,
+                    min_height=30.0,
+                    min_frame_ratio=0.40,
+                )
+            except Exception as e:
+                print(f"Warning: Could not get stable person IDs: {e}")
+
+        if not stable_ids:
+            # Nếu chưa suy ra được ID ổn định (ví dụ video quá ngắn), trả toàn bộ
+            return self.scores
+
+        # Chỉ giữ lại các ID ổn định
+        return {pid: score for pid, score in self.scores.items() if pid in stable_ids}
     
     def get_errors(self) -> Dict[int, List[Dict]]:
-        """Get all detected errors per person"""
+        """Get all detected errors per person (ưu tiên các ID ổn định)."""
         self.finalize_errors()
-        return self.errors
+
+        if not self.multi_person_enabled:
+            return self.errors
+
+        max_persons = MULTI_PERSON_CONFIG.get("max_persons", 5)
+        stable_ids = []
+        
+        if self.bytetrack_service:
+            try:
+                stable_ids = self.bytetrack_service.get_stable_track_ids(
+                    min_frames=10,          # Giảm từ 20 → 10 cho video ngắn
+                    min_height=30.0,        # Giảm từ 40.0 → 30.0
+                    min_frame_ratio=0.40,   # Giảm từ 0.70 → 0.40
+                    max_persons=max_persons,
+                )
+            except Exception:
+                pass
+        elif self.tracker_service:
+            try:
+                stable_ids = self.tracker_service.get_stable_track_ids(
+                    min_frames=10,
+                    min_height=30.0,
+                    min_frame_ratio=0.40,
+                )
+            except Exception:
+                pass
+        elif self.tracker:
+            try:
+                stable_ids = self.tracker.get_stable_person_ids(
+                    min_frames=10,
+                    min_height=30.0,
+                    min_frame_ratio=0.40,
+                )
+            except Exception:
+                stable_ids = []
+
+        if not stable_ids:
+            return self.errors
+
+        return {pid: errs for pid, errs in self.errors.items() if pid in stable_ids}
     
     def finalize_errors(self):
         """

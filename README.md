@@ -113,7 +113,7 @@ python -m venv venv
 
 # Kích hoạt môi trường ảo
 # Trên Windows:
-venv\Scripts\activate
+.venv/Scripts/Activate.ps1
 # Trên macOS/Linux:
 source venv/bin/activate
 ```

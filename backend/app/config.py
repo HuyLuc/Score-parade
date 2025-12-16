@@ -44,7 +44,10 @@ POSE_CONFIG = {
     "model_path": None,  # Đường dẫn model (None = tự động download)
     "yolov8_model": "yolov8n-pose.pt",  # Tên model YOLOv8 (sẽ tự download)
     "device": "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu",
-    "conf_threshold": 0.25,  # Confidence threshold
+    "conf_threshold": 0.15,  # Giảm từ 0.20 xuống 0.15 để phát hiện tốt hơn
+    # Ngưỡng cho từng keypoint và số lượng keypoint tối thiểu để chấp nhận một người
+    "keypoint_confidence_threshold": 0.20,  # Giảm từ 0.25 xuống 0.20
+    "min_valid_keypoints": 4,  # Giảm từ 5 xuống 4 để linh hoạt hơn
 }
 
 # Cấu hình tracking
@@ -201,12 +204,26 @@ ERROR_GROUPING_CONFIG = {
 # Multi-Person Tracking configuration
 MULTI_PERSON_CONFIG = {
     "enabled": True,  # Enable/disable multi-person mode
-    "max_persons": 10,  # Maximum number of persons to track
-    "max_disappeared": 30,  # Max frames before person considered disappeared
-    "iou_threshold": 0.5,  # IoU threshold for tracking (0.0-1.0)
+    # Tracking method: "sort", "bytetrack", "legacy"
+    "tracking_method": "bytetrack",  # ByteTrack cho độ chính xác cao nhất
+    # Giới hạn số người tối đa để tránh sinh quá nhiều ID ảo từ noise
+    "max_persons": 5,  # Tăng từ 3 lên 5 để hỗ trợ nhiều người hơn
+    # Cho phép một người "mất dấu" lâu hơn trước khi tạo ID mới
+    "max_disappeared": 60,  # Giảm từ 90 xuống 60 (~2s @30fps)
+    # Giảm IoU threshold để cùng một người vẫn được match dù bbox hơi dao động
+    "iou_threshold": 0.25,  # Giảm từ 0.3 xuống 0.25 để theo dõi tốt hơn
     "similarity_threshold": 0.6,  # Pose similarity threshold for matching (0.0-1.0)
     "enable_visualization": True,  # Draw tracking boxes and IDs
     "batch_size": 8,  # Batch size for multi-person detection
+    
+    # ByteTrack specific parameters
+    "bytetrack": {
+        "track_thresh": 0.25,      # Detection threshold for tracking (giảm từ 0.35 → 0.25 để tránh tạo ID mới)
+        "track_buffer": 90,        # Frames to keep lost tracks (tăng từ 50 → 90 = 3s @ 30fps)
+        "match_thresh": 0.6,       # IOU threshold for matching (giảm từ 0.7 → 0.6 để match dễ hơn)
+        "high_thresh": 0.35,       # High confidence threshold (giảm từ 0.45 → 0.35)
+        "low_thresh": 0.05,        # Low confidence threshold (giảm từ 0.1 → 0.05)
+    }
 }
 
 # Visualization configuration for multi-person tracking

@@ -63,6 +63,12 @@ class ProcessFrameResponse(BaseModel):
     frame_number: int
     multi_person: bool = False
     persons: list[PersonFrameResult]
+    # Danh sách ID xuất hiện trong frame hiện tại
+    person_ids: list[int] = []
+    # Danh sách ID được coi là "người thật" (track ổn định theo thời gian)
+    stable_person_ids: list[int] = []
+    # Tổng số người được chấm (ưu tiên stable_person_ids nếu có)
+    total_persons: int = 0
 
 
 class ScoreResponse(BaseModel):

@@ -31,6 +31,9 @@ class PersonTracker:
         self.next_person_id = 0
         self.persons = {}  # {person_id: {"keypoints": np.ndarray, "frame_num": int}}
         self.disappeared = {}  # {person_id: disappeared_count}
+        # Thống kê mức độ "ổn định" của từng người trong suốt phiên
+        # {person_id: {"frames_seen": int, "first_frame": int, "last_frame": int, "total_height": float}}
+        self.stats: Dict[int, Dict] = {}
         
         # Re-identification support
         self.reidentifier = None
@@ -55,6 +58,8 @@ class PersonTracker:
             "frame_num": frame_num
         }
         self.disappeared[person_id] = 0
+        # Khởi tạo thống kê cho track mới
+        self._update_stats(person_id, keypoints, frame_num)
         self.next_person_id += 1
         return person_id
     
@@ -64,6 +69,7 @@ class PersonTracker:
             del self.persons[person_id]
         if person_id in self.disappeared:
             del self.disappeared[person_id]
+        # KHÔNG xóa self.stats[person_id] để vẫn giữ thống kê cho toàn bộ video
     
     def update(self, detections: List[np.ndarray], frame_num: int) -> Dict[int, np.ndarray]:
         """
@@ -141,6 +147,8 @@ class PersonTracker:
                     self.persons[person_id]["keypoints"] = detections[det_idx]
                     self.persons[person_id]["frame_num"] = frame_num
                     self.disappeared[person_id] = 0
+                    # Cập nhật thống kê cho person này
+                    self._update_stats(person_id, detections[det_idx], frame_num)
                     matched_persons.add(person_id)
                     matched_detections.add(det_idx)
             
@@ -171,6 +179,82 @@ class PersonTracker:
         
         # Return current tracked persons
         return {pid: data["keypoints"] for pid, data in self.persons.items()}
+
+    def _update_stats(self, person_id: int, keypoints: np.ndarray, frame_num: int):
+        """
+        Cập nhật thống kê xuất hiện cho mỗi person_id.
+        Dùng để suy ra số người thực sự trong video (track đủ dài, đủ lớn).
+        """
+        # Tính chiều cao bbox
+        x1, y1, x2, y2 = self._get_bbox(keypoints)
+        height = max(y2 - y1, 0.0)
+
+        if person_id not in self.stats:
+            self.stats[person_id] = {
+                "frames_seen": 0,
+                "first_frame": frame_num,
+                "last_frame": frame_num,
+                "total_height": 0.0,
+            }
+
+        stat = self.stats[person_id]
+        stat["frames_seen"] += 1
+        stat["last_frame"] = frame_num
+        stat["total_height"] += float(height)
+
+    def get_person_stats(self) -> Dict[int, Dict]:
+        """Trả về thống kê cho từng person_id trong toàn bộ phiên."""
+        return self.stats
+
+    def get_stable_person_ids(
+        self,
+        min_frames: int = 30,
+        min_height: float = 50.0,
+        min_frame_ratio: float = 0.9,
+    ) -> List[int]:
+        """
+        Lấy danh sách các person_id được coi là "người thật" trong video.
+
+        Ý tưởng:
+        - Một người thật sẽ xuất hiện trong phần lớn thời lượng video.
+        - Các ID ảo (noise, track ngắn) chỉ xuất hiện rất ít frame.
+        - Vì vậy:
+          1) Bỏ qua các ID có frames_seen < min_frames.
+          2) Bỏ qua các ID có chiều cao bbox trung bình quá nhỏ (min_height).
+          3) So sánh frames_seen của mỗi ID với frames_seen lớn nhất:
+             chỉ chấp nhận nếu frames_seen >= min_frame_ratio * max_frames_seen.
+
+        Điều này gần với ý tưởng của bạn:
+        “n người có số frame xuất hiện tương đương nhau thì mới kết luận là có n người”.
+        """
+        # Thu thập các ID đủ điều kiện tối thiểu
+        candidates: List[Tuple[int, int, float]] = []  # (pid, frames_seen, avg_height)
+        for pid, stat in self.stats.items():
+            frames_seen = int(stat.get("frames_seen", 0))
+            total_height = float(stat.get("total_height", 0.0))
+            if frames_seen < min_frames:
+                continue
+            avg_height = total_height / max(frames_seen, 1)
+            if avg_height < min_height:
+                continue
+            candidates.append((pid, frames_seen, avg_height))
+
+        if not candidates:
+            return []
+
+        # Tìm frames_seen lớn nhất trong các candidate
+        max_frames_seen = max(frames_seen for _, frames_seen, _ in candidates)
+        if max_frames_seen <= 0:
+            return []
+
+        threshold = max_frames_seen * float(min_frame_ratio)
+
+        stable_ids: List[int] = []
+        for pid, frames_seen, _ in candidates:
+            if frames_seen >= threshold:
+                stable_ids.append(pid)
+
+        return sorted(stable_ids)
     
     def _compute_cost_matrix(self, detections: List[np.ndarray], person_ids: List[int]) -> np.ndarray:
         """
@@ -266,6 +350,7 @@ class PersonTracker:
         self.next_person_id = 0
         self.persons = {}
         self.disappeared = {}
+        self.stats = {}
         
         # Reset re-identifier if enabled
         if self.enable_reid and self.reidentifier:

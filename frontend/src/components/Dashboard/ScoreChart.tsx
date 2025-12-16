@@ -6,14 +6,36 @@ import { Box, Typography } from '@mui/material'
 export default function ScoreChart() {
   const { sessions } = useSessionStore()
 
+  const getNumericScore = (score: unknown): number => {
+    if (typeof score === 'number') return score
+    if (score && typeof score === 'object') {
+      const values = Object.values(score as Record<string | number, number>)
+      if (values.length > 0 && typeof values[0] === 'number') {
+        return values[0] as number
+      }
+    }
+    return 0
+  }
+
+  const getNumericErrors = (totalErrors: unknown): number => {
+    if (typeof totalErrors === 'number') return totalErrors
+    if (totalErrors && typeof totalErrors === 'object') {
+      const values = Object.values(totalErrors as Record<string | number, number>)
+      if (values.length > 0 && typeof values[0] === 'number') {
+        return values[0] as number
+      }
+    }
+    return 0
+  }
+
   const chartData = useMemo(() => {
     return sessions
       .filter((s) => s.status === 'completed')
       .slice(-10)
       .map((session, index) => ({
         name: `Session ${index + 1}`,
-        score: session.score,
-        errors: session.totalErrors,
+        score: getNumericScore(session.score),
+        errors: getNumericErrors(session.totalErrors),
       }))
   }, [sessions])
 

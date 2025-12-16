@@ -21,7 +21,7 @@ class GlobalPractisingController(GlobalController):
         """Initialize practising controller"""
         super().__init__(session_id, pose_service)
     
-    def _handle_error(self, error: Dict):
+    def _handle_error(self, person_id: int, error: Dict):
         """
         Handle error in practising mode
         - CHỈ hiển thị lỗi cho người luyện tập

@@ -207,21 +207,36 @@ export default function Sessions() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Typography
-                          variant="body2"
-                          color={
-                            session.score >= 80
+                        {(() => {
+                          // Hỗ trợ cả single-score (number) lẫn map {personId: score}
+                          const scoreValue =
+                            typeof session.score === 'number'
+                              ? session.score
+                              : Number(Object.values(session.score ?? {})[0] ?? 0)
+                          const color =
+                            scoreValue >= 80
                               ? 'success.main'
-                              : session.score >= 60
+                              : scoreValue >= 60
                               ? 'warning.main'
                               : 'error.main'
-                          }
-                          sx={{ fontWeight: 600 }}
-                        >
-                          {session.score.toFixed(1)}
-                        </Typography>
+                          return (
+                            <Typography variant="body2" color={color} sx={{ fontWeight: 600 }}>
+                              {scoreValue.toFixed(1)}
+                            </Typography>
+                          )
+                        })()}
                       </TableCell>
-                      <TableCell>{session.totalErrors}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          // Hỗ trợ cả number lẫn map {personId: totalErrors}
+                          if (typeof session.totalErrors === 'number') return session.totalErrors
+                          const sum = Object.values(session.totalErrors ?? {}).reduce(
+                            (acc: number, val: any) => acc + (typeof val === 'number' ? val : 0),
+                            0
+                          )
+                          return sum
+                        })()}
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={session.status}

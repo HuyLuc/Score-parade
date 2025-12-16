@@ -18,6 +18,8 @@ import {
   TableRow,
   IconButton,
   Tooltip,
+  Switch,
+  FormControlLabel,
 } from '@mui/material'
 import {
   Save,
@@ -32,6 +34,7 @@ interface ScoringConfig {
   error_weights: Record<string, number>
   initial_score: number
   fail_threshold: number
+  multi_person_enabled?: boolean
   error_thresholds: Record<string, number>
   error_grouping: Record<string, any>
 }
@@ -82,6 +85,7 @@ export default function Settings() {
         error_weights: config.error_weights,
         initial_score: config.initial_score,
         fail_threshold: config.fail_threshold,
+        multi_person_enabled: config.multi_person_enabled,
         error_thresholds: config.error_thresholds,
         error_grouping: config.error_grouping,
       })
@@ -219,6 +223,22 @@ export default function Settings() {
                       })
                     }
                     helperText="Điểm số ban đầu khi bắt đầu chấm điểm"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={!!config.multi_person_enabled}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            multi_person_enabled: e.target.checked,
+                          })
+                        }
+                      />
+                    }
+                    label="Bật chấm đa người (gắn ID và chấm riêng từng người)"
                   />
                 </Grid>
                 <Grid item xs={12}>

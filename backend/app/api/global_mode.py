@@ -48,30 +48,35 @@ class StartSessionRequest(BaseModel):
     audio_path: Optional[str] = None
 
 
-class ProcessFrameResponse(BaseModel):
-    """Response model for frame processing"""
-    success: bool
-    timestamp: float
-    frame_number: int
+class PersonFrameResult(BaseModel):
+    person_id: int
     errors: list
     score: float
-    motion_events_pending: int
-    stopped: bool = False
+    stopped: Optional[bool] = False
     message: Optional[str] = None
 
 
+class ProcessFrameResponse(BaseModel):
+    """Response model for frame processing (multi-person)"""
+    success: bool
+    timestamp: float
+    frame_number: int
+    multi_person: bool = False
+    persons: list[PersonFrameResult]
+
+
 class ScoreResponse(BaseModel):
-    """Response model for score retrieval"""
+    """Response model for score retrieval (multi-person)"""
     session_id: str
-    score: float
-    stopped: bool = False
+    scores: Dict[int, float]
+    stopped: Optional[Dict[int, bool]] = None
 
 
 class ErrorsResponse(BaseModel):
-    """Response model for errors retrieval"""
+    """Response model for errors retrieval (multi-person)"""
     session_id: str
-    errors: list
-    total_errors: int
+    errors: Dict[int, list]
+    total_errors: Dict[int, int]
 
 
 @router.post("/{session_id}/start")
@@ -203,15 +208,15 @@ async def get_score(session_id: str):
         raise NotFoundException("Session", session_id)
     
     controller = _controllers[session_id]
-    score = controller.get_score()
+    scores = controller.get_score()
     
-    stopped = False
+    stopped = None
     if isinstance(controller, GlobalTestingController):
         stopped = controller.is_stopped()
     
     return ScoreResponse(
         session_id=session_id,
-        score=score,
+        scores=scores,
         stopped=stopped
     )
 
@@ -232,11 +237,12 @@ async def get_errors(session_id: str):
     
     controller = _controllers[session_id]
     errors = controller.get_errors()
+    totals = {pid: len(errs) for pid, errs in errors.items()}
     
     return ErrorsResponse(
         session_id=session_id,
         errors=errors,
-        total_errors=len(errors)
+        total_errors=totals
     )
 
 
@@ -354,16 +360,13 @@ async def upload_and_process_video(
         controller.finalize_errors()
         
         # Get final results
-        final_score = controller.get_score()
-        final_errors = controller.get_errors()
+        final_score = controller.get_score()  # dict person_id -> score
+        final_errors = controller.get_errors()  # dict person_id -> list
+        total_errors = {pid: len(errs) for pid, errs in final_errors.items()}
         
-        print(f"[RESULT] Score: {final_score}, Errors: {len(final_errors)}")
+        print(f"[RESULT] Scores per person: {final_score}, Errors per person: {total_errors}")
         
-        # Update session status to completed
-        if isinstance(controller, GlobalTestingController):
-            controller.stopped = False  # Reset stopped flag
-        
-        logger.info(f"Hoàn thành xử lý video: {frame_number} frames, {len(final_errors)} lỗi, điểm: {final_score}")
+        logger.info(f"Hoàn thành xử lý video: {frame_number} frames, errors per person: {total_errors}, scores: {final_score}")
         
         # Create video with skeleton overlay BEFORE cleaning up input video
         # Write to debug log file
@@ -618,12 +621,12 @@ async def upload_and_process_video(
             "session_id": session_id,
             "total_frames": total_frames,
             "processed_frames": frame_number,
-            "score": final_score,
-            "total_errors": len(final_errors),
+            "scores": final_score,
+            "total_errors": total_errors,
             "errors": final_errors,
             "skeleton_video_url": skeleton_video_url,
             "skeleton_video_filename": skeleton_video_filename,
-            "message": f"Đã xử lý {frame_number} frames, phát hiện {len(final_errors)} lỗi"
+            "message": f"Đã xử lý {frame_number} frames, phát hiện {sum(total_errors.values())} lỗi (tổng tất cả người)"
         }
         
     except Exception as e:

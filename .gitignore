@@ -44,3 +44,9 @@ data/models/*
 # OS
 .DS_Store
 Thumbs.db
+
+data/golden_template/*.mp4
+data/golden_template/*.pkl
+data/input_videos/*.mp4
+data/input_videos/*.MOV
+output/**     

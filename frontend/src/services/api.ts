@@ -138,6 +138,7 @@ export const configAPI = {
     error_weights?: Record<string, number>
     initial_score?: number
     fail_threshold?: number
+    multi_person_enabled?: boolean
     error_thresholds?: Record<string, number>
     error_grouping?: Record<string, any>
   }) => {

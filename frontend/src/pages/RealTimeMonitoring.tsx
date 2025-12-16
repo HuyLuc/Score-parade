@@ -13,6 +13,7 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  Typography as MuiTypography,
 } from '@mui/material'
 import {
   Videocam,
@@ -30,8 +31,9 @@ export default function RealTimeMonitoring() {
   const [isRunning, setIsRunning] = useState(false)
   const [sessionId, setSessionId] = useState('')
   const [mode, setMode] = useState<'testing' | 'practising'>('practising')
-  const [currentScore, setCurrentScore] = useState(100)
-  const [totalErrors, setTotalErrors] = useState(0)
+  const [scores, setScores] = useState<Record<number, number>>({ 0: 100 })
+  const [errorsCount, setErrorsCount] = useState<Record<number, number>>({ 0: 0 })
+  const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null)
   const [frameNumber, setFrameNumber] = useState(0)
   const [processing, setProcessing] = useState(false)
   const { addSession, updateSession, setActiveSession } = useSessionStore()
@@ -109,18 +111,32 @@ export default function RealTimeMonitoring() {
         currentFrame
       )
 
-      setCurrentScore(result.score || 100)
-      setTotalErrors(result.total_errors || result.errors?.length || 0)
+      const persons = result.persons || []
+      const nextScores: Record<number, number> = { ...scores }
+      const nextErrors: Record<number, number> = { ...errorsCount }
+      if (persons.length > 0) {
+        persons.forEach((p: any) => {
+          nextScores[p.person_id] = p.score ?? nextScores[p.person_id] ?? 100
+          nextErrors[p.person_id] = (p.errors?.length ?? 0)
+        })
+        // Select first ID if none selected
+        if (selectedPersonId === null) {
+          setSelectedPersonId(persons[0].person_id)
+        }
+      }
+      setScores(nextScores)
+      setErrorsCount(nextErrors)
       setFrameNumber((prev) => prev + 1)
 
       updateSession(sessionId, {
-        score: result.score || 100,
-        totalErrors: result.total_errors || result.errors?.length || 0,
+        score: Object.values(nextScores)[0] ?? 100,
+        totalErrors: Object.values(nextErrors)[0] ?? 0,
       })
 
-      if (result.stopped) {
+      const anyStopped = persons.some((p: any) => p.stopped)
+      if (anyStopped) {
         setIsRunning(false)
-        toast.info('Session đã hoàn thành')
+        toast.info('Session đã dừng vì một người đạt ngưỡng dừng')
         navigate(`/results/${sessionId}`)
       }
     } catch (error: any) {
@@ -151,11 +167,21 @@ export default function RealTimeMonitoring() {
     if (!sessionId) return
     try {
       const result = await globalModeAPI.getScore(sessionId)
-      setCurrentScore(result.score)
+      const apiScores: Record<number, number> =
+        result.scores || (result.score !== undefined ? { 0: result.score } : {})
+      setScores(apiScores)
+      if (selectedPersonId === null && Object.keys(apiScores).length > 0) {
+        setSelectedPersonId(Number(Object.keys(apiScores)[0]))
+      }
     } catch (error) {
       console.error('Error fetching score:', error)
     }
   }
+
+  const personIds = Object.keys(scores).map(Number)
+  const activePid = selectedPersonId ?? (personIds.length ? personIds[0] : 0)
+  const activeScore = scores[activePid] ?? 100
+  const activeErrors = errorsCount[activePid] ?? 0
 
   return (
     <Box>
@@ -171,7 +197,7 @@ export default function RealTimeMonitoring() {
           Real-time Monitoring
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Giám sát camera trực tiếp, chấm điểm và đếm lỗi theo thời gian thực.
+          Giám sát camera trực tiếp, chấm điểm và đếm lỗi theo thời gian thực (hỗ trợ đa người, chọn ID để xem).
         </Typography>
       </Box>
 
@@ -319,23 +345,44 @@ export default function RealTimeMonitoring() {
 
               <Box mt={2}>
                 <Typography variant="body2" color="textSecondary">
-                  Điểm Hiện Tại
+                  Điểm Hiện Tại (ID đang chọn)
                 </Typography>
                 <Typography variant="h3" color="primary.main" sx={{ fontWeight: 700 }}>
-                  {currentScore.toFixed(1)}
+                  {activeScore.toFixed(1)}
                 </Typography>
               </Box>
 
               <Box mt={3}>
                 <Typography variant="body2" color="textSecondary">
-                  Tổng Số Lỗi
+                  Tổng Số Lỗi (ID đang chọn)
                 </Typography>
                 <Typography variant="h4" color="error.main" sx={{ fontWeight: 700 }}>
-                  {totalErrors}
+                  {activeErrors}
                 </Typography>
               </Box>
             </CardContent>
           </Card>
+
+          {personIds.length > 1 && (
+            <Card sx={{ mt: 2 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Chọn người (ID) đang xem
+                </Typography>
+                <Box display="flex" flexWrap="wrap" gap={1}>
+                  {personIds.map((pid) => (
+                    <Chip
+                      key={pid}
+                      label={`ID ${pid}`}
+                      color={pid === activePid ? 'primary' : 'default'}
+                      onClick={() => setSelectedPersonId(pid)}
+                      sx={{ cursor: 'pointer' }}
+                    />
+                  ))}
+                </Box>
+              </CardContent>
+            </Card>
+          )}
         </Grid>
       </Grid>
     </Box>

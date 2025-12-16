@@ -19,6 +19,7 @@ class ScoringConfigResponse(BaseModel):
     error_weights: Dict[str, float]
     initial_score: float
     fail_threshold: float
+    multi_person_enabled: bool
     error_thresholds: Dict[str, float]
     error_grouping: Dict[str, Any]
 
@@ -28,6 +29,7 @@ class ScoringConfigUpdate(BaseModel):
     error_weights: Dict[str, float] = None
     initial_score: float = None
     fail_threshold: float = None  # Giữ để tương thích, sẽ map sang fail_thresholds["testing"]
+    multi_person_enabled: bool = None
     error_thresholds: Dict[str, float] = None
     error_grouping: Dict[str, Any] = None
 
@@ -45,6 +47,7 @@ async def get_scoring_config():
             error_weights=SCORING_CONFIG.get("error_weights", {}),
             initial_score=SCORING_CONFIG.get("initial_score", 100.0),
             fail_threshold=SCORING_CONFIG.get("fail_thresholds", {}).get("testing", 60.0),
+            multi_person_enabled=SCORING_CONFIG.get("multi_person_enabled", False),
             error_thresholds=ERROR_THRESHOLDS,
             error_grouping=ERROR_GROUPING_CONFIG
         )
@@ -79,6 +82,14 @@ async def update_scoring_config(config: ScoringConfigUpdate):
             # Map fail_threshold cũ sang ngưỡng cho chế độ testing
             thresholds = SCORING_CONFIG.setdefault("fail_thresholds", {})
             thresholds["testing"] = config.fail_threshold
+        if config.multi_person_enabled is not None:
+            SCORING_CONFIG["multi_person_enabled"] = config.multi_person_enabled
+            # Đồng bộ sang MULTI_PERSON_CONFIG để áp dụng pipeline
+            try:
+                from backend.app.config import MULTI_PERSON_CONFIG
+                MULTI_PERSON_CONFIG["enabled"] = bool(config.multi_person_enabled)
+            except Exception:
+                pass
         
         # Update ERROR_THRESHOLDS
         if config.error_thresholds is not None:
@@ -97,6 +108,8 @@ async def update_scoring_config(config: ScoringConfigUpdate):
                 "error_weights": SCORING_CONFIG.get("error_weights", {}),
                 "initial_score": SCORING_CONFIG.get("initial_score", 100.0),
                 "fail_threshold": SCORING_CONFIG.get("fail_thresholds", {}).get("testing", 60.0),
+                # Phải khớp giá trị vừa reset (mặc định True)
+                "multi_person_enabled": SCORING_CONFIG.get("multi_person_enabled", True),
                 "error_thresholds": ERROR_THRESHOLDS,
                 "error_grouping": ERROR_GROUPING_CONFIG
             }
@@ -139,6 +152,8 @@ async def reset_scoring_config():
             "practising": 0.0,
             "default": 50.0,
         }
+        # Giữ đúng giá trị mặc định trong config.py (multi-person mặc định bật)
+        SCORING_CONFIG["multi_person_enabled"] = True
         
         # Reset ERROR_THRESHOLDS
         ERROR_THRESHOLDS.update({
@@ -162,6 +177,7 @@ async def reset_scoring_config():
                 "error_weights": SCORING_CONFIG.get("error_weights", {}),
                 "initial_score": SCORING_CONFIG.get("initial_score", 100.0),
                 "fail_threshold": SCORING_CONFIG.get("fail_thresholds", {}).get("testing", 60.0),
+                "multi_person_enabled": SCORING_CONFIG.get("multi_person_enabled", False),
                 "error_thresholds": ERROR_THRESHOLDS,
                 "error_grouping": ERROR_GROUPING_CONFIG
             }

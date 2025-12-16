@@ -46,12 +46,21 @@ interface Error {
   is_sequence?: boolean  // Flag for sequence errors
 }
 
+interface PersonResult {
+  person_id: number
+  errors: Error[]
+  score: number
+  stopped?: boolean
+  message?: string
+}
+
 export default function Results() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
   const { getSession, sessions } = useSessionStore()
-  const [errors, setErrors] = useState<Error[]>([])
-  const [score, setScore] = useState(0)
+  const [errorsPerPerson, setErrorsPerPerson] = useState<Record<number, Error[]>>({})
+  const [scores, setScores] = useState<Record<number, number>>({})
+  const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [showSkeletonVideo, setShowSkeletonVideo] = useState(false)
 
@@ -79,8 +88,20 @@ export default function Results() {
           globalModeAPI.getErrors(sessionId, true),  // suppressToast = true
         ])
 
-        setScore(scoreData.score)
-        setErrors(errorsData.errors || [])
+        // Handle multi-person results
+        const apiScores: Record<number, number> =
+          scoreData.scores ||
+          (scoreData.score !== undefined ? { 0: scoreData.score } : {})
+
+        const apiErrors: Record<number, Error[]> =
+          errorsData.errors ||
+          (Array.isArray(errorsData.errors) ? { 0: errorsData.errors as Error[] } : {})
+
+        setScores(apiScores)
+        setErrorsPerPerson(apiErrors)
+        // Select first person_id if not set
+        const firstPid = Object.keys(apiScores).map(Number)[0] ?? Object.keys(apiErrors).map(Number)[0] ?? null
+        setSelectedPersonId((prev) => prev ?? firstPid)
       } catch (apiError: any) {
         // If API fails (e.g., session not found in backend memory),
         // try to get from session store
@@ -88,33 +109,25 @@ export default function Results() {
         
         if (session) {
           // Use data from store
-          setScore(session.score || 0)
-          // Try to get errors from store first, then API
-          if (session.errors && session.errors.length > 0) {
-            setErrors(session.errors)
-          } else {
-            // Try API as fallback (silently, don't show error if it fails)
-            try {
-              const errorsData = await globalModeAPI.getErrors(sessionId, true)
-              setErrors(errorsData.errors || [])
-            } catch {
-              // Silently fail, use empty errors
-              setErrors([])
-            }
-          }
+          setScores({ 0: session.score || 0 })
+          const storedErrors = session.errors && session.errors.length > 0 ? session.errors : []
+          setErrorsPerPerson({ 0: storedErrors })
+          setSelectedPersonId(0)
         } else {
           // No session in store either
           console.warn('Session not found in API or store, showing empty results')
-          setScore(0)
-          setErrors([])
+          setScores({ 0: 0 })
+          setErrorsPerPerson({ 0: [] })
+          setSelectedPersonId(0)
         }
       }
     } catch (error) {
       console.error('Error fetching results:', error)
       // Fallback to store data if available
       if (session) {
-        setScore(session.score || 0)
-        setErrors([])
+        setScores({ 0: session.score || 0 })
+        setErrorsPerPerson({ 0: [] })
+        setSelectedPersonId(0)
       }
     } finally {
       setLoading(false)
@@ -123,12 +136,14 @@ export default function Results() {
 
   const handleExportPDF = () => {
     if (!sessionId || !session) return
-    exportToPDF(session, errors, score)
+    const pid = selectedPersonId ?? 0
+    exportToPDF(session, errorsPerPerson[pid] || [], scores[pid] || 0)
   }
 
   const handleExportExcel = () => {
     if (!sessionId || !session) return
-    exportToExcel(session, errors, score)
+    const pid = selectedPersonId ?? 0
+    exportToExcel(session, errorsPerPerson[pid] || [], scores[pid] || 0)
   }
 
   if (loading) {
@@ -212,6 +227,12 @@ export default function Results() {
     )
   }
 
+  const personIds = Object.keys(scores).map(Number)
+  const activePid = selectedPersonId ?? personIds[0] ?? null
+  const activeScore = (activePid !== null && scores[activePid] !== undefined) ? scores[activePid] : 0
+  const activeErrors = (activePid !== null && errorsPerPerson[activePid]) ? errorsPerPerson[activePid] : []
+  const totalErrorsCount = activeErrors.length
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
@@ -260,18 +281,18 @@ export default function Results() {
           >
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
-                Điểm Số
+                Điểm Số {activePid !== null ? `(ID: ${activePid})` : ''}
               </Typography>
               <Typography
                 variant="h2"
-                color={score >= 80 ? 'success.main' : score >= 60 ? 'warning.main' : 'error.main'}
+                color={activeScore >= 80 ? 'success.main' : activeScore >= 60 ? 'warning.main' : 'error.main'}
                 sx={{ fontWeight: 700 }}
               >
-                {score.toFixed(1)}
+                {activeScore.toFixed(1)}
               </Typography>
               <Chip
-                label={score >= 80 ? 'ĐẠT' : score >= 60 ? 'TRUNG BÌNH' : 'KHÔNG ĐẠT'}
-                color={score >= 80 ? 'success' : score >= 60 ? 'warning' : 'error'}
+                label={activeScore >= 80 ? 'ĐẠT' : activeScore >= 60 ? 'TRUNG BÌNH' : 'KHÔNG ĐẠT'}
+                color={activeScore >= 80 ? 'success' : activeScore >= 60 ? 'warning' : 'error'}
                 sx={{ mt: 2 }}
               />
             </CardContent>
@@ -285,9 +306,9 @@ export default function Results() {
               <Card>
                 <CardContent>
                   <Typography variant="body2" color="textSecondary">
-                    Tổng Lỗi
+                    Tổng Lỗi (ID đang chọn)
                   </Typography>
-                  <Typography variant="h4">{errors.length}</Typography>
+                  <Typography variant="h4">{totalErrorsCount}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -400,6 +421,30 @@ export default function Results() {
           </Grid>
         )}
 
+        {/* Person selector (multi-person) */}
+        {personIds.length > 1 && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Chọn người (ID) để xem kết quả
+                </Typography>
+                <Box display="flex" flexWrap="wrap" gap={1}>
+                  {personIds.map((pid) => (
+                    <Chip
+                      key={pid}
+                      label={`ID ${pid}`}
+                      color={pid === activePid ? 'primary' : 'default'}
+                      onClick={() => setSelectedPersonId(pid)}
+                      sx={{ cursor: 'pointer' }}
+                    />
+                  ))}
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
         {/* Error Chart */}
         <Grid item xs={12}>
           <Card>
@@ -407,7 +452,7 @@ export default function Results() {
               <Typography variant="h6" gutterBottom>
                 Biểu Đồ Lỗi
               </Typography>
-              <ErrorChart errors={errors} />
+              <ErrorChart errors={activeErrors} />
             </CardContent>
           </Card>
         </Grid>
@@ -431,7 +476,7 @@ export default function Results() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {errors.length === 0 ? (
+                    {activeErrors.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} align="center">
                           <Typography color="textSecondary">
@@ -440,7 +485,7 @@ export default function Results() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      errors.map((error, index) => {
+                      activeErrors.map((error, index) => {
                         const errorType = error.error_type || error.type || 'unknown'
                         const frameNumber = error.frame_number || error.start_frame || 0
                         const frameDisplay = error.is_sequence && error.end_frame

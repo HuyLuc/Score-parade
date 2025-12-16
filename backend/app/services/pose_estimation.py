@@ -112,6 +112,7 @@ class PoseEstimator:
         results = self.model(frame, verbose=False, conf=conf_threshold)
         
         keypoints_list = []
+        candidates = []
         for result in results:
             if result.keypoints is not None and len(result.boxes) > 0:
                 keypoints = result.keypoints.data.cpu().numpy()  # [n_people, 17, 3]
@@ -119,7 +120,8 @@ class PoseEstimator:
                 
                 for i, kpts in enumerate(keypoints):
                     # Lọc theo box confidence
-                    if boxes[i, 4] < conf_threshold:
+                    box_conf = boxes[i, 4]
+                    if box_conf < conf_threshold:
                         continue
                     
                     # Đếm số keypoints có confidence cao
@@ -128,7 +130,12 @@ class PoseEstimator:
                     # Lấy min từ config, mặc định 6 keypoints
                     min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 6)
                     if valid_kpts >= min_valid:
-                        keypoints_list.append(kpts)
+                        candidates.append((float(box_conf), kpts))
+        
+        # Giới hạn số người theo cấu hình, ưu tiên confidence cao nhất
+        max_persons = config.MULTI_PERSON_CONFIG.get("max_persons", 10)
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        keypoints_list = [k for _, k in candidates[:max_persons]]
         
         return keypoints_list
     

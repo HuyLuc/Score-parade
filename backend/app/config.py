@@ -79,6 +79,8 @@ SCORING_CONFIG = {
         "practising": 0.0,   # Luyện tập: luôn coi là để học, không trượt
         "default": 50.0,     # Dự phòng cho các nơi cũ chưa truyền mode
     },
+    # Bật/tắt chấm đa người (frontend có thể điều chỉnh)
+    "multi_person_enabled": True,
     "error_weights": {
         "arm_angle": 1.0,
         "leg_angle": 1.0,
@@ -198,7 +200,7 @@ ERROR_GROUPING_CONFIG = {
 
 # Multi-Person Tracking configuration
 MULTI_PERSON_CONFIG = {
-    "enabled": False,  # Enable/disable multi-person mode (default: False for backward compatibility)
+    "enabled": True,  # Enable/disable multi-person mode
     "max_persons": 10,  # Maximum number of persons to track
     "max_disappeared": 30,  # Max frames before person considered disappeared
     "iou_threshold": 0.5,  # IoU threshold for tracking (0.0-1.0)

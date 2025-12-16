@@ -134,13 +134,16 @@ export default function RealTimeMonitoring() {
   useEffect(() => {
     if (!isRunning) return
     
-    let interval: NodeJS.Timeout | null = null
-    interval = setInterval(() => {
+    // Trong trình duyệt, setInterval trả về number, không phải NodeJS.Timeout
+    let interval: number | null = null
+    interval = window.setInterval(() => {
       captureAndProcess()
     }, 100) // Process every 100ms (~10 FPS)
     
     return () => {
-      if (interval) clearInterval(interval)
+      if (interval !== null) {
+        window.clearInterval(interval)
+      }
     }
   }, [isRunning]) // Remove captureAndProcess from deps to avoid re-render loop
 

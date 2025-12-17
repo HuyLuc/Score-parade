@@ -41,12 +41,30 @@ tests
 # docs
 
 # Local data (will be mounted as volume)
-# data/output/*
-# data/cache/*
+data/output/*
+data/cache/*
+data/input_videos/*
+!data/input_videos/.gitkeep
 
-# Large files already in image
-# yolov8n-pose.pt
-# yolov8s-pose.pt
+# Large model files (will be downloaded in container or mounted)
+yolov8n-pose.pt
+yolov8s-pose.pt
+*.pt
+*.pth
+*.onnx
+
+# Python cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Node cache
+frontend/node_modules/
+frontend/.next/
+frontend/.vite/
+frontend/dist/
 
 # Environment files
 .env

@@ -34,7 +34,7 @@ import ErrorChart from '../components/Results/ErrorChart'
 import { exportToPDF, exportToExcel } from '../utils/export'
 import ReactPlayer from 'react-player'
 
-interface Error {
+interface ErrorDetail {
   frame_number?: number
   start_frame?: number  // For sequence errors
   end_frame?: number    // For sequence errors
@@ -46,19 +46,11 @@ interface Error {
   is_sequence?: boolean  // Flag for sequence errors
 }
 
-interface PersonResult {
-  person_id: number
-  errors: Error[]
-  score: number
-  stopped?: boolean
-  message?: string
-}
-
 export default function Results() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
   const { getSession, sessions } = useSessionStore()
-  const [errorsPerPerson, setErrorsPerPerson] = useState<Record<number, Error[]>>({})
+  const [errorsPerPerson, setErrorsPerPerson] = useState<Record<number, ErrorDetail[]>>({})
   const [scores, setScores] = useState<Record<number, number>>({})
   const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -93,9 +85,9 @@ export default function Results() {
           scoreData.scores ||
           (scoreData.score !== undefined ? { 0: scoreData.score } : {})
 
-        const apiErrors: Record<number, Error[]> =
+        const apiErrors: Record<number, ErrorDetail[]> =
           errorsData.errors ||
-          (Array.isArray(errorsData.errors) ? { 0: errorsData.errors as Error[] } : {})
+          (Array.isArray(errorsData.errors) ? { 0: errorsData.errors as ErrorDetail[] } : {})
 
         setScores(apiScores)
         setErrorsPerPerson(apiErrors)

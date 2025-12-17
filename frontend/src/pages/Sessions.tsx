@@ -31,7 +31,7 @@ import { globalModeAPI } from '../services/api'
 
 export default function Sessions() {
   const navigate = useNavigate()
-  const { sessions, removeSession } = useSessionStore()
+  const { sessions } = useSessionStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
 

@@ -24,8 +24,9 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
 # Install system dependencies
+# Debian trixie: libgl1-mesa-glx được thay bằng libgl1
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -38,19 +39,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Copy requirements and install Python dependencies
+# Copy requirements and install Python dependencies FIRST (for better caching)
+# Dependencies change less frequently than code
 COPY backend/requirements.txt ./backend/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r backend/requirements.txt
 
-# Copy backend code
+# Copy backend code (this layer will be rebuilt when code changes)
 COPY backend/ ./backend/
 
-# Copy YOLOv8 model files
-COPY yolov8n-pose.pt ./
-COPY yolov8s-pose.pt ./
+# Copy YOLOv8 model files (optional - models can be downloaded at runtime)
+# Uncomment if you want to include models in image
+# COPY yolov8n-pose.pt ./
+# COPY yolov8s-pose.pt ./
 
-# Copy data directory structure
+# Copy data directory structure (only structure, not large files)
+# Large files should be mounted as volumes
 COPY data/ ./data/
 
 # Copy frontend build from stage 1

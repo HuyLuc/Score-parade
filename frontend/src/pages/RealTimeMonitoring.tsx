@@ -13,10 +13,8 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  Typography as MuiTypography,
 } from '@mui/material'
 import {
-  Videocam,
   Stop,
   PlayArrow,
   Refresh,

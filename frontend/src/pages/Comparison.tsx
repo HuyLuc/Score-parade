@@ -9,12 +9,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Button,
   Alert,
 } from '@mui/material'
 import {
   CompareArrows,
-  Assessment,
 } from '@mui/icons-material'
 import { useSessionStore } from '../store/useSessionStore'
 import ComparisonChart from '../components/Comparison/ComparisonChart'

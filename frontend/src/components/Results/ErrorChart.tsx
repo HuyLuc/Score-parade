@@ -3,8 +3,10 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Box, Typography } from '@mui/material'
 
 interface Error {
-  error_type: string
-  severity: number
+  error_type?: string
+  type?: string
+  severity?: number
+  [key: string]: any  // Allow additional properties
 }
 
 interface ErrorChartProps {

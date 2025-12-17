@@ -261,3 +261,72 @@ class DatabaseService:
             logger.error(f"❌ Error completing session {session_id}: {e}")
             return False
 
+    # -----------------------------
+    # Helpers for API fallback
+    # -----------------------------
+    @staticmethod
+    def get_scores_map(session_id: str) -> Dict[int, float]:
+        """Trả về dict person_id -> score cho session (từ DB)."""
+        try:
+            with db_session() as db:
+                session = db.query(Session).filter(Session.session_id == session_id).first()
+                if not session:
+                    return {}
+                persons = db.query(Person).filter(Person.session_id == session.id).all()
+                return {p.person_id: float(p.score) for p in persons}
+        except Exception as e:
+            logger.error(f"❌ Error getting scores map for session {session_id}: {e}")
+            return {}
+
+    @staticmethod
+    def get_errors_map(session_id: str, person_id: Optional[int] = None) -> Dict[int, List[Dict]]:
+        """Trả về dict person_id -> list errors (đã serialize) từ DB."""
+        try:
+            with db_session() as db:
+                session = db.query(Session).filter(Session.session_id == session_id).first()
+                if not session:
+                    return {}
+
+                query = db.query(Error).filter(Error.session_id == session.id)
+                if person_id is not None:
+                    query = query.filter(Error.person_id == person_id)
+                errors = query.order_by(Error.frame_number).all()
+
+                result: Dict[int, List[Dict]] = {}
+                for err in errors:
+                    pid = err.person_id
+                    result.setdefault(pid, []).append({
+                        "person_id": pid,
+                        "type": err.error_type,
+                        "severity": err.severity,
+                        "deduction": err.deduction,
+                        "message": err.message,
+                        "frame_number": err.frame_number,
+                        "timestamp": err.timestamp_sec,
+                        "is_sequence": err.is_sequence,
+                        "sequence_length": err.sequence_length,
+                        "start_frame": err.start_frame,
+                        "end_frame": err.end_frame,
+                    })
+                return result
+        except Exception as e:
+            logger.error(f"❌ Error getting errors map for session {session_id}: {e}")
+            return {}
+
+    @staticmethod
+    def delete_session_data(session_id: str) -> bool:
+        """Xóa dữ liệu session (persons, errors) và đặt trạng thái cancelled."""
+        try:
+            with db_session() as db:
+                session = db.query(Session).filter(Session.session_id == session_id).first()
+                if not session:
+                    return False
+                # Cascade delete via relationships
+                db.delete(session)
+                db.commit()
+                logger.info(f"✅ Deleted session data for {session_id}")
+                return True
+        except Exception as e:
+            logger.error(f"❌ Error deleting session data for {session_id}: {e}")
+            return False
+

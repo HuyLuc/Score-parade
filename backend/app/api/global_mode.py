@@ -222,7 +222,11 @@ async def get_score(session_id: str):
         Current score
     """
     if session_id not in _controllers:
-        raise NotFoundException("Session", session_id)
+        # Fallback: lấy từ database nếu controller không còn trong memory
+        scores = _db_service.get_scores_map(session_id)
+        if not scores:
+            raise NotFoundException("Session", session_id)
+        return ScoreResponse(session_id=session_id, scores=scores, stopped=None)
     
     controller = _controllers[session_id]
     scores = controller.get_score()
@@ -250,7 +254,12 @@ async def get_errors(session_id: str):
         List of detected errors
     """
     if session_id not in _controllers:
-        raise NotFoundException("Session", session_id)
+        # Fallback: lấy từ database
+        errors = _db_service.get_errors_map(session_id)
+        if not errors:
+            raise NotFoundException("Session", session_id)
+        totals = {pid: len(errs) for pid, errs in errors.items()}
+        return ErrorsResponse(session_id=session_id, errors=errors, total_errors=totals)
     
     controller = _controllers[session_id]
     errors = controller.get_errors()
@@ -279,6 +288,15 @@ async def reset_session(session_id: str):
     
     controller = _controllers[session_id]
     controller.reset()
+
+    # Đặt lại trạng thái session trong DB (đánh dấu active, không xóa dữ liệu cũ)
+    _db_service.create_or_update_session(
+        session_id=session_id,
+        mode="testing" if isinstance(controller, GlobalTestingController) else "practising",
+        status="active",
+        total_frames=0,
+        video_path=None,
+    )
     
     return {
         "success": True,
@@ -698,6 +716,9 @@ async def delete_session(session_id: str):
         logger.info(f"Session {session_id} đã được xóa khỏi backend memory")
     else:
         logger.info(f"Session {session_id} không tồn tại trong backend memory (có thể đã bị xóa hoặc backend đã restart)")
+
+    # Xóa dữ liệu trong DB (sessions, persons, errors)
+    _db_service.delete_session_data(session_id)
     
     return {
         "success": True,

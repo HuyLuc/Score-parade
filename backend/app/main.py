@@ -41,6 +41,12 @@ app.add_middleware(
 app.include_router(global_mode.router)
 app.include_router(config.router)
 
+# Health check endpoint for Docker (at /api/health)
+@app.get("/api/health")
+async def api_health_check():
+    """Health check endpoint for Docker/Kubernetes"""
+    return {"status": "healthy", "service": "score-parade"}
+
 output_dir = Path("data") / "output"
 
 @app.get("/api/videos/{filepath:path}")

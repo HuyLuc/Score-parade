@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: score-parade-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-scoreuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scorepass123}
+      POSTGRES_DB: ${POSTGRES_DB:-score_parade}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-scoreuser} -d ${POSTGRES_DB:-score_parade}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - score-parade-network
+
+  # Backend API + Frontend (served together)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: score-parade-app
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-scoreuser}:${POSTGRES_PASSWORD:-scorepass123}@db:5432/${POSTGRES_DB:-score_parade}
+      - PYTHONPATH=/app
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+    volumes:
+      # Persist data
+      - ./data/output:/app/data/output
+      - ./data/golden_template:/app/data/golden_template
+      - ./data/input_videos:/app/data/input_videos
+      - ./data/cache:/app/data/cache
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - score-parade-network
+
+  # Adminer - Database management UI (optional, for development)
+  adminer:
+    image: adminer:4
+    container_name: score-parade-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - score-parade-network
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  score-parade-network:
+    driver: bridge
+

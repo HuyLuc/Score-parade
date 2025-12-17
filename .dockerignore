@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+
+# Node
+node_modules
+.npm
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+.cursor
+
+# Build artifacts
+dist
+build
+*.egg-info
+
+# Logs
+*.log
+skeleton_debug.log
+
+# Test files
+tests
+*.test.py
+*.spec.ts
+
+# Documentation (optional - uncomment to include)
+# docs
+
+# Local data (will be mounted as volume)
+# data/output/*
+# data/cache/*
+
+# Large files already in image
+# yolov8n-pose.pt
+# yolov8s-pose.pt
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+

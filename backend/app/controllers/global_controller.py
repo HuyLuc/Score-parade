@@ -2,7 +2,6 @@
 GlobalController - Base controller for Global Mode (Practising and Testing)
 Implements motion detection and rhythm checking with beat detection integration
 """
-from backend.app.services.tracker_service import TrackerService, Detection
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from backend.app.services.pose_service import PoseService
@@ -542,5 +541,10 @@ class GlobalController:
         self.errors = {}
         self.frame_errors_buffer = {}
         self.scores = {}
+        # Reset all trackers
         if self.tracker:
             self.tracker.reset()
+        if self.tracker_service:
+            self.tracker_service.reset()
+        if self.bytetrack_service:
+            self.bytetrack_service.reset()

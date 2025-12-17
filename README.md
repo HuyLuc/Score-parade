@@ -224,7 +224,7 @@ cd F:\Score-parade\Score-parade\frontend
 npm install
 
 # Chạy development server
-npm run dev
+
 ```
 
 Frontend sẽ chạy tại: `http://localhost:3000`

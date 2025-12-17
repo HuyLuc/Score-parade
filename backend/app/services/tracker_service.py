@@ -261,3 +261,10 @@ class TrackerService:
                 cost[i, j] = 1.0 - TrackerService._calculate_iou(dets[i], tracks[j])
 
         return cost
+
+    def reset(self):
+        """Reset tracker state"""
+        self.next_track_id = 0
+        self.tracks = {}
+        self.disappeared = {}
+        self.stats = {}

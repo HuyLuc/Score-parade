@@ -10,6 +10,7 @@ from backend.app.services.sequence_comparison import SequenceComparator
 from backend.app.services.multi_person_tracker import PersonTracker
 from backend.app.services.tracker_service import TrackerService, Detection
 from backend.app.services.bytetrack_service import ByteTrackService
+from backend.app.services.database_service import DatabaseService
 from backend.app.config import (
     MOTION_DETECTION_CONFIG,
     KEYPOINT_INDICES,
@@ -36,6 +37,7 @@ class GlobalController:
         self.session_id = session_id
         self.pose_service = pose_service
         self.ai_controller = AIController(pose_service)
+        self.db_service = DatabaseService()
         
         # Multi-person tracking
         self.multi_person_enabled = SCORING_CONFIG.get(
@@ -90,6 +92,10 @@ class GlobalController:
         # Score tracking per person
         self.scores: Dict[int, float] = {}
         self.initial_score = SCORING_CONFIG.get("initial_score", 100.0)
+
+        # Frame tracking per person (để lưu DB)
+        self.person_first_frame: Dict[int, Optional[int]] = {}
+        self.person_last_frame: Dict[int, Optional[int]] = {}
         
         # Configuration
         self.config = MOTION_DETECTION_CONFIG
@@ -202,6 +208,10 @@ class GlobalController:
             self.prev_keypoints[person_id] = None
         if person_id not in self.prev_timestamp:
             self.prev_timestamp[person_id] = None
+        if person_id not in self.person_first_frame:
+            self.person_first_frame[person_id] = None
+        if person_id not in self.person_last_frame:
+            self.person_last_frame[person_id] = None
 
     def process_frame(
         self,
@@ -262,6 +272,11 @@ class GlobalController:
         for person_id, keypoints in persons.items():
             self._ensure_person(person_id)
 
+            # Cập nhật first/last frame để lưu DB
+            if self.person_first_frame[person_id] is None:
+                self.person_first_frame[person_id] = frame_number
+            self.person_last_frame[person_id] = frame_number
+
             posture_errors = self.ai_controller.detect_posture_errors(
                 keypoints,
                 frame_number=frame_number,
@@ -286,6 +301,17 @@ class GlobalController:
             # Group errors periodically
             if len(self.frame_errors_buffer[person_id]) >= 30:
                 self._process_error_grouping(person_id)
+
+            # Cập nhật DB cho person (score và tổng lỗi hiện tại)
+            self.db_service.create_or_update_person(
+                session_id=self.session_id,
+                person_id=person_id,
+                score=self.scores.get(person_id, self.initial_score),
+                total_errors=len(self.errors.get(person_id, [])),
+                status="active",
+                first_frame=self.person_first_frame.get(person_id),
+                last_frame=self.person_last_frame.get(person_id),
+            )
 
         # Optionally process rhythm per person (skipped unless motion batch ready)
         for pid, events in self.motion_events.items():
@@ -430,7 +456,29 @@ class GlobalController:
         Args:
             error: Error dictionary with type, severity, deduction, etc.
         """
-        pass
+        # Base: chỉ lưu DB, không trừ điểm. Subclass có thể trừ điểm.
+        self._save_error_to_db(person_id, error)
+
+    def _save_error_to_db(self, person_id: int, error: Dict):
+        """Lưu lỗi vào database (an toàn, không raise)."""
+        try:
+            self.db_service.save_error(
+                session_id=self.session_id,
+                person_id=person_id,
+                error_type=error.get("type") or error.get("error_type") or "unknown",
+                severity=float(error.get("severity", 0.0)),
+                deduction=float(error.get("deduction", 0.0)),
+                message=error.get("message"),
+                frame_number=error.get("frame_number") or error.get("start_frame"),
+                timestamp_sec=error.get("timestamp"),
+                is_sequence=error.get("is_sequence", False),
+                sequence_length=error.get("sequence_length"),
+                start_frame=error.get("start_frame"),
+                end_frame=error.get("end_frame"),
+            )
+        except Exception:
+            # Không làm gián đoạn pipeline nếu lỗi DB
+            pass
     
     def get_score(self) -> Dict[int, float]:
         """Get current score per person (ưu tiên chỉ trả về các ID ổn định)."""
@@ -541,6 +589,8 @@ class GlobalController:
         self.errors = {}
         self.frame_errors_buffer = {}
         self.scores = {}
+        self.person_first_frame = {}
+        self.person_last_frame = {}
         # Reset all trackers
         if self.tracker:
             self.tracker.reset()

@@ -14,6 +14,7 @@ from backend.app.controllers.global_controller import GlobalController
 from backend.app.controllers.global_testing_controller import GlobalTestingController
 from backend.app.controllers.global_practising_controller import GlobalPractisingController
 from backend.app.services.pose_service import PoseService
+from backend.app.services.database_service import DatabaseService
 from backend.app.utils.exceptions import ValidationException, NotFoundException
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/api/global", tags=["global"])
 # In-memory storage for active sessions
 _controllers: Dict[str, GlobalController] = {}
 _pose_service: Optional[PoseService] = None
+_db_service = DatabaseService()
 
 
 def get_pose_service() -> PoseService:
@@ -145,6 +147,15 @@ async def start_session(
     if audio_file_path:
         controller.set_audio(audio_file_path)
     
+    # Lưu session vào database
+    _db_service.create_or_update_session(
+        session_id=session_id,
+        mode=mode,
+        status="active",
+        video_path=None,
+        total_frames=0,
+    )
+
     # Store controller
     _controllers[session_id] = controller
     
@@ -342,6 +353,15 @@ async def upload_and_process_video(
         # Process video frame by frame
         frame_number = 0
         total_frames = metadata.get('frame_count', 0)
+
+        # Cập nhật thông tin session vào database (total_frames, video_path)
+        _db_service.create_or_update_session(
+            session_id=session_id,
+            mode="testing" if isinstance(controller, GlobalTestingController) else "practising",
+            status="active",
+            total_frames=total_frames,
+            video_path=str(temp_video_path),
+        )
         
         print(f"[INFO] Video loaded: {total_frames} frames, FPS: {fps}")
         logger.info(f"Bắt đầu xử lý video: {total_frames} frames, FPS: {fps}")
@@ -369,6 +389,9 @@ async def upload_and_process_video(
         final_score = controller.get_score()  # dict person_id -> score
         final_errors = controller.get_errors()  # dict person_id -> list
         total_errors = {pid: len(errs) for pid, errs in final_errors.items()}
+
+        # Đánh dấu session hoàn thành trong database
+        _db_service.complete_session(session_id)
         
         print(f"[RESULT] Scores per person: {final_score}, Errors per person: {total_errors}")
         

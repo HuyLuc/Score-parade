@@ -6,17 +6,20 @@
 [![Tests](https://img.shields.io/badge/tests-pytest-orange.svg)](https://docs.pytest.org/)
 [![Version](https://img.shields.io/badge/version-2.0.0-brightgreen.svg)](https://github.com/HuyLuc/Score-parade)
 
-**Score Parade** là hệ thống chấm điểm khiêu vũ tiên tiến sử dụng AI, phân tích video biểu diễn và cung cấp phản hồi theo thời gian thực với độ chính xác chuyên nghiệp. Được xây dựng với các thuật toán ước tính tư thế và phân tích thời gian tiên tiến.
+**Score Parade** là hệ thống chấm điểm điều lệnh tự động sử dụng AI, phân tích video biểu diễn và cung cấp phản hồi theo thời gian thực với độ chính xác chuyên nghiệp. Được xây dựng với YOLOv8-Pose cho ước tính tư thế, ByteTrack cho theo dõi nhiều người, và các thuật toán phân tích thời gian tiên tiến.
 
 ## ✨ Tính Năng Chính
 
-- 🎯 **Phân Tích Tư Thế Thời Gian Thực** - Theo dõi khung xương bằng MediaPipe với 33 điểm mốc
-- 📊 **Công Cụ Chấm Điểm Nâng Cao** - Đánh giá đa chiều với làm mịn thời gian
+- 🎯 **Phân Tích Tư Thế Thời Gian Thực** - Theo dõi khung xương bằng YOLOv8-Pose với độ chính xác cao
+- 👥 **Theo Dõi Nhiều Người** - Tự động phát hiện và theo dõi nhiều người trong video với ByteTrack
+- 📊 **Công Cụ Chấm Điểm Nâng Cao** - Đánh giá đa chiều với làm mịn thời gian và nhóm lỗi liên tiếp
 - 🎬 **Xử Lý Video** - Hỗ trợ nhiều định dạng với phân tích từng khung hình
 - 🔄 **So Sánh Chuỗi** - Thuật toán dựa trên DTW để căn chỉnh thời gian
 - 🎼 **Phát Hiện Nhịp** - Phân tích chuyển động đồng bộ với âm thanh
 - ⚙️ **Ngưỡng Thích Ứng** - Điều chỉnh điểm động dựa trên ngữ cảnh biểu diễn
-- 📈 **Chỉ Số Hiệu Suất** - Phân tích và trực quan hóa chi tiết
+- 📈 **Chỉ Số Hiệu Suất** - Phân tích và trực quan hóa chi tiết theo từng người
+- 🗄️ **Database PostgreSQL** - Lưu trữ sessions, errors, và cấu hình hệ thống
+- 🐳 **Docker Support** - Triển khai dễ dàng với Docker Compose
 - 🛠️ **Kiến Trúc Linh Hoạt** - Thiết kế mô-đun dễ tùy chỉnh
 
 ## 📊 Chỉ Số Hiệu Suất
@@ -34,58 +37,52 @@
 
 ```
 Score-parade/
-├── src/
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── pose_estimator.py          # Phát hiện tư thế MediaPipe
-│   │   ├── score_calculator.py        # Công cụ chấm điểm chính
-│   │   └── video_processor.py         # I/O và xử lý video
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── temporal_smoothing.py      # Thuật toán làm mịn chuỗi thời gian
-│   │   ├── adaptive_threshold.py      # Điều chỉnh ngưỡng động
-│   │   ├── keypoint_normalization.py  # Tiện ích chuẩn hóa tư thế
-│   │   ├── sequence_comparison.py     # Căn chỉnh chuỗi DTW
-│   │   ├── beat_detection.py          # Đồng bộ nhịp âm thanh
-│   │   └── metrics_tracker.py         # Phân tích hiệu suất
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── config.py                  # Quản lý cấu hình
-│   │   ├── logger.py                  # Tiện ích ghi log
-│   │   └── validators.py              # Xác thực đầu vào
-│   └── api/
-│       ├── __init__.py
-│       ├── routes.py                  # Điểm cuối API
-│       └── schemas.py                 # Mô hình yêu cầu/phản hồi
-├── tests/
-│   ├── __init__.py
-│   ├── test_pose_estimator.py
-│   ├── test_score_calculator.py
-│   ├── test_temporal_smoothing.py
-│   ├── test_adaptive_threshold.py
-│   ├── test_keypoint_normalization.py
-│   ├── test_sequence_comparison.py
-│   ├── test_beat_detection.py
-│   └── test_integration.py
-├── config/
-│   ├── default.yaml                   # Cấu hình mặc định
-│   ├── development.yaml               # Cấu hình môi trường dev
-│   └── production.yaml                # Cấu hình môi trường prod
-├── data/
-│   ├── reference_videos/              # Chuỗi khiêu vũ tham chiếu
-│   └── sample_videos/                 # Video kiểm tra
-├── docs/
-│   ├── API.md                         # Tài liệu API
-│   ├── ARCHITECTURE.md                # Kiến trúc hệ thống
-│   └── CONTRIBUTING.md                # Hướng dẫn đóng góp
-├── scripts/
-│   ├── setup.sh                       # Thiết lập môi trường
-│   └── run_tests.sh                   # Chạy kiểm tra
-├── requirements.txt                   # Phụ thuộc Python
-├── setup.py                          # Thiết lập gói
-├── .env.example                      # Mẫu biến môi trường
+├── backend/                           # Backend API (FastAPI)
+│   ├── app/
+│   │   ├── api/                      # API routes
+│   │   │   ├── config.py             # Cấu hình API
+│   │   │   └── global_mode.py        # Global mode endpoints
+│   │   ├── controllers/              # Business logic controllers
+│   │   │   ├── global_controller.py  # Base controller
+│   │   │   ├── global_testing_controller.py
+│   │   │   └── global_practising_controller.py
+│   │   ├── services/                 # Core services
+│   │   │   ├── pose_estimation.py    # YOLOv8 pose detection
+│   │   │   ├── scoring_service.py    # Scoring logic
+│   │   │   ├── bytetrack_service.py  # Multi-person tracking
+│   │   │   ├── tracker_service.py    # SORT-style tracker
+│   │   │   ├── error_grouping.py     # Error sequence grouping
+│   │   │   └── ...                   # Other services
+│   │   ├── utils/                    # Utilities
+│   │   ├── config.py                 # Configuration
+│   │   └── main.py                   # FastAPI app entry
+│   ├── requirements.txt              # Python dependencies
+│   └── tests/                        # Backend tests
+├── frontend/                          # Frontend (React + TypeScript)
+│   ├── src/
+│   │   ├── pages/                    # Page components
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── VideoUpload.tsx
+│   │   │   ├── RealTimeMonitoring.tsx
+│   │   │   ├── Results.tsx
+│   │   │   └── Settings.tsx
+│   │   ├── components/               # Reusable components
+│   │   ├── services/                 # API services
+│   │   └── store/                    # State management
+│   ├── package.json
+│   └── vite.config.ts
+├── docker/                            # Docker configuration
+│   └── init-db.sql                   # Database initialization
+├── data/                              # Data directory
+│   ├── golden_template/              # Golden template files
+│   ├── input_videos/                 # Input videos
+│   ├── output/                       # Output videos
+│   └── models/                       # Model files
+├── Dockerfile                         # Docker image definition
+├── docker-compose.yml                 # Docker Compose config
+├── env.example                        # Environment variables template
+├── .dockerignore                      # Docker ignore patterns
 ├── .gitignore
-├── LICENSE
 └── README.md
 ```
 
@@ -93,12 +90,91 @@ Score-parade/
 
 ### Yêu Cầu
 
-- Python 3.8 trở lên
-- Trình quản lý gói pip
-- Môi trường ảo (khuyến nghị)
+**Cho Development:**
+- Python 3.11 trở lên
+- Node.js 16+ và npm
+- PostgreSQL 15+ (hoặc Docker)
 - FFmpeg (để xử lý video)
 
-### Bước 1: Clone Repository
+**Cho Production:**
+- Docker và Docker Compose
+- Hoặc cài đặt thủ công như development
+
+### Cách 1: Cài Đặt Với Docker (Khuyến Nghị)
+
+**Bước 1: Clone Repository**
+
+```bash
+git clone https://github.com/HuyLuc/Score-parade.git
+cd Score-parade
+```
+
+**Bước 2: Cấu Hình Environment**
+
+```bash
+# Copy file mẫu environment
+cp env.example .env
+
+# Chỉnh sửa .env nếu cần (mặc định đã đủ để chạy)
+# POSTGRES_USER=scoreuser
+# POSTGRES_PASSWORD=scorepass123
+# POSTGRES_DB=score_parade
+```
+
+**Bước 3: Build và Chạy với Docker Compose**
+
+```bash
+# Build và khởi động tất cả services (database + app)
+docker-compose up -d --build
+
+# Xem logs
+docker-compose logs -f app
+
+# Hoặc xem logs của database
+docker-compose logs -f db
+```
+
+**Bước 4: Truy Cập Ứng Dụng**
+
+- **Frontend + API**: http://localhost:8000
+- **API Docs**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/api/health
+
+**Bước 5: Database Management (Tùy chọn - Development)**
+
+```bash
+# Khởi động Adminer (Database UI)
+docker-compose --profile dev up -d adminer
+
+# Truy cập Adminer tại: http://localhost:8080
+# Server: db
+# Username: scoreuser
+# Password: scorepass123
+# Database: score_parade
+```
+
+**Các Lệnh Docker Hữu Ích:**
+
+```bash
+# Dừng tất cả services
+docker-compose down
+
+# Dừng và xóa volumes (xóa database)
+docker-compose down -v
+
+# Rebuild lại image
+docker-compose build --no-cache
+
+# Xem trạng thái services
+docker-compose ps
+
+# Restart một service cụ thể
+docker-compose restart app
+```
+
+### Cách 2: Cài Đặt Thủ Công (Development)
+
+**Bước 1: Clone Repository**
 
 ```bash
 git clone https://github.com/HuyLuc/Score-parade.git
@@ -161,17 +237,60 @@ sudo apt-get update
 sudo apt-get install ffmpeg
 ```
 
-### Bước 6: Cấu Hình Môi Trường
+### Bước 6: Cấu Hình Database
+
+**Cài đặt PostgreSQL:**
+
+**Windows:**
+```bash
+# Sử dụng Chocolatey
+choco install postgresql15
+
+# Hoặc tải từ https://www.postgresql.org/download/windows/
+```
+
+**macOS:**
+```bash
+brew install postgresql@15
+brew services start postgresql@15
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt-get update
+sudo apt-get install postgresql-15 postgresql-contrib-15
+sudo systemctl start postgresql
+```
+
+**Tạo Database:**
+
+```bash
+# Kết nối PostgreSQL
+psql -U postgres
+
+# Tạo database và user
+CREATE DATABASE score_parade;
+CREATE USER scoreuser WITH PASSWORD 'scorepass123';
+GRANT ALL PRIVILEGES ON DATABASE score_parade TO scoreuser;
+\q
+
+# Chạy script khởi tạo schema
+psql -U scoreuser -d score_parade -f docker/init-db.sql
+```
+
+### Bước 7: Cấu Hình Môi Trường
 
 ```bash
 # Sao chép mẫu biến môi trường
-cp .env.example .env
+cp env.example .env
 
 # Chỉnh sửa file .env với cài đặt của bạn
+# Đặc biệt là DATABASE_URL:
+# DATABASE_URL=postgresql://scoreuser:scorepass123@localhost:5432/score_parade
 nano .env
 ```
 
-### Bước 7: Xác Minh Cài Đặt
+### Bước 8: Xác Minh Cài Đặt
 
 ```bash
 # Kiểm tra backend dependencies
@@ -392,6 +511,54 @@ npm run build
 # Deploy thư mục dist/ lên hosting service
 ```
 
+### 👥 Tính Năng Multi-Person Tracking
+
+Hệ thống hỗ trợ tự động phát hiện và theo dõi nhiều người trong video:
+
+**Cấu Hình:**
+
+1. Vào trang **Settings** (`/settings`)
+2. Bật **"Bật chế độ nhiều người"**
+3. Cấu hình các tham số:
+   - **Tracking Method**: ByteTrack (khuyến nghị) hoặc SORT
+   - **Max Persons**: Số người tối đa (mặc định: 5)
+   - **Max Disappeared**: Số frame tối đa một người có thể biến mất trước khi bỏ theo dõi
+   - **IoU Threshold**: Ngưỡng IoU cho matching
+
+**Cách Hoạt Động:**
+
+- Hệ thống tự động phát hiện và gán ID cho mỗi người
+- Mỗi người được chấm điểm riêng biệt
+- Kết quả hiển thị theo từng người với ID tương ứng
+- Lọc các track không ổn định (ghost detections)
+
+**Xem Kết Quả:**
+
+- Trang **Results** cho phép chuyển đổi giữa các người bằng cách chọn ID
+- Trang **Real-time Monitoring** hiển thị số người đang được theo dõi
+- Mỗi người có điểm số và danh sách lỗi riêng
+
+### 🔗 Error Grouping - Nhóm Lỗi Liên Tiếp
+
+Hệ thống tự động nhóm các lỗi liên tiếp cùng loại thành một lỗi duy nhất:
+
+**Cấu Hình:**
+
+- Vào **Settings** → **Scoring Configuration**
+- Cấu hình **Error Grouping**:
+  - **Min Sequence Length**: Độ dài tối thiểu để nhóm (mặc định: 2 frames)
+  - Các lỗi liên tiếp cùng loại sẽ được gộp thành một sequence
+
+**Ví Dụ:**
+
+```
+Frame 34: arm_angle - Tay trái quá thấp
+Frame 35: arm_angle - Tay trái quá thấp
+Frame 36: arm_angle - Tay trái quá thấp
+```
+
+→ Được nhóm thành: **"Arm Angle (left) from frame 34-36 (3 frames)"** - Trừ điểm 1 lần thay vì 3 lần
+
 #### Điểm Cuối API
 
 **1. Kiểm Tra Sức Khỏe**
@@ -534,6 +701,35 @@ addopts =
 
 ## ⚙️ Cấu Hình
 
+### 🗄️ Database Schema
+
+Hệ thống sử dụng PostgreSQL để lưu trữ dữ liệu:
+
+**Các Bảng Chính:**
+
+- **`sessions`** - Lưu thông tin các phiên chấm điểm
+  - `session_id`, `mode`, `status`, `start_time`, `end_time`, `total_frames`
+  
+- **`persons`** - Lưu thông tin từng người trong session
+  - `person_id`, `score`, `total_errors`, `status`, `first_frame`, `last_frame`
+  
+- **`errors`** - Lưu chi tiết các lỗi phát hiện được
+  - `error_type`, `severity`, `deduction`, `frame_number`, `is_sequence`, `sequence_length`
+  
+- **`golden_templates`** - Lưu thông tin các template chuẩn
+  - `name`, `video_path`, `skeleton_path`, `profile_path`, `is_active`
+  
+- **`configs`** - Lưu cấu hình hệ thống
+  - `key`, `value` (JSONB), `description`
+
+**Khởi Tạo Database:**
+
+Schema được tự động tạo khi chạy Docker Compose. Nếu cài đặt thủ công:
+
+```bash
+psql -U scoreuser -d score_parade -f docker/init-db.sql
+```
+
 ### Các Phần Cấu Hình
 
 Score Parade sử dụng cấu hình dựa trên YAML với 6 phần chính:
@@ -612,6 +808,12 @@ beat_detection:
 ### Biến Môi Trường
 
 ```bash
+# Database Configuration
+POSTGRES_USER=scoreuser
+POSTGRES_PASSWORD=scorepass123
+POSTGRES_DB=score_parade
+DATABASE_URL=postgresql://scoreuser:scorepass123@localhost:5432/score_parade
+
 # Ứng dụng
 APP_ENV=development                # development, staging, hoặc production
 APP_DEBUG=true                     # Bật chế độ debug
@@ -628,12 +830,17 @@ API_PORT=8000
 API_WORKERS=4
 API_TIMEOUT=300
 
+# CUDA Configuration (optional)
+CUDA_VISIBLE_DEVICES=0            # Để trống nếu không dùng GPU
+
 # Hiệu Suất
 MAX_FRAME_SIZE=1920x1080
 ENABLE_GPU=true
 MAX_BATCH_SIZE=32
 CACHE_ENABLED=true
 ```
+
+**Lưu ý:** Copy `env.example` thành `.env` và điều chỉnh các giá trị phù hợp với môi trường của bạn.
 
 ## 🚨 Các Loại Lỗi
 
@@ -801,24 +1008,62 @@ npm run dev
 - Kiểm tra file `frontend/.env` có `VITE_API_URL=http://localhost:8000`
 - Đảm bảo CORS đã được cấu hình trong backend
 
-#### 4. **Lỗi "No module named 'mediapipe'"**
+#### 4. **Lỗi Kết Nối Database**
 
-**Vấn Đề:** MediaPipe chưa được cài đặt hoặc không tìm thấy
+**Vấn Đề:** Không thể kết nối đến PostgreSQL
 
 **Giải Pháp:**
 ```bash
-# Cài đặt lại mediapipe
-pip uninstall mediapipe
-pip install mediapipe
+# Kiểm tra PostgreSQL đang chạy
+# Windows:
+# Services → PostgreSQL
 
-# Nếu trên Apple Silicon Mac
-pip install mediapipe-silicon
+# Linux/macOS:
+sudo systemctl status postgresql
+# hoặc
+brew services list | grep postgresql
 
-# Xác minh cài đặt
-python -c "import mediapipe; print(mediapipe.__version__)"
+# Kiểm tra kết nối
+psql -U scoreuser -d score_parade -h localhost
+
+# Nếu dùng Docker, kiểm tra container
+docker-compose ps db
+docker-compose logs db
 ```
 
-#### 5. **Lỗi "Video file cannot be opened"**
+#### 5. **Lỗi Docker Build**
+
+**Vấn Đề:** Docker build thất bại hoặc image quá lớn
+
+**Giải Pháp:**
+```bash
+# Xóa cache và rebuild
+docker-compose build --no-cache
+
+# Kiểm tra disk space
+docker system df
+
+# Dọn dẹp unused images
+docker system prune -a
+
+# Kiểm tra logs chi tiết
+docker-compose build --progress=plain
+```
+
+#### 6. **Lỗi "No module named 'mediapipe'"**
+
+**Lưu ý:** Hệ thống hiện tại sử dụng YOLOv8-Pose, không phải MediaPipe
+
+**Nếu gặp lỗi với YOLOv8:**
+```bash
+# Cài đặt ultralytics
+pip install ultralytics
+
+# Tải model nếu chưa có
+# Model sẽ tự động tải khi chạy lần đầu
+```
+
+#### 7. **Lỗi "Video file cannot be opened"**
 
 **Vấn Đề:** FFmpeg chưa được cài đặt hoặc định dạng video không được hỗ trợ
 
@@ -833,7 +1078,7 @@ ffmpeg -i input.avi -c:v libx264 -c:a aac output.mp4
 ffmpeg -v error -i video.mp4 -f null -
 ```
 
-#### 6. **FPS Thấp / Xử Lý Chậm**
+#### 8. **FPS Thấp / Xử Lý Chậm**
 
 **Vấn Đề:** Xử lý quá chậm cho phân tích thời gian thực
 
@@ -857,7 +1102,7 @@ performance:
 python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 ```
 
-#### 7. **Cảnh Báo "No person detected"**
+#### 9. **Cảnh Báo "No person detected"**
 
 **Vấn Đề:** Ước tính tư thế không phát hiện được người
 
@@ -872,7 +1117,7 @@ pose_estimation:
 # Tránh nền lộn xộn
 ```
 
-#### 8. **Sử Dụng Bộ Nhớ Cao**
+#### 10. **Sử Dụng Bộ Nhớ Cao**
 
 **Vấn Đề:** Ứng dụng tiêu thụ quá nhiều RAM
 
@@ -893,7 +1138,7 @@ batch_processing:
 python -m memory_profiler src/main.py --video input.mp4
 ```
 
-#### 9. **Điểm Không Nhất Quán**
+#### 11. **Điểm Không Nhất Quán**
 
 **Vấn Đề:** Điểm thay đổi đáng kể giữa các lần chạy
 
@@ -945,12 +1190,21 @@ Nếu vấn đề vẫn còn:
 
 ## 🗺️ Lộ Trình
 
+### Phiên Bản 2.0 (Hiện Tại) ✅
+- [x] Theo dõi và so sánh nhiều người (ByteTrack)
+- [x] Phân tích webcam thời gian thực
+- [x] Database PostgreSQL với schema đầy đủ
+- [x] Docker deployment với Docker Compose
+- [x] Error grouping cho lỗi liên tiếp
+- [x] Frontend React với TypeScript
+- [x] API RESTful với FastAPI
+- [x] YOLOv8-Pose integration
+
 ### Phiên Bản 2.1 (Q1 2026)
-- [ ] Theo dõi và so sánh nhiều người
-- [ ] Phân tích webcam thời gian thực
 - [ ] Ứng dụng di động (iOS/Android)
 - [ ] API xử lý dựa trên đám mây
 - [ ] Bảng điều khiển trực quan hóa nâng cao
+- [ ] Real-time collaboration features
 
 ### Phiên Bản 2.2 (Q2 2026)
 - [ ] Ước tính tư thế 3D
@@ -1001,10 +1255,14 @@ Dự án này được cấp phép theo Giấy phép MIT - xem file [LICENSE](LI
 
 ## 👏 Lời Cảm Ơn
 
-- **MediaPipe** của Google cho ước tính tư thế
+- **YOLOv8** của Ultralytics cho ước tính tư thế chính xác cao
+- **ByteTrack** cho multi-object tracking
 - **OpenCV** cho xử lý video
 - **NumPy/SciPy** cho tính toán số
-- **FastAPI** cho framework API
+- **FastAPI** cho framework API hiện đại
+- **React + TypeScript** cho frontend framework
+- **PostgreSQL** cho database management
+- **Docker** cho containerization
 - **pytest** cho framework kiểm tra
 
 ## 📞 Liên Hệ

@@ -44,6 +44,9 @@ class GlobalTestingController(GlobalController):
         self.scores[person_id] -= deduction
         if self.scores[person_id] < 0:
             self.scores[person_id] = 0
+
+        # Lưu lỗi vào database
+        self._save_error_to_db(person_id, error)
         
         # Check if should stop
         if self.scores[person_id] < self.fail_threshold:

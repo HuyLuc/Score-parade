@@ -12,6 +12,7 @@ from pathlib import Path
 from backend.app.api import global_mode, config
 from backend.app.config import API_CONFIG
 from backend.app.utils.exceptions import CustomException
+from backend.app.database.connection import init_db, check_db_connection
 
 # Configure logging
 logging.basicConfig(
@@ -37,6 +38,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize database on startup
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on application startup"""
+    try:
+        # Check database connection
+        if check_db_connection():
+            # Create tables if they don't exist
+            init_db()
+            logger.info("✅ Database initialized successfully")
+        else:
+            logger.warning("⚠️ Database connection failed - running without database persistence")
+    except Exception as e:
+        logger.error(f"❌ Error initializing database: {e}")
+        logger.warning("⚠️ Application will continue without database persistence")
+
 # Include routers
 app.include_router(global_mode.router)
 app.include_router(config.router)
@@ -45,7 +62,12 @@ app.include_router(config.router)
 @app.get("/api/health")
 async def api_health_check():
     """Health check endpoint for Docker/Kubernetes"""
-    return {"status": "healthy", "service": "score-parade"}
+    db_status = check_db_connection()
+    return {
+        "status": "healthy",
+        "service": "score-parade",
+        "database": "connected" if db_status else "disconnected"
+    }
 
 output_dir = Path("data") / "output"
 

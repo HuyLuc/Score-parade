@@ -31,5 +31,5 @@ class GlobalPractisingController(GlobalController):
         Args:
             error: Error dictionary with deduction value
         """
-        # Không trừ điểm trong chế độ luyện tập
-        return
+        # Không trừ điểm trong chế độ luyện tập, nhưng vẫn lưu log vào DB
+        self._save_error_to_db(person_id, error)

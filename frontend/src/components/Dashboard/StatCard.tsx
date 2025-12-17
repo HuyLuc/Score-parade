@@ -15,8 +15,8 @@ export default function StatCard({ title, value, icon, color }: StatCardProps) {
     <Card
       sx={{
         height: '100%',
-        background: `linear-gradient(135deg, ${colorValue}15 0%, ${colorValue}05 100%)`,
-        border: `1px solid ${colorValue}30`,
+        backgroundColor: '#ffffff',
+        border: `1px solid ${colorValue}22`,
       }}
     >
       <CardContent>

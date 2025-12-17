@@ -212,7 +212,7 @@ export default function Layout({ children }: LayoutProps) {
           px: { xs: 2, md: 4 },
           py: { xs: 2, md: 4 },
           width: { md: `calc(100% - ${drawerWidth}px)` },
-          backgroundColor: '#f3f6fb',
+          backgroundColor: '#f4f6fb',
           minHeight: '100vh',
         }}
       >

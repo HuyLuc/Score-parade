@@ -46,6 +46,26 @@ interface ErrorDetail {
   is_sequence?: boolean  // Flag for sequence errors
 }
 
+const toNumericScore = (score: any): number => {
+  if (typeof score === 'number') return score
+  if (score && typeof score === 'object') {
+    const v = Object.values(score as Record<string | number, number>)[0]
+    return typeof v === 'number' ? v : 0
+  }
+  return 0
+}
+
+const toNumericErrors = (errs: any): number => {
+  if (typeof errs === 'number') return errs
+  if (errs && typeof errs === 'object') {
+    return Object.values(errs as Record<string | number, number>).reduce(
+      (acc, v) => acc + (typeof v === 'number' ? v : 0),
+      0
+    )
+  }
+  return 0
+}
+
 export default function Results() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
@@ -82,8 +102,11 @@ export default function Results() {
 
         // Handle multi-person results
         const apiScores: Record<number, number> =
-          scoreData.scores ||
-          (scoreData.score !== undefined ? { 0: scoreData.score } : {})
+          scoreData.scores
+            ? scoreData.scores
+            : scoreData.score !== undefined
+            ? { 0: toNumericScore(scoreData.score) }
+            : {}
 
         const apiErrors: Record<number, ErrorDetail[]> =
           errorsData.errors ||
@@ -101,7 +124,7 @@ export default function Results() {
         
         if (session) {
           // Use data from store
-          setScores({ 0: session.score || 0 })
+          setScores({ 0: toNumericScore(session.score) })
           const storedErrors = session.errors && session.errors.length > 0 ? session.errors : []
           setErrorsPerPerson({ 0: storedErrors })
           setSelectedPersonId(0)
@@ -117,7 +140,7 @@ export default function Results() {
       console.error('Error fetching results:', error)
       // Fallback to store data if available
       if (session) {
-        setScores({ 0: session.score || 0 })
+          setScores({ 0: toNumericScore(session.score) })
         setErrorsPerPerson({ 0: [] })
         setSelectedPersonId(0)
       }
@@ -188,17 +211,28 @@ export default function Results() {
                 <List>
                   {completedSessions.map((s) => (
                     <ListItem key={s.id} disablePadding>
-                      <ListItemButton onClick={() => navigate(`/results/${s.id}`)}>
+                        <ListItemButton onClick={() => navigate(`/results/${s.id}`)}>
                         <Assessment sx={{ mr: 2, color: 'primary.main' }} />
-                        <ListItemText
-                          primary={`Session: ${s.id}`}
-                          secondary={`Điểm: ${s.score.toFixed(1)} | Lỗi: ${s.totalErrors} | ${s.startTime instanceof Date ? s.startTime.toLocaleString() : new Date(s.startTime).toLocaleString()}`}
-                        />
-                        <Chip
-                          label={s.score >= 80 ? 'ĐẠT' : s.score >= 60 ? 'TRUNG BÌNH' : 'KHÔNG ĐẠT'}
-                          color={s.score >= 80 ? 'success' : s.score >= 60 ? 'warning' : 'error'}
-                          size="small"
-                        />
+                        {(() => {
+                          const sc = toNumericScore(s.score)
+                          const err = toNumericErrors(s.totalErrors)
+                          const label =
+                            sc >= 80 ? 'ĐẠT' : sc >= 60 ? 'TRUNG BÌNH' : 'KHÔNG ĐẠT'
+                          const color = sc >= 80 ? 'success' : sc >= 60 ? 'warning' : 'error'
+                          return (
+                            <>
+                              <ListItemText
+                                primary={`Session: ${s.id}`}
+                                secondary={`Điểm: ${sc.toFixed(1)} | Lỗi: ${err} | ${
+                                  s.startTime instanceof Date
+                                    ? s.startTime.toLocaleString()
+                                    : new Date(s.startTime).toLocaleString()
+                                }`}
+                              />
+                              <Chip label={label} color={color} size="small" />
+                            </>
+                          )
+                        })()}
                       </ListItemButton>
                     </ListItem>
                   ))}

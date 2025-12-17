@@ -24,6 +24,15 @@ export default function Dashboard() {
   const [healthStatus, setHealthStatus] = useState<'healthy' | 'unhealthy' | 'checking'>('checking')
   const [loading, setLoading] = useState(true)
 
+  const toNumericScore = (score: any): number => {
+    if (typeof score === 'number') return score
+    if (score && typeof score === 'object') {
+      const v = Object.values(score as Record<string | number, number>)[0]
+      return typeof v === 'number' ? v : 0
+    }
+    return 0
+  }
+
   useEffect(() => {
     const checkHealth = async () => {
       try {
@@ -43,7 +52,7 @@ export default function Dashboard() {
   const completedSessions = sessions.filter((s) => s.status === 'completed').length
   const averageScore =
     sessions.length > 0
-      ? sessions.reduce((sum, s) => sum + s.score, 0) / sessions.length
+      ? sessions.reduce((sum, s) => sum + toNumericScore(s.score), 0) / sessions.length
       : 0
 
   if (loading) {

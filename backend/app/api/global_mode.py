@@ -6,6 +6,7 @@ import logging
 import time
 import cv2
 import numpy as np
+import subprocess
 from typing import Dict, Optional
 from fastapi import APIRouter, File, UploadFile, Form, HTTPException
 from pydantic import BaseModel
@@ -408,9 +409,6 @@ async def upload_and_process_video(
         final_errors = controller.get_errors()  # dict person_id -> list
         total_errors = {pid: len(errs) for pid, errs in final_errors.items()}
 
-        # Đánh dấu session hoàn thành trong database
-        _db_service.complete_session(session_id)
-        
         print(f"[RESULT] Scores per person: {final_score}, Errors per person: {total_errors}")
         
         logger.info(f"Hoàn thành xử lý video: {frame_number} frames, errors per person: {total_errors}, scores: {final_score}")
@@ -448,9 +446,17 @@ async def upload_and_process_video(
             
             # Save skeleton video to data/output/{session_id}/ directory
             # This ensures the video persists and is accessible even if codec is not browser-compatible
-            # Create a dedicated folder for each session
+            # Create a dedicated folder for each session (an toàn với trường hợp thư mục đã tồn tại)
             session_output_dir = OUTPUT_DIR / session_id
-            session_output_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                session_output_dir.mkdir(parents=True, exist_ok=True)
+            except FileExistsError:
+                # Nếu đã tồn tại file/dir cùng tên, chỉ bỏ qua khi nó là thư mục
+                if not session_output_dir.is_dir():
+                    logger.error(
+                        f"[SKELETON] session_output_dir tồn tại nhưng không phải thư mục: {session_output_dir}"
+                    )
+                    raise
             skeleton_video_path = session_output_dir / "skeleton_video.mp4"
             
             logger.info(f"[SKELETON] Bat dau tao video voi skeleton tu: {temp_video_path}")
@@ -558,9 +564,65 @@ async def upload_and_process_video(
                             processed_frames = skeleton_metadata.get('processed_frames', 0)
                             total_frames = skeleton_metadata.get('total_frames', 0)
                             codec = skeleton_metadata.get('codec', 'unknown')
-                            
-                            # Use relative path from OUTPUT_DIR for URL
-                            skeleton_video_filename = f"{session_id}/skeleton_video.mp4"
+
+                            # ---------------------------------------------
+                            # Convert skeleton video sang H.264/AAC thân thiện với trình duyệt
+                            # ---------------------------------------------
+                            web_skeleton_path = session_output_dir / "skeleton_video_web.mp4"
+                            try:
+                                ffmpeg_cmd = [
+                                    "ffmpeg",
+                                    "-y",
+                                    "-i",
+                                    str(skeleton_video_path),
+                                    "-c:v",
+                                    "libx264",
+                                    "-preset",
+                                    "fast",
+                                    "-crf",
+                                    "23",
+                                    "-c:a",
+                                    "aac",
+                                    "-b:a",
+                                    "128k",
+                                    "-movflags",
+                                    "+faststart",
+                                    str(web_skeleton_path),
+                                ]
+                                logger.info(f"[FFMPEG] Converting skeleton video for web: {' '.join(ffmpeg_cmd)}")
+                                subprocess.run(
+                                    ffmpeg_cmd,
+                                    check=True,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE,
+                                )
+                                if web_skeleton_path.exists() and web_skeleton_path.stat().st_size > 0:
+                                    logger.info(
+                                        f"[FFMPEG] Web skeleton video created: {web_skeleton_path} "
+                                        f"({web_skeleton_path.stat().st_size} bytes)"
+                                    )
+                                    target_path = web_skeleton_path
+                                else:
+                                    logger.warning(
+                                        "[FFMPEG] Web skeleton video not found or empty, "
+                                        "falling back to original skeleton_video.mp4"
+                                    )
+                                    target_path = skeleton_video_path
+                            except subprocess.CalledProcessError as ff_err:
+                                logger.error(
+                                    f"[FFMPEG] Error converting skeleton video for web: {ff_err}",
+                                    exc_info=True,
+                                )
+                                target_path = skeleton_video_path
+                            except Exception as ff_unexpected:
+                                logger.error(
+                                    f"[FFMPEG] Unexpected error during conversion: {ff_unexpected}",
+                                    exc_info=True,
+                                )
+                                target_path = skeleton_video_path
+
+                            # Use relative path from OUTPUT_DIR for URL (ưu tiên bản web nếu có)
+                            skeleton_video_filename = f"{session_id}/{target_path.name}"
                             skeleton_video_url = f"/api/videos/{skeleton_video_filename}"
                             
                             logger.info("[SUCCESS] Da tao video voi skeleton:")
@@ -663,6 +725,19 @@ async def upload_and_process_video(
                 debug_log.write(f"Final skeleton_video_url: {skeleton_video_url}\n")
                 debug_log.write(f"Final skeleton_video_filename: {skeleton_video_filename}\n")
         
+        # Cập nhật lại session trong DB với trạng thái completed và skeleton_video_url (nếu có)
+        try:
+            _db_service.create_or_update_session(
+                session_id=session_id,
+                mode="testing" if isinstance(controller, GlobalTestingController) else "practising",
+                status="completed",
+                total_frames=total_frames,
+                video_path=str(temp_video_path),
+                skeleton_video_url=skeleton_video_url,
+            )
+        except Exception as db_err:
+            logger.error(f"❌ Error updating session with skeleton_video_url: {db_err}", exc_info=True)
+
         return {
             "success": True,
             "session_id": session_id,

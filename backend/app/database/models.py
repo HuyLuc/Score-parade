@@ -3,7 +3,7 @@ SQLAlchemy models for Score Parade database
 """
 from sqlalchemy import Column, String, Integer, Float, Boolean, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, foreign
 from sqlalchemy.sql import func
 import uuid
 
@@ -22,6 +22,8 @@ class Session(Base):
     end_time = Column(DateTime(timezone=True), nullable=True)
     total_frames = Column(Integer, default=0)
     video_path = Column(String(500), nullable=True)
+    # URL tương đối để truy cập skeleton video qua API (vd: /api/videos/session_id/skeleton_video_web.mp4)
+    skeleton_video_url = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -50,7 +52,13 @@ class Person(Base):
 
     # Relationships
     session = relationship("Session", back_populates="persons")
-    errors = relationship("Error", back_populates="person", cascade="all, delete-orphan")
+    # Optional convenience relationship: tất cả errors thuộc cùng session.
+    # Dùng primaryjoin rõ ràng để SQLAlchemy không yêu cầu foreign key trực tiếp.
+    errors = relationship(
+        "Error",
+        primaryjoin="Person.session_id == foreign(Error.session_id)",
+        viewonly=True,
+    )
 
     __table_args__ = (
         {"postgresql_partition_by": "RANGE (created_at)"} if False else {},  # Placeholder for future partitioning
@@ -66,6 +74,7 @@ class Error(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id = Column(UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Giữ person_id là INT để khớp schema hiện tại (persons.person_id), không khai báo quan hệ trực tiếp
     person_id = Column(Integer, nullable=False, index=True)
     error_type = Column(String(50), nullable=False, index=True)  # 'arm_angle', 'leg_angle', etc.
     severity = Column(Float, nullable=False)
@@ -81,7 +90,6 @@ class Error(Base):
 
     # Relationships
     session = relationship("Session", back_populates="errors")
-    person = relationship("Person", back_populates="errors")
 
     def __repr__(self):
         return f"<Error(session_id={self.session_id}, person_id={self.person_id}, error_type='{self.error_type}', frame={self.frame_number})>"

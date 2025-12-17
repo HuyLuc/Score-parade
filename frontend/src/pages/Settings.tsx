@@ -20,6 +20,7 @@ import {
   Tooltip,
   Switch,
   FormControlLabel,
+  MenuItem,
 } from '@mui/material'
 import {
   Save,
@@ -30,13 +31,21 @@ import {
 import { toast } from 'react-toastify'
 import { configAPI } from '../services/api'
 
+interface ErrorGroupingConfig {
+  enabled: boolean
+  min_sequence_length: number
+  max_gap_frames: number
+  severity_aggregation: string
+  sequence_deduction: number
+}
+
 interface ScoringConfig {
   error_weights: Record<string, number>
   initial_score: number
   fail_threshold: number
   multi_person_enabled?: boolean
   error_thresholds: Record<string, number>
-  error_grouping: Record<string, any>
+  error_grouping: ErrorGroupingConfig
 }
 
 const ERROR_DESCRIPTIONS: Record<string, string> = {
@@ -165,7 +174,8 @@ export default function Settings() {
             Cấu Hình Chấm Điểm
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Điều chỉnh trọng số, ngưỡng và tham số để phù hợp kịch bản của bạn.
+            Điều chỉnh mức độ khắt khe, chấm đa người và cách gộp lỗi. Mỗi lần bấm{' '}
+            <strong>Lưu Cấu Hình</strong> hệ thống sẽ áp dụng ngay cho các phiên chấm điểm mới.
           </Typography>
         </Box>
         <Box display="flex" gap={2}>
@@ -222,7 +232,7 @@ export default function Settings() {
                         initial_score: parseFloat(e.target.value) || 100,
                       })
                     }
-                    helperText="Điểm số ban đầu khi bắt đầu chấm điểm"
+                    helperText="Điểm số ban đầu trước khi trừ lỗi"
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -238,13 +248,16 @@ export default function Settings() {
                         }
                       />
                     }
-                    label="Bật chấm đa người (gắn ID và chấm riêng từng người)"
+                    label="Bật chấm đa người (tự gắn ID và chấm riêng từng người)"
                   />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 1.5 }}>
+                    Khi bật, hệ thống sẽ tự đếm số người trong khung hình, gán ID ổn định và trả điểm riêng cho từng người.
+                  </Typography>
                 </Grid>
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    label="Ngưỡng Đạt"
+                    label="Ngưỡng Đạt (Testing)"
                     type="number"
                     value={config.fail_threshold}
                     onChange={(e) =>
@@ -253,7 +266,7 @@ export default function Settings() {
                         fail_threshold: parseFloat(e.target.value) || 50,
                       })
                     }
-                    helperText="Điểm tối thiểu để đạt (chỉ áp dụng cho Testing mode)"
+                    helperText="Điểm tối thiểu để được coi là ĐẠT trong chế độ Testing. Practising luôn dùng để luyện tập, không trượt."
                   />
                 </Grid>
               </Grid>
@@ -416,6 +429,131 @@ export default function Settings() {
                   </TableBody>
                 </Table>
               </TableContainer>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Error Grouping */}
+        <Grid item xs={12}>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15,23,42,0.08)',
+              border: '1px solid rgba(15,23,42,0.08)',
+            }}
+          >
+            <CardContent>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Gộp Chuỗi Lỗi Liên Tiếp (Error Grouping)
+                </Typography>
+                <Tooltip title="Giúp tránh trừ điểm nhiều lần cho cùng một động tác sai lặp lại liên tiếp.">
+                  <IconButton size="small">
+                    <HelpOutline fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={!!config.error_grouping?.enabled}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            error_grouping: {
+                              ...config.error_grouping,
+                              enabled: e.target.checked,
+                            },
+                          })
+                        }
+                      />
+                    }
+                    label="Bật gộp lỗi liên tiếp thành 1 lỗi"
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ ml: 1.5 }}>
+                    Khi bật, nhiều frame lỗi liền nhau sẽ được gộp lại và chỉ trừ điểm một lần cho cả chuỗi.
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Số Frame Tối Thiểu Tạo Chuỗi"
+                    type="number"
+                    value={config.error_grouping?.min_sequence_length ?? 2}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        error_grouping: {
+                          ...config.error_grouping,
+                          min_sequence_length: parseInt(e.target.value || '2', 10),
+                        },
+                      })
+                    }
+                    helperText="Ví dụ: 2 nghĩa là từ 2 frame lỗi liên tiếp trở lên mới gộp thành 1 lỗi."
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Số Frame Được Phép Hụt Trong Chuỗi"
+                    type="number"
+                    value={config.error_grouping?.max_gap_frames ?? 1}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        error_grouping: {
+                          ...config.error_grouping,
+                          max_gap_frames: parseInt(e.target.value || '1', 10),
+                        },
+                      })
+                    }
+                    helperText="Cho phép bỏ qua tối đa bao nhiêu frame sạch giữa chuỗi lỗi."
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Cách tính điểm cho chuỗi lỗi"
+                    value={config.error_grouping?.severity_aggregation || 'mean'}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        error_grouping: {
+                          ...config.error_grouping,
+                          severity_aggregation: e.target.value,
+                        },
+                      })
+                    }
+                    helperText="Chọn cách lấy điểm để trừ cho cả chuỗi lỗi."
+                  >
+                    <MenuItem value="mean">Lấy trung bình (nên dùng)</MenuItem>
+                    <MenuItem value="max">Lấy lỗi nặng nhất trong chuỗi</MenuItem>
+                    <MenuItem value="median">Lấy mức giữa (bỏ qua vài giá trị lệch)</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Điểm Trừ Cho Mỗi Chuỗi Lỗi"
+                    type="number"
+                    value={config.error_grouping?.sequence_deduction ?? 1.0}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        error_grouping: {
+                          ...config.error_grouping,
+                          sequence_deduction: parseFloat(e.target.value || '1') || 1,
+                        },
+                      })
+                    }
+                    helperText="Điểm trừ áp dụng cho mỗi chuỗi lỗi (không phải từng frame)."
+                  />
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         </Grid>

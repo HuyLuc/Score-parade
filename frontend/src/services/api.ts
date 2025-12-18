@@ -107,6 +107,12 @@ export const globalModeAPI = {
     return response.data
   },
 
+  // Stop session (mark as completed, save to DB)
+  stopSession: async (sessionId: string) => {
+    const response = await api.post(`/api/global/${sessionId}/stop`)
+    return response.data
+  },
+
   // Delete session
   deleteSession: async (sessionId: string, suppressToast: boolean = false) => {
     const response = await api.delete(`/api/global/${sessionId}`, {

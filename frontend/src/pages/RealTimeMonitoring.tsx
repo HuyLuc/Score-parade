@@ -104,12 +104,30 @@ export default function RealTimeMonitoring() {
     
     try {
       if (sessionId) {
-        await globalModeAPI.deleteSession(sessionId)
-        updateSession(sessionId, { status: 'completed' })
+        // Gọi endpoint stop để lưu session vào DB với status="completed"
+        try {
+          const result = await globalModeAPI.stopSession(sessionId)
+          
+          // Cập nhật session store với dữ liệu từ backend
+          const finalScore = Object.values(result.scores || {})[0]
+          const finalTotalErrors = Object.values(result.total_errors || {})[0]
+          updateSession(sessionId, {
+            status: 'completed',
+            score: typeof finalScore === 'number' ? finalScore : 100,
+            totalErrors: typeof finalTotalErrors === 'number' ? finalTotalErrors : 0,
+          })
+          
+          toast.success('Session đã dừng và lưu vào database')
+        } catch (stopError: any) {
+          console.warn('Error stopping session via API:', stopError)
+          // Fallback: chỉ cập nhật local state
+          updateSession(sessionId, { status: 'completed' })
+          toast.success('Session đã dừng')
+        }
       }
-      toast.success('Session đã dừng')
     } catch (error) {
       console.error('Error stopping session:', error)
+      toast.error('Có lỗi khi dừng session')
     }
   }
 
@@ -151,6 +169,18 @@ export default function RealTimeMonitoring() {
             const parsed = parseKeypoints(p.keypoints)
             if (parsed) {
               nextKeypoints[pid] = parsed
+              // Debug: log keypoints để kiểm tra
+              if (frameNumber % 30 === 0) { // Log mỗi 30 frames để không spam
+                console.log(`[Skeleton] Person ${pid} keypoints:`, parsed.length, 'keypoints detected')
+              }
+            } else {
+              if (frameNumber % 30 === 0) {
+                console.warn(`[Skeleton] Person ${pid} keypoints parse failed:`, p.keypoints)
+              }
+            }
+          } else {
+            if (frameNumber % 30 === 0) {
+              console.warn(`[Skeleton] Person ${pid} no keypoints in response`)
             }
           }
           
@@ -212,85 +242,47 @@ export default function RealTimeMonitoring() {
     }
   }, [isRunning, sessionId, frameNumber, processing, navigate, updateSession])
 
-  // Effect để vẽ skeleton lên canvas - re-render mỗi khi keypoints thay đổi
+  // Effect để vẽ skeleton lên canvas – vẽ lại mỗi khi keypoints hoặc toggle thay đổi
   useEffect(() => {
     if (!canvasRef.current || !showSkeleton) {
       return
     }
 
-    const drawSkeletonFrame = () => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
 
-      // Set canvas size to match webcam container (display size)
-      const container = canvas.parentElement
-      if (!container) return
-      
-      const rect = container.getBoundingClientRect()
-      const displayWidth = rect.width
-      const displayHeight = rect.height
-      
-      // Set canvas size với devicePixelRatio cho độ sắc nét
-      const dpr = window.devicePixelRatio || 1
-      canvas.width = displayWidth * dpr
-      canvas.height = displayHeight * dpr
-      canvas.style.width = `${displayWidth}px`
-      canvas.style.height = `${displayHeight}px`
-      
-      // Scale context để match với display size
-      ctx.setTransform(1, 0, 0, 1, 0, 0) // Reset transform
-      ctx.scale(dpr, dpr)
+    // Set canvas size theo kích thước container (display size)
+    const container = canvas.parentElement
+    if (!container) return
 
-      // Clear canvas
-      ctx.clearRect(0, 0, displayWidth, displayHeight)
+    const rect = container.getBoundingClientRect()
+    const displayWidth = rect.width
+    const displayHeight = rect.height
 
-      // Lấy kích thước screenshot thực tế từ webcam video element
-      const videoElement = webcamRef.current?.video
-      const screenshotWidth = videoElement?.videoWidth || 1280
-      const screenshotHeight = videoElement?.videoHeight || 720
+    canvas.width = displayWidth
+    canvas.height = displayHeight
 
-      // Tính scale từ screenshot coordinates sang display coordinates
-      // Keypoints từ YOLOv8 là pixel coordinates trong screenshot
-      const scaleX = displayWidth / screenshotWidth
-      const scaleY = displayHeight / screenshotHeight
+    // Clear canvas
+    ctx.clearRect(0, 0, displayWidth, displayHeight)
 
-      // Vẽ skeleton cho tất cả người
-      Object.entries(currentKeypoints).forEach(([personIdStr, keypoints]) => {
-        const personId = Number(personIdStr)
-        
-        if (!keypoints || keypoints.length !== 17) return
+    // Lấy kích thước thật của frame (screenshot) từ webcam
+    const videoElement = webcamRef.current?.video
+    const srcWidth = videoElement?.videoWidth || 1280
+    const srcHeight = videoElement?.videoHeight || 720
 
-        // Vẽ skeleton với scale đã tính
-        drawSkeleton(ctx, keypoints, scaleX, scaleY)
-        
-        // Vẽ label person ID
-        drawPersonLabel(ctx, personId, keypoints, scaleX, scaleY)
-      })
-    }
+    const scaleX = displayWidth / srcWidth
+    const scaleY = displayHeight / srcHeight
 
-    // Vẽ ngay lập tức
-    drawSkeletonFrame()
+    // Vẽ skeleton cho tất cả người
+    Object.entries(currentKeypoints).forEach(([personIdStr, keypoints]) => {
+      const personId = Number(personIdStr)
+      if (!keypoints || keypoints.length !== 17) return
 
-    // Re-render mỗi frame để đảm bảo mượt mà (requestAnimationFrame)
-    let animationFrameId: number
-    const animate = () => {
-      drawSkeletonFrame()
-      animationFrameId = requestAnimationFrame(animate)
-    }
-    
-    if (isRunning) {
-      animationFrameId = requestAnimationFrame(animate)
-    }
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId)
-      }
-    }
-  }, [currentKeypoints, showSkeleton, isRunning])
+      drawSkeleton(ctx, keypoints, scaleX, scaleY)
+      drawPersonLabel(ctx, personId, keypoints, scaleX, scaleY)
+    })
+  }, [currentKeypoints, showSkeleton])
 
   useEffect(() => {
     if (!isRunning) return

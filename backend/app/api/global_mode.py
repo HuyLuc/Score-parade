@@ -307,6 +307,74 @@ async def reset_session(session_id: str):
     }
 
 
+@router.post("/{session_id}/stop")
+async def stop_session(session_id: str):
+    """
+    Stop a session (mark as completed in DB, but keep data for Results page)
+    
+    Args:
+        session_id: Session identifier
+        
+    Returns:
+        Stop confirmation
+    """
+    # Lấy score và errors cuối cùng từ controller nếu còn trong memory
+    final_scores = {}
+    final_errors = {}
+    
+    if session_id in _controllers:
+        controller = _controllers[session_id]
+        final_scores = controller.get_score()
+        final_errors = controller.get_errors()
+        
+        # Đảm bảo tất cả errors được lưu vào DB
+        for person_id, errors in final_errors.items():
+            for error in errors:
+                _db_service.create_error(
+                    session_id=session_id,
+                    person_id=person_id,
+                    error_type=error.get("type") or error.get("error_type", "unknown"),
+                    severity=error.get("severity", 1.0),
+                    deduction=error.get("deduction", 0.0),
+                    message=error.get("message") or error.get("description", ""),
+                    frame_number=error.get("frame_number") or error.get("start_frame", 0),
+                    timestamp_sec=error.get("timestamp", 0.0),
+                    is_sequence=error.get("is_sequence", False),
+                    sequence_length=error.get("sequence_length", 0),
+                    start_frame=error.get("start_frame"),
+                    end_frame=error.get("end_frame"),
+                )
+        
+        # Đảm bảo tất cả persons được cập nhật với score cuối cùng
+        for person_id, score in final_scores.items():
+            _db_service.create_or_update_person(
+                session_id=session_id,
+                person_id=person_id,
+                score=score,
+                total_errors=len(final_errors.get(person_id, [])),
+                status="completed",
+            )
+    
+    # Đánh dấu session là completed trong DB (không xóa)
+    _db_service.create_or_update_session(
+        session_id=session_id,
+        mode="testing",  # Default, sẽ được override nếu có controller
+        status="completed",
+        total_frames=0,  # Sẽ được cập nhật nếu có
+    )
+    
+    # KHÔNG xóa controller khỏi memory ngay - để frontend có thể fetch thêm
+    # Controller sẽ tự cleanup sau một thời gian hoặc khi restart
+    
+    return {
+        "success": True,
+        "session_id": session_id,
+        "scores": final_scores,
+        "total_errors": {pid: len(errs) for pid, errs in final_errors.items()},
+        "message": f"Session {session_id} đã được dừng và lưu vào database"
+    }
+
+
 @router.post("/{session_id}/upload-video")
 async def upload_and_process_video(
     session_id: str,

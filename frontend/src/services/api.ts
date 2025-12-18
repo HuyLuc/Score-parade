@@ -47,14 +47,21 @@ api.interceptors.response.use(
 // Global Mode API
 export const globalModeAPI = {
   // Start a session
-  startSession: async (sessionId: string, mode: 'testing' | 'practising', audioFile?: File, audioPath?: string) => {
+  startSession: async (
+    sessionId: string,
+    mode: 'testing' | 'practising',
+    options?: { audioFile?: File; audioPath?: string; candidateId?: string }
+  ) => {
     const formData = new FormData()
     formData.append('mode', mode)
-    if (audioFile) {
-      formData.append('audio_file', audioFile)
+    if (options?.audioFile) {
+      formData.append('audio_file', options.audioFile)
     }
-    if (audioPath) {
-      formData.append('audio_path', audioPath)
+    if (options?.audioPath) {
+      formData.append('audio_path', options.audioPath)
+    }
+    if (options?.candidateId) {
+      formData.append('candidate_id', options.candidateId)
     }
     
     const response = await api.post(`/api/global/${sessionId}/start`, formData, {

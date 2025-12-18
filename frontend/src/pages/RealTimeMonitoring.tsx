@@ -24,7 +24,7 @@ import {
   VolumeOff,
 } from '@mui/icons-material'
 import { toast } from 'react-toastify'
-import { globalModeAPI } from '../services/api'
+import { candidatesAPI, globalModeAPI } from '../services/api'
 import { useSessionStore } from '../store/useSessionStore'
 import { drawSkeleton, drawPersonLabel, parseKeypoints, Keypoint } from '../utils/skeletonDrawer'
 import { ttsManager } from '../utils/ttsManager'
@@ -46,12 +46,33 @@ export default function RealTimeMonitoring() {
   const [showSkeleton, setShowSkeleton] = useState(true)
   const [ttsEnabled, setTtsEnabled] = useState(true)
   const [currentKeypoints, setCurrentKeypoints] = useState<Record<number, Keypoint[]>>({})
+  const [audioFile, setAudioFile] = useState<File | null>(null)
+  const [candidateId, setCandidateId] = useState<string>('')
+  const [candidates, setCandidates] = useState<{ id: string; full_name: string }[]>([])
   const { addSession, updateSession, setActiveSession } = useSessionStore()
 
   useEffect(() => {
     generateSessionId()
     // Khởi tạo TTS
     ttsManager.setEnabled(ttsEnabled)
+
+    // Load danh sách thí sinh cho dropdown (chỉ lần đầu)
+    candidatesAPI
+      .getCandidates(0, 100, true)
+      .then((data: any) => {
+        if (Array.isArray(data?.items)) {
+          setCandidates(
+            data.items.map((c: any) => ({
+              id: c.id,
+              full_name: c.full_name || 'Không tên',
+            })),
+          )
+        }
+      })
+      .catch(() => {
+        // Không hiển thị toast để tránh spam, chỉ log
+        console.warn('Không thể tải danh sách thí sinh cho RealTimeMonitoring')
+      })
     
     return () => {
       // Cleanup khi component unmount
@@ -76,7 +97,10 @@ export default function RealTimeMonitoring() {
     }
 
     try {
-      await globalModeAPI.startSession(sessionId, mode)
+      await globalModeAPI.startSession(sessionId, mode, {
+        audioFile: audioFile || undefined,
+        candidateId: candidateId || undefined,
+      })
       
       addSession({
         id: sessionId,
@@ -85,7 +109,7 @@ export default function RealTimeMonitoring() {
         score: 100,
         totalErrors: 0,
         status: 'active',
-        audioSet: false,
+        audioSet: Boolean(audioFile),
       })
 
       setActiveSession(sessionId)
@@ -286,19 +310,20 @@ export default function RealTimeMonitoring() {
 
   useEffect(() => {
     if (!isRunning) return
-    
+
     // Trong trình duyệt, setInterval trả về number, không phải NodeJS.Timeout
     let interval: number | null = null
     interval = window.setInterval(() => {
+      // Đã có cờ `processing` trong captureAndProcess để tránh request chồng chéo
       captureAndProcess()
-    }, 50) // Process every 50ms (~20 FPS) - tăng tốc độ để skeleton mượt hơn
-    
+    }, 100) // 100ms ~ 10 FPS để giảm tải server, vẫn đủ mượt cho skeleton
+
     return () => {
       if (interval !== null) {
         window.clearInterval(interval)
       }
     }
-  }, [isRunning]) // Remove captureAndProcess from deps to avoid re-render loop
+  }, [isRunning]) // Remove captureAndProcess from deps để tránh re-render loop
 
   const fetchScore = async () => {
     if (!sessionId) return
@@ -473,6 +498,53 @@ export default function RealTimeMonitoring() {
                 margin="normal"
                 helperText="ID duy nhất cho session này"
               />
+
+              {/* Chọn thí sinh */}
+              <TextField
+                select
+                fullWidth
+                label="Thí sinh được chấm (tùy chọn)"
+                value={candidateId}
+                onChange={(e) => setCandidateId(e.target.value)}
+                margin="normal"
+                helperText="Liên kết session realtime với hồ sơ thí sinh trong database"
+              >
+                <MenuItem value="">-- Không chọn --</MenuItem>
+                {candidates.map((c) => (
+                  <MenuItem key={c.id} value={c.id}>
+                    {c.full_name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {/* Chọn file audio cho beat detection (tùy chọn) */}
+              <Box mt={2}>
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  Audio nhạc/khẩu lệnh cho kiểm tra nhịp (tùy chọn)
+                </Typography>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  size="small"
+                  sx={{ mr: 1 }}
+                >
+                  Chọn file audio
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    hidden
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null
+                      setAudioFile(file)
+                    }}
+                  />
+                </Button>
+                {audioFile && (
+                  <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                    Đã chọn: {audioFile.name}
+                  </Typography>
+                )}
+              </Box>
 
               <TextField
                 fullWidth

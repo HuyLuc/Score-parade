@@ -15,7 +15,7 @@ import cv2
 sys.path.insert(0, str(Path(__file__).parent))
 
 from backend.app.services.pose_service import PoseService
-from backend.app.services.video_utils import load_video, get_frames
+from backend.app.services.video_utils import load_video, get_frames, validate_video
 from backend.app.services.geometry import (
     calculate_arm_angle, calculate_leg_angle,
     calculate_arm_height, calculate_leg_height,
@@ -39,95 +39,104 @@ def create_golden_template(video_path: Path, output_dir: Path = None):
     output_dir.mkdir(parents=True, exist_ok=True)
     
     print(f"📹 Đang xử lý video golden: {video_path}")
-    
-    # Load video
-    cap, metadata = load_video(video_path)
-    print(f"   FPS: {metadata['fps']}, Kích thước: {metadata['width']}x{metadata['height']}")
-    
-    # Khởi tạo pose service
-    pose_service = PoseService()
-    
-    # Lưu trữ keypoints và đặc trưng
-    all_keypoints = []
-    features = {
-        "arm_angle": {"left": [], "right": []},
-        "leg_angle": {"left": [], "right": []},
-        "arm_height": {"left": [], "right": []},
-        "leg_height": {"left": [], "right": []},
-        "head_angle": [],
-        "torso_stability": []
-    }
-    
-    frame_count = 0
-    valid_frames = 0
-    
-    print("   Đang phân tích từng frame...")
-    for frame in get_frames(cap):
-        frame_count += 1
+
+    # Validate video trước khi xử lý để tránh crash do file lỗi/corrupt
+    is_valid, error_message = validate_video(video_path)
+    if not is_valid:
+        print(f"❌ Video không hợp lệ: {error_message}")
+        return None
+
+    cap = None
+    try:
+        # Load video
+        cap, metadata = load_video(video_path)
+        print(f"   FPS: {metadata['fps']}, Kích thước: {metadata['width']}x{metadata['height']}")
         
-        # Detect pose
-        keypoints_list = pose_service.predict(frame)
+        # Khởi tạo pose service
+        pose_service = PoseService()
         
-        if len(keypoints_list) == 0:
-            continue
+        # Lưu trữ keypoints và đặc trưng
+        all_keypoints = []
+        features = {
+            "arm_angle": {"left": [], "right": []},
+            "leg_angle": {"left": [], "right": []},
+            "arm_height": {"left": [], "right": []},
+            "leg_height": {"left": [], "right": []},
+            "head_angle": [],
+            "torso_stability": []
+        }
         
-        # Lấy người đầu tiên
-        keypoints = keypoints_list[0]
+        frame_count = 0
+        valid_frames = 0
         
-        # Kiểm tra keypoints hợp lệ (có đủ 17 keypoints và confidence)
-        if keypoints.shape[0] < 17 or keypoints.shape[1] < 3:
-            continue
-        
-        # Lưu keypoints
-        all_keypoints.append(keypoints.copy())
-        
-        # Tính toán đặc trưng
-        # Góc tay
-        left_arm_angle = calculate_arm_angle(keypoints, "left")
-        right_arm_angle = calculate_arm_angle(keypoints, "right")
-        if left_arm_angle is not None:
-            features["arm_angle"]["left"].append(left_arm_angle)
-        if right_arm_angle is not None:
-            features["arm_angle"]["right"].append(right_arm_angle)
-        
-        # Góc chân
-        left_leg_angle = calculate_leg_angle(keypoints, "left")
-        right_leg_angle = calculate_leg_angle(keypoints, "right")
-        if left_leg_angle is not None:
-            features["leg_angle"]["left"].append(left_leg_angle)
-        if right_leg_angle is not None:
-            features["leg_angle"]["right"].append(right_leg_angle)
-        
-        # Độ cao tay
-        left_arm_h = calculate_arm_height(keypoints, "left")
-        right_arm_h = calculate_arm_height(keypoints, "right")
-        if left_arm_h is not None:
-            features["arm_height"]["left"].append(left_arm_h)
-        if right_arm_h is not None:
-            features["arm_height"]["right"].append(right_arm_h)
-        
-        # Độ cao chân
-        left_leg_h = calculate_leg_height(keypoints, "left")
-        right_leg_h = calculate_leg_height(keypoints, "right")
-        if left_leg_h is not None:
-            features["leg_height"]["left"].append(left_leg_h)
-        if right_leg_h is not None:
-            features["leg_height"]["right"].append(right_leg_h)
-        
-        # Góc đầu
-        head_angle = calculate_head_angle(keypoints)
-        if head_angle is not None:
-            features["head_angle"].append(head_angle)
-        
-        # Ổn định thân - sẽ tính sau khi có đủ frames
-        # (torso_stability cần nhiều frames để tính variance)
-        
-        valid_frames += 1
-        
-        if frame_count % 30 == 0:
-            print(f"   Đã xử lý {frame_count} frames...")
-    
-    cap.release()
+        print("   Đang phân tích từng frame...")
+        for frame in get_frames(cap):
+            frame_count += 1
+            
+            # Detect pose
+            keypoints_list = pose_service.predict(frame)
+            
+            if len(keypoints_list) == 0:
+                continue
+            
+            # Lấy người đầu tiên
+            keypoints = keypoints_list[0]
+            
+            # Kiểm tra keypoints hợp lệ (có đủ 17 keypoints và confidence)
+            if keypoints.shape[0] < 17 or keypoints.shape[1] < 3:
+                continue
+            
+            # Lưu keypoints
+            all_keypoints.append(keypoints.copy())
+            
+            # Tính toán đặc trưng
+            # Góc tay
+            left_arm_angle = calculate_arm_angle(keypoints, "left")
+            right_arm_angle = calculate_arm_angle(keypoints, "right")
+            if left_arm_angle is not None:
+                features["arm_angle"]["left"].append(left_arm_angle)
+            if right_arm_angle is not None:
+                features["arm_angle"]["right"].append(right_arm_angle)
+            
+            # Góc chân
+            left_leg_angle = calculate_leg_angle(keypoints, "left")
+            right_leg_angle = calculate_leg_angle(keypoints, "right")
+            if left_leg_angle is not None:
+                features["leg_angle"]["left"].append(left_leg_angle)
+            if right_leg_angle is not None:
+                features["leg_angle"]["right"].append(right_leg_angle)
+            
+            # Độ cao tay
+            left_arm_h = calculate_arm_height(keypoints, "left")
+            right_arm_h = calculate_arm_height(keypoints, "right")
+            if left_arm_h is not None:
+                features["arm_height"]["left"].append(left_arm_h)
+            if right_arm_h is not None:
+                features["arm_height"]["right"].append(right_arm_h)
+            
+            # Độ cao chân
+            left_leg_h = calculate_leg_height(keypoints, "left")
+            right_leg_h = calculate_leg_height(keypoints, "right")
+            if left_leg_h is not None:
+                features["leg_height"]["left"].append(left_leg_h)
+            if right_leg_h is not None:
+                features["leg_height"]["right"].append(right_leg_h)
+            
+            # Góc đầu
+            head_angle = calculate_head_angle(keypoints)
+            if head_angle is not None:
+                features["head_angle"].append(head_angle)
+            
+            # Ổn định thân - sẽ tính sau khi có đủ frames
+            # (torso_stability cần nhiều frames để tính variance)
+            
+            valid_frames += 1
+            
+            if frame_count % 30 == 0:
+                print(f"   Đã xử lý {frame_count} frames...")
+    finally:
+        if cap is not None:
+            cap.release()
     
     if valid_frames == 0:
         print("❌ Không tìm thấy người nào trong video!")
@@ -204,6 +213,9 @@ def evaluate_video(test_video_path: Path, golden_template_dir: Path = None):
         test_video_path: Đường dẫn video test
         golden_template_dir: Thư mục chứa golden template (mặc định: data/golden_template)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if golden_template_dir is None:
         golden_template_dir = GOLDEN_TEMPLATE_DIR
     
@@ -216,9 +228,26 @@ def evaluate_video(test_video_path: Path, golden_template_dir: Path = None):
         print("   Hãy chạy tạo golden template trước!")
         return None
     
-    # Load video test
-    cap, metadata = load_video(test_video_path)
-    print(f"   FPS: {metadata['fps']}, Kích thước: {metadata['width']}x{metadata['height']}")
+    # Load video test với error handling
+    try:
+        cap, metadata = load_video(test_video_path)
+        print(f"   FPS: {metadata['fps']}, Kích thước: {metadata['width']}x{metadata['height']}")
+    except FileNotFoundError as e:
+        print(f"❌ Không tìm thấy file video: {e}")
+        logger.error(f"Video file not found: {test_video_path}", exc_info=True)
+        return None
+    except ValueError as e:
+        print(f"❌ Không thể mở video: {e}")
+        logger.error(f"Cannot open video: {test_video_path}", exc_info=True)
+        return None
+    except cv2.error as e:
+        print(f"❌ Lỗi OpenCV khi đọc video: {e}")
+        logger.error(f"OpenCV error reading video: {test_video_path}", exc_info=True)
+        return None
+    except Exception as e:
+        print(f"❌ Lỗi không xác định khi load video: {type(e).__name__}: {e}")
+        logger.error(f"Unexpected error loading video: {test_video_path}", exc_info=True)
+        return None
     
     # Khởi tạo services
     pose_service = PoseService()
@@ -239,34 +268,43 @@ def evaluate_video(test_video_path: Path, golden_template_dir: Path = None):
     valid_frames = 0
     
     print("   Đang phân tích từng frame...")
-    for frame in get_frames(cap):
-        frame_count += 1
-        
-        # Detect pose
-        keypoints_list = pose_service.predict(frame)
-        
-        if len(keypoints_list) == 0:
-            continue
-        
-        keypoints = keypoints_list[0]
-        
-        if keypoints.shape[0] < 17 or keypoints.shape[1] < 3:
-            continue
-        
-        # Phát hiện lỗi
-        errors = ai_controller.detect_posture_errors(
-            keypoints=keypoints,
-            frame_number=frame_count,
-            timestamp=frame_count / metadata['fps']
-        )
-        
-        all_errors.extend(errors)
-        valid_frames += 1
-        
-        if frame_count % 30 == 0:
-            print(f"   Đã xử lý {frame_count} frames, phát hiện {len(all_errors)} lỗi...")
-    
-    cap.release()
+    try:
+        for frame in get_frames(cap):
+            frame_count += 1
+            
+            # Detect pose
+            try:
+                keypoints_list = pose_service.predict(frame)
+            except Exception as e:
+                logger.warning(f"Lỗi khi detect pose tại frame {frame_count}: {e}")
+                continue
+            
+            if len(keypoints_list) == 0:
+                continue
+            
+            keypoints = keypoints_list[0]
+            
+            if keypoints.shape[0] < 17 or keypoints.shape[1] < 3:
+                continue
+            
+            # Phát hiện lỗi
+            try:
+                errors = ai_controller.detect_posture_errors(
+                    keypoints=keypoints,
+                    frame_number=frame_count,
+                    timestamp=frame_count / metadata['fps']
+                )
+                all_errors.extend(errors)
+                valid_frames += 1
+            except Exception as e:
+                logger.warning(f"Lỗi khi phát hiện lỗi tại frame {frame_count}: {e}")
+                continue
+            
+            if frame_count % 30 == 0:
+                print(f"   Đã xử lý {frame_count} frames, phát hiện {len(all_errors)} lỗi...")
+    finally:
+        # Đảm bảo video capture được đóng ngay cả khi có exception
+        cap.release()
     
     if valid_frames == 0:
         print("❌ Không tìm thấy người nào trong video!")
@@ -385,6 +423,12 @@ def main():
     video_path = Path(args.video_path)
     if not video_path.exists():
         print(f"❌ Video không tồn tại: {video_path}")
+        return
+
+    # Kiểm tra nhanh định dạng & chất lượng video trước khi xử lý
+    is_valid, error_message = validate_video(video_path)
+    if not is_valid:
+        print(f"❌ Video không hợp lệ: {error_message}")
         return
     
     if args.mode == "create_golden":

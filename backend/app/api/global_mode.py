@@ -94,7 +94,8 @@ async def start_session(
     session_id: str,
     mode: str = Form(...),
     audio_file: Optional[UploadFile] = File(None),
-    audio_path: Optional[str] = Form(None)
+    audio_path: Optional[str] = Form(None),
+    candidate_id: Optional[str] = Form(None),
 ):
     """
     Start a global mode session
@@ -149,13 +150,14 @@ async def start_session(
     if audio_file_path:
         controller.set_audio(audio_file_path)
     
-    # Lưu session vào database
+    # Lưu session vào database (kèm candidate_id nếu có)
     _db_service.create_or_update_session(
         session_id=session_id,
         mode=mode,
         status="active",
         video_path=None,
         total_frames=0,
+        candidate_id=candidate_id,
     )
 
     # Store controller

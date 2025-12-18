@@ -161,21 +161,31 @@ class AIController:
             return False, 0.0
         
         # Use adaptive threshold if enabled and error_type provided
-        if (self.adaptive_threshold_manager is not None and 
-            error_type is not None and 
-            std is not None and
-            ADAPTIVE_THRESHOLD_CONFIG.get("enabled", False)):
+        if (
+            self.adaptive_threshold_manager is not None
+            and error_type is not None
+            and std is not None
+            and ADAPTIVE_THRESHOLD_CONFIG.get("enabled", False)
+        ):
             threshold = self.adaptive_threshold_manager.get_threshold(
                 error_type=error_type,
                 golden_mean=mean,
                 golden_std=std,
-                default_threshold=default_threshold
+                default_threshold=default_threshold,
             )
         else:
             # Fallback: Use 3-sigma rule or default threshold
-            threshold = (std * 3) if std else default_threshold
+            base_threshold = default_threshold
+            if base_threshold is None or base_threshold <= 0:
+                # Nếu default_threshold không hợp lệ, lấy từ ERROR_THRESHOLDS hoặc dùng 10.0
+                if error_type is not None:
+                    base_threshold = ERROR_THRESHOLDS.get(error_type, 10.0)
+                else:
+                    base_threshold = 10.0
+
+            threshold = (std * 3) if std else base_threshold
             if threshold is None or threshold <= 0:
-                threshold = default_threshold
+                threshold = base_threshold
         
         diff = abs(value - mean) if mean is not None else 0.0
         return diff > threshold, diff
@@ -186,14 +196,28 @@ class AIController:
         
         Args:
             template_name: Tên template (None = dùng default)
-            camera_angle: Góc quay (None = auto select)
+            camera_angle: Góc quay ("front", "side", "back", "diagonal", None = auto select)
         """
-        # TODO: Implement auto-select profile logic từ step5
-        # Tạm thời: load profile mặc định
+        # Auto-select profile logic dựa trên camera_angle
         if template_name:
             template_dir = GOLDEN_TEMPLATE_DIR / template_name
             profile_path = template_dir / "combined_profile.json"
+        elif camera_angle:
+            # Tự động chọn profile dựa trên góc camera
+            angle_dir = GOLDEN_TEMPLATE_DIR / camera_angle
+            combined_path = angle_dir / "combined_profile.json"
+            default_path = angle_dir / "golden_profile.json"
+            
+            # Ưu tiên combined_profile.json, fallback về golden_profile.json
+            if combined_path.exists():
+                profile_path = combined_path
+            elif default_path.exists():
+                profile_path = default_path
+            else:
+                # Fallback về profile mặc định nếu không tìm thấy profile cho góc này
+                profile_path = GOLDEN_TEMPLATE_DIR / "golden_profile.json"
         else:
+            # Load profile mặc định
             profile_path = GOLDEN_TEMPLATE_DIR / "golden_profile.json"
         
         if profile_path.exists():

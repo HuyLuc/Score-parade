@@ -3,6 +3,7 @@ import Layout from './components/Layout/Layout'
 import Dashboard from './pages/Dashboard'
 import VideoUpload from './pages/VideoUpload'
 import RealTimeMonitoring from './pages/RealTimeMonitoring'
+import LocalMode from './pages/LocalMode'
 import Results from './pages/Results'
 import Sessions from './pages/Sessions'
 import Comparison from './pages/Comparison'
@@ -35,6 +36,7 @@ function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/upload" element={<VideoUpload />} />
                 <Route path="/monitoring" element={<RealTimeMonitoring />} />
+                <Route path="/local-mode" element={<LocalMode />} />
                 <Route path="/results/:sessionId?" element={<Results />} />
                 <Route path="/sessions" element={<Sessions />} />
                 <Route path="/comparison" element={<Comparison />} />

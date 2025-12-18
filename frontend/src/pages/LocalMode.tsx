@@ -25,6 +25,7 @@ import { toast } from 'react-toastify'
 import { candidatesAPI, localModeAPI } from '../services/api'
 import { useSessionStore } from '../store/useSessionStore'
 import { ttsManager } from '../utils/ttsManager'
+import { generateSessionId as generateSessionCode } from '../utils/sessionId'
 
 export default function LocalMode() {
   const webcamRef = useRef<Webcam>(null)
@@ -41,7 +42,8 @@ export default function LocalMode() {
   const { addSession, updateSession, setActiveSession } = useSessionStore()
 
   useEffect(() => {
-    generateSessionId()
+    // Tạo Session ID dạng local_01, local_02... (tăng tự động)
+    setSessionId(generateSessionCode('local'))
     ttsManager.setEnabled(ttsEnabled)
 
     // Load danh sách thí sinh cho dropdown
@@ -77,11 +79,6 @@ export default function LocalMode() {
   useEffect(() => {
     ttsManager.setEnabled(ttsEnabled)
   }, [ttsEnabled])
-
-  const generateSessionId = () => {
-    const id = `local_${Date.now()}`
-    setSessionId(id)
-  }
 
   const startSession = async () => {
     if (!sessionId.trim()) {
@@ -359,7 +356,7 @@ export default function LocalMode() {
                 margin="normal"
                 disabled={isRunning}
               >
-                <MenuItem value="testing">Testing (trừ điểm, dừng khi < ngưỡng)</MenuItem>
+                <MenuItem value="testing">Testing (trừ điểm, dừng khi điểm dưới ngưỡng)</MenuItem>
                 <MenuItem value="practising">Practising (chỉ hiển thị lỗi)</MenuItem>
               </TextField>
 

@@ -26,6 +26,7 @@ import { toast } from 'react-toastify'
 import { globalModeAPI } from '../services/api'
 import { useSessionStore } from '../store/useSessionStore'
 import ReactPlayer from 'react-player'
+import { generateSessionId as generateSessionCode } from '../utils/sessionId'
 
 export default function VideoUpload() {
   const navigate = useNavigate()
@@ -123,18 +124,40 @@ export default function VideoUpload() {
         setVideoError('Video skeleton không được tạo. Có thể do không phát hiện được người trong video hoặc lỗi xử lý.')
       }
 
+      // Tính điểm và tổng lỗi từ kết quả (hỗ trợ multi-person)
+      let finalScore = 100
+      let finalTotalErrors = 0
+
+      if (result.scores && typeof result.scores === 'object') {
+        const values = Object.values(result.scores as Record<string | number, number>)
+        const v = values[0]
+        if (typeof v === 'number') {
+          finalScore = v
+        }
+      } else if (typeof result.score === 'number') {
+        // Fallback cho trường hợp API trả về score đơn
+        finalScore = result.score
+      }
+
+      if (result.total_errors && typeof result.total_errors === 'object') {
+        finalTotalErrors = Object.values(result.total_errors as Record<string | number, number>).reduce(
+          (acc, v) => acc + (typeof v === 'number' ? v : 0),
+          0,
+        )
+      } else if (typeof result.total_errors === 'number') {
+        finalTotalErrors = result.total_errors
+      }
+
       // Update session with results (including errors and skeleton video URL)
       updateSession(sessionId, {
-        score: result.score || 100,
-        totalErrors: result.total_errors || 0,
+        score: finalScore,
+        totalErrors: finalTotalErrors,
         status: 'completed',
         errors: result.errors || [], // Store errors in session
         skeletonVideoUrl: skeletonVideoUrlFull || undefined, // Normalize null -> undefined
       })
 
-      toast.success(
-        `Xử lý hoàn tất! Đã phát hiện ${result.total_errors || 0} lỗi. Điểm: ${(result.score || 100).toFixed(1)}`
-      )
+      toast.success(`Xử lý hoàn tất! Đã phát hiện ${finalTotalErrors} lỗi. Điểm: ${finalScore.toFixed(1)}`)
       
       // Navigate to results page after a delay (allow user to see skeleton video)
       setTimeout(() => {
@@ -149,7 +172,8 @@ export default function VideoUpload() {
   }
 
   const generateSessionId = () => {
-    const id = `session_${Date.now()}`
+    // Tạo Session ID dạng session_01, session_02... (tăng tự động)
+    const id = generateSessionCode('offline')
     setSessionId(id)
   }
 

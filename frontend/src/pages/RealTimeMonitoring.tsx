@@ -28,6 +28,7 @@ import { candidatesAPI, globalModeAPI } from '../services/api'
 import { useSessionStore } from '../store/useSessionStore'
 import { drawSkeleton, drawPersonLabel, parseKeypoints, Keypoint } from '../utils/skeletonDrawer'
 import { ttsManager } from '../utils/ttsManager'
+import { generateSessionId as generateSessionCode } from '../utils/sessionId'
 
 export default function RealTimeMonitoring() {
   const navigate = useNavigate()
@@ -43,7 +44,7 @@ export default function RealTimeMonitoring() {
   const [stablePersonIds, setStablePersonIds] = useState<number[]>([])
   const [frameNumber, setFrameNumber] = useState(0)
   const [processing, setProcessing] = useState(false)
-  const [showSkeleton, setShowSkeleton] = useState(true)
+  const [showSkeleton, setShowSkeleton] = useState(false)
   const [ttsEnabled, setTtsEnabled] = useState(true)
   const [currentKeypoints, setCurrentKeypoints] = useState<Record<number, Keypoint[]>>({})
   const [audioFile, setAudioFile] = useState<File | null>(null)
@@ -52,7 +53,8 @@ export default function RealTimeMonitoring() {
   const { addSession, updateSession, setActiveSession } = useSessionStore()
 
   useEffect(() => {
-    generateSessionId()
+    // Tạo Session ID dạng realtime_01, realtime_02... (tăng tự động)
+    setSessionId(generateSessionCode('realtime'))
     // Khởi tạo TTS
     ttsManager.setEnabled(ttsEnabled)
 
@@ -84,11 +86,6 @@ export default function RealTimeMonitoring() {
   useEffect(() => {
     ttsManager.setEnabled(ttsEnabled)
   }, [ttsEnabled])
-
-  const generateSessionId = () => {
-    const id = `realtime_${Date.now()}`
-    setSessionId(id)
-  }
 
   const startSession = async () => {
     if (!sessionId.trim()) {
@@ -268,7 +265,8 @@ export default function RealTimeMonitoring() {
 
   // Effect để vẽ skeleton lên canvas – vẽ lại mỗi khi keypoints hoặc toggle thay đổi
   useEffect(() => {
-    if (!canvasRef.current || !showSkeleton) {
+      // Nếu tắt hiển thị khớp xương thì không cần vẽ gì
+      if (!canvasRef.current || !showSkeleton) {
       return
     }
 
@@ -417,7 +415,7 @@ export default function RealTimeMonitoring() {
                     console.log('Webcam video size:', settings.width, 'x', settings.height)
                   }}
                 />
-                {/* Canvas overlay cho skeleton */}
+                {/* Canvas overlay cho skeleton (mặc định đang tắt) */}
                 <canvas
                   ref={canvasRef}
                   style={{
@@ -427,6 +425,7 @@ export default function RealTimeMonitoring() {
                     width: '100%',
                     height: '100%',
                     pointerEvents: 'none',
+                    display: showSkeleton ? 'block' : 'none',
                   }}
                 />
                 {processing && (
@@ -559,16 +558,7 @@ export default function RealTimeMonitoring() {
                 <MenuItem value="practising">Practising</MenuItem>
               </TextField>
 
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showSkeleton}
-                    onChange={(e) => setShowSkeleton(e.target.checked)}
-                  />
-                }
-                label="Hiển thị khớp xương"
-                sx={{ mt: 1, display: 'block' }}
-              />
+              {/* Ẩn khớp xương theo yêu cầu, nếu sau này cần có thể bật lại bằng switch này */}
 
               <FormControlLabel
                 control={

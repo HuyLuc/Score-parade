@@ -360,6 +360,20 @@ export const localModeAPI = {
   },
 }
 
+// Sessions API - lấy danh sách sessions từ database
+export const sessionsAPI = {
+  getSessions: async (skip = 0, limit = 100, status?: string) => {
+    const params = new URLSearchParams()
+    params.append('skip', skip.toString())
+    params.append('limit', limit.toString())
+    if (status) {
+      params.append('status', status)
+    }
+    const response = await api.get(`/api/sessions?${params.toString()}`)
+    return response.data
+  },
+}
+
 // Health check
 export const healthCheck = async () => {
   const response = await api.get('/health')

@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse, FileResponse
 import tempfile
 from pathlib import Path
 
-from backend.app.api import global_mode, config
+from backend.app.api import global_mode, config, sessions as sessions_api
 from backend.app.config import API_CONFIG
 from backend.app.utils.exceptions import CustomException
 from backend.app.database.connection import init_db, check_db_connection
@@ -57,6 +57,7 @@ async def startup_event():
 # Include routers
 app.include_router(global_mode.router)
 app.include_router(config.router)
+app.include_router(sessions_api.router)
 
 # Import local mode router
 try:

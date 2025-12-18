@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -27,13 +27,47 @@ import {
 import { toast } from 'react-toastify'
 import { format } from 'date-fns'
 import { useSessionStore } from '../store/useSessionStore'
-import { globalModeAPI } from '../services/api'
+import { globalModeAPI, sessionsAPI } from '../services/api'
 
 export default function Sessions() {
   const navigate = useNavigate()
   const { sessions } = useSessionStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  // Load tất cả sessions từ database khi mở trang
+  useEffect(() => {
+    const fetchSessionsFromDb = async () => {
+      setLoading(true)
+      try {
+        const data = await sessionsAPI.getSessions(0, 500)
+        if (Array.isArray(data?.items)) {
+          const mapped = data.items.map((s: any) => ({
+            id: s.id,
+            mode: s.mode,
+            startTime: s.startTime,
+            score: typeof s.score === 'number' ? s.score : 0,
+            totalErrors: typeof s.totalErrors === 'number' ? s.totalErrors : 0,
+            status: s.status,
+            audioSet: Boolean(s.audioSet),
+          }))
+
+          // Ghi đè danh sách sessions trong store bằng dữ liệu từ DB
+          useSessionStore.setState((state) => ({
+            ...state,
+            sessions: mapped,
+          }))
+        }
+      } catch (error) {
+        console.error('Không thể tải danh sách sessions từ database:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSessionsFromDb()
+  }, [])
 
   // Deduplicate sessions by ID (keep the most recent one)
   const uniqueSessions = sessions.reduce((acc, session) => {
@@ -175,7 +209,15 @@ export default function Sessions() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredSessions.length === 0 ? (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      <Typography color="textSecondary" sx={{ py: 4 }}>
+                        Đang tải danh sách sessions từ database...
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredSessions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center">
                       <Typography color="textSecondary" sx={{ py: 4 }}>

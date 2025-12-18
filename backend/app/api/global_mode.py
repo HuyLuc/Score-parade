@@ -57,6 +57,7 @@ class PersonFrameResult(BaseModel):
     score: float
     stopped: Optional[bool] = False
     message: Optional[str] = None
+    keypoints: Optional[list] = None  # Keypoints for skeleton visualization [17, 3] format
 
 
 class ProcessFrameResponse(BaseModel):
@@ -482,64 +483,27 @@ async def upload_and_process_video(
                 print(f"[OK] Input video path: {temp_video_path}")
                 
                 # Check pose_service
-                with open(debug_log_path, "a", encoding="utf-8") as debug_log:
-                    debug_log.write(f"[INFO] Checking pose_service...\n")
-                    debug_log.write(f"   Controller type: {type(controller)}\n")
-                    debug_log.write(f"   Has pose_service: {hasattr(controller, 'pose_service')}\n")
-                    debug_log.write(f"   pose_service value: {controller.pose_service}\n")
-                    debug_log.write(f"   pose_service type: {type(controller.pose_service) if controller.pose_service else 'None'}\n")
-                
                 if controller.pose_service is None:
-                    error_msg = "[ERROR] pose_service is None!"
-                    logger.error(error_msg)
-                    logger.error(f"   Controller type: {type(controller)}")
-                    logger.error(f"   Controller has pose_service attr: {hasattr(controller, 'pose_service')}")
-                    print(error_msg)
-                    print(f"   Controller type: {type(controller)}")
-                    print(f"   Controller attributes: {dir(controller)}")
-                    with open(debug_log_path, "a", encoding="utf-8") as debug_log:
-                        debug_log.write(f"{error_msg}\n")
-                        debug_log.write(f"   Controller attributes: {dir(controller)}\n")
-                    # Try to get pose_service from global function
+                    # Try to get pose_service from global function as fallback
                     try:
                         pose_service = get_pose_service()
                         logger.info(f"[FALLBACK] Using global pose_service: {type(pose_service)}")
-                        print(f"[FALLBACK] Using global pose_service: {type(pose_service)}")
-                        with open(debug_log_path, "a", encoding="utf-8") as debug_log:
-                            debug_log.write(f"[FALLBACK] Using global pose_service: {type(pose_service)}\n")
-                        # Use fallback pose_service
                         controller_pose_service = pose_service
                     except Exception as fallback_error:
-                        logger.error(f"[ERROR] Cannot get fallback pose_service: {fallback_error}")
-                        print(f"[ERROR] Cannot get fallback pose_service: {fallback_error}")
+                        logger.error(f"[ERROR] Cannot get pose_service: {fallback_error}")
                         skeleton_video_url = None
                         controller_pose_service = None
                 else:
-                    ok_msg = f"[OK] pose_service is available: {type(controller.pose_service)}"
-                    logger.info(ok_msg)
-                    print(ok_msg)
-                    with open(debug_log_path, "a", encoding="utf-8") as debug_log:
-                        debug_log.write(f"{ok_msg}\n")
                     controller_pose_service = controller.pose_service
                 
                 # Only proceed if we have a valid pose_service
                 if controller_pose_service is not None:
                     
                     try:
-                        logger.info("[SKELETON] Dang goi create_skeleton_video...")
-                        logger.info(f"   Input: {temp_video_path}")
-                        logger.info(f"   Output: {skeleton_video_path}")
-                        logger.info(f"   Output dir exists: {session_output_dir.exists()}")
-                        logger.info(f"   Output dir: {session_output_dir.absolute()}")
-                        logger.info(f"   Confidence threshold: 0.3")
-                        print("[SKELETON] Dang goi create_skeleton_video...")
-                        print(f"   Input: {temp_video_path}")
-                        print(f"   Output: {skeleton_video_path}")
+                        logger.info(f"Creating skeleton video: {temp_video_path} -> {skeleton_video_path}")
                         
                         # Ensure output directory exists
                         session_output_dir.mkdir(parents=True, exist_ok=True)
-                        logger.info(f"[OK] Ensured output directory exists: {session_output_dir.absolute()}")
-                        print(f"[OK] Output directory exists: {session_output_dir.absolute()}")
                         
                         skeleton_metadata = create_skeleton_video(
                             str(temp_video_path),
@@ -548,14 +512,10 @@ async def upload_and_process_video(
                             confidence_threshold=0.3
                         )
                         
-                        logger.info("[OK] create_skeleton_video returned successfully!")
-                        logger.info(f"[METADATA] {skeleton_metadata}")
-                        print("[OK] create_skeleton_video returned successfully!")
-                        print(f"[METADATA] {skeleton_metadata}")
+                        logger.info("Skeleton video created successfully")
                         
                         # Wait a bit and check again (file might be written asynchronously)
                         time.sleep(0.5)
-                        print("[WAIT] Waiting 0.5s for file to be written...")
                         
                         # Check if file exists immediately after function returns
                         if skeleton_video_path.exists():
@@ -624,105 +584,28 @@ async def upload_and_process_video(
                             skeleton_video_filename = f"{session_id}/{target_path.name}"
                             skeleton_video_url = f"/api/videos/{skeleton_video_filename}"
                             
-                            logger.info("[SUCCESS] Da tao video voi skeleton:")
-                            logger.info(f"   Path: {skeleton_video_path}")
-                            logger.info(f"   Absolute path: {skeleton_video_path.absolute()}")
-                            logger.info(f"   Size: {file_size} bytes")
-                            logger.info(f"   Frames: {processed_frames}/{total_frames} co skeleton")
-                            logger.info(f"   Codec: {codec}")
-                            logger.info(f"   URL: {skeleton_video_url}")
-                            print("[SUCCESS] Da tao video voi skeleton!")
-                            print(f"   Path: {skeleton_video_path.absolute()}")
-                            print(f"   Size: {file_size} bytes")
-                            print(f"   Frames: {processed_frames}/{total_frames} co skeleton")
-                            print(f"   URL: {skeleton_video_url}")
+                            logger.info(f"Skeleton video created: {file_size} bytes, {processed_frames}/{total_frames} frames with skeleton")
                             
                             if processed_frames == 0:
-                                logger.warning("[WARNING] Khong co skeleton nao duoc phat hien trong video!")
-                                print("[WARNING] Khong co skeleton nao duoc phat hien trong video!")
+                                logger.warning("No skeletons detected in video")
                         else:
-                            logger.error(f"[ERROR] Video skeleton khong duoc tao (file khong ton tai): {skeleton_video_path}")
-                            logger.error(f"   Absolute path: {skeleton_video_path.absolute()}")
-                            logger.error(f"   Parent dir exists: {skeleton_video_path.parent.exists()}")
-                            logger.error(f"   Parent dir: {skeleton_video_path.parent}")
-                            logger.error(f"   Parent dir absolute: {skeleton_video_path.parent.absolute()}")
-                            print(f"[ERROR] Video skeleton khong duoc tao!")
-                            print(f"   Path: {skeleton_video_path.absolute()}")
-                            print(f"   Parent dir exists: {skeleton_video_path.parent.exists()}")
-                            # List files in parent directory
-                            if skeleton_video_path.parent.exists():
-                                files = list(skeleton_video_path.parent.iterdir())
-                                logger.error(f"   Files in parent dir: {files}")
-                                print(f"   Files in parent dir: {[f.name for f in files]}")
+                            logger.error(f"Skeleton video file not created: {skeleton_video_path}")
                             skeleton_video_url = None
-                    except RuntimeError as runtime_error:
-                        logger.error(f"[ERROR] RuntimeError trong create_skeleton_video: {runtime_error}", exc_info=True)
-                        logger.error(f"   RuntimeError details: {str(runtime_error)}")
-                        print(f"[ERROR] RuntimeError: {runtime_error}")
-                        import traceback
-                        print(traceback.format_exc())
-                        skeleton_video_url = None
                     except Exception as create_error:
-                        error_msg = f"[ERROR] Exception trong create_skeleton_video: {type(create_error).__name__}: {create_error}"
-                        logger.error(error_msg, exc_info=True)
-                        import traceback
-                        traceback_str = traceback.format_exc()
-                        logger.error(f"   Traceback: {traceback_str}")
-                        print(error_msg)
-                        print(traceback_str)
-                        with open(debug_log_path, "a", encoding="utf-8") as debug_log:
-                            debug_log.write(f"{error_msg}\n")
-                            debug_log.write(f"Traceback:\n{traceback_str}\n")
+                        logger.error(f"Error creating skeleton video: {create_error}", exc_info=True)
                         skeleton_video_url = None
                 else:
-                    error_msg = "[ERROR] controller_pose_service is None - Cannot create skeleton video!"
-                    logger.error(error_msg)
-                    print(error_msg)
-                    with open(debug_log_path, "a", encoding="utf-8") as debug_log:
-                        debug_log.write(f"{error_msg}\n")
+                    logger.error("Cannot create skeleton video: pose_service is None")
                     skeleton_video_url = None
-        except ImportError as import_error:
-            logger.error(f"[ERROR] ImportError khi import create_skeleton_video: {import_error}", exc_info=True)
-            print(f"[ERROR] ImportError: {import_error}")
-            skeleton_video_filename = None
-            skeleton_video_url = None
         except Exception as e:
-            error_msg = f"[ERROR] Loi khi tao video voi skeleton: {type(e).__name__}: {e}"
-            logger.error(error_msg, exc_info=True)
-            import traceback
-            traceback_str = traceback.format_exc()
-            logger.error(f"   Full traceback: {traceback_str}")
-            print(error_msg)
-            print(traceback_str)
-            with open(debug_log_path, "a", encoding="utf-8") as debug_log:
-                debug_log.write(f"{error_msg}\n")
-                debug_log.write(f"Full traceback:\n{traceback_str}\n")
+            logger.error(f"Error creating skeleton video: {e}", exc_info=True)
             skeleton_video_filename = None
             skeleton_video_url = None
         
-        logger.info("=" * 60)
-        logger.info("KET THUC TAO SKELETON VIDEO")
-        logger.info(f"Final skeleton_video_url: {skeleton_video_url}")
-        logger.info(f"Final skeleton_video_filename: {skeleton_video_filename}")
-        print(f"\n{'='*60}")
-        print(f"KET THUC TAO SKELETON VIDEO")
-        print(f"Final skeleton_video_url: {skeleton_video_url}")
-        print(f"Final skeleton_video_filename: {skeleton_video_filename}")
-        print(f"{'='*60}\n")
         if skeleton_video_url:
-            logger.info(f"[SUCCESS] Skeleton video saved to: {skeleton_video_path}")
-            logger.info(f"[URL] Access via: http://localhost:8000{skeleton_video_url}")
-            logger.info(f"[PATH] Or download from: {skeleton_video_path}")
-            print(f"[SUCCESS] Skeleton video saved to: {skeleton_video_path}")
-            print(f"[URL] Access via: http://localhost:8000{skeleton_video_url}")
+            logger.info(f"Skeleton video available at: {skeleton_video_url}")
         else:
-            error_msg = "[ERROR] skeleton_video_url is None - Video khong duoc tao!"
-            logger.error(error_msg)
-            print(error_msg)
-            with open(debug_log_path, "a", encoding="utf-8") as debug_log:
-                debug_log.write(f"{error_msg}\n")
-                debug_log.write(f"Final skeleton_video_url: {skeleton_video_url}\n")
-                debug_log.write(f"Final skeleton_video_filename: {skeleton_video_filename}\n")
+            logger.warning("Skeleton video was not created")
         
         # Cập nhật lại session trong DB với trạng thái completed và skeleton_video_url (nếu có)
         try:

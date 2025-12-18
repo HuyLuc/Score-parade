@@ -78,10 +78,16 @@ SCORING_CONFIG = {
     "initial_score": 100,  # Điểm ban đầu
     # Ngưỡng đạt/trượt theo chế độ
     "fail_thresholds": {
-        "testing": 60.0,     # Thi / kiểm tra: chặt hơn 50
+        "testing": 50.0,     # Thi / kiểm tra: dưới 50 điểm = trượt
         "practising": 0.0,   # Luyện tập: luôn coi là để học, không trượt
         "default": 50.0,     # Dự phòng cho các nơi cũ chưa truyền mode
     },
+    # Chế độ khắt khe (easy/medium/hard)
+    "difficulty_level": "medium",  # 'easy', 'medium', 'hard'
+    # Tiêu chí chấm (đi đều hay đi nghiêm)
+    "scoring_criterion": "di_deu",  # 'di_deu' hoặc 'di_nghiem'
+    # Chế độ hoạt động (dev/release)
+    "app_mode": "release",  # 'dev' hoặc 'release'
     # Bật/tắt chấm đa người (frontend có thể điều chỉnh)
     "multi_person_enabled": True,
     "error_weights": {
@@ -91,6 +97,7 @@ SCORING_CONFIG = {
         "leg_height": 0.8,
         # Đầu / head quan trọng ngang tay/chân trong điều lệnh
         "head_angle": 1.0,
+        "neck_angle": 0.9,  # Cổ quan trọng nhưng ít hơn đầu một chút
         "torso_stability": 0.8,
         "rhythm": 1.0,
         "distance": 0.8,
@@ -105,6 +112,7 @@ ERROR_THRESHOLDS = {
     "arm_height": 50.0,  # Tăng từ 30.0 → 50.0
     "leg_height": 45.0,  # Tăng từ 25.0 → 45.0
     "head_angle": 30.0,  # Tăng từ 15.0 → 30.0 (GẤP ĐÔI - QUAN TRỌNG!)
+    "neck_angle": 25.0,  # Ngưỡng cho góc cổ (tương tự head nhưng lỏng hơn một chút)
     "torso_stability": 0.85,  # Tăng từ 0.7 → 0.85
     "rhythm": 0.15,  # Rhythm tolerance: 150ms (0.15 seconds)
     "distance": 50.0,  # Tăng từ 30.0 → 50.0

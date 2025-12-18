@@ -188,10 +188,17 @@ cd Score-parade
 python -m venv venv
 
 # Kích hoạt môi trường ảo
-# Trên Windows:
-.venv/Scripts/Activate.ps1
+# Trên Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+# Hoặc nếu gặp lỗi execution policy:
+# Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+# .\venv\Scripts\Activate.ps1
+
+# Trên Windows (CMD):
+# venv\Scripts\activate.bat
+
 # Trên macOS/Linux:
-source venv/bin/activate
+# source venv/bin/activate
 ```
 
 ### Bước 3: Cài Đặt Phụ Thuộc Backend

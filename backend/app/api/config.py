@@ -22,6 +22,9 @@ class ScoringConfigResponse(BaseModel):
     multi_person_enabled: bool
     error_thresholds: Dict[str, float]
     error_grouping: Dict[str, Any]
+    difficulty_level: str  # 'easy', 'medium', 'hard'
+    scoring_criterion: str  # 'di_deu' hoặc 'di_nghiem'
+    app_mode: str  # 'dev' hoặc 'release'
 
 
 class ScoringConfigUpdate(BaseModel):
@@ -32,6 +35,9 @@ class ScoringConfigUpdate(BaseModel):
     multi_person_enabled: bool = None
     error_thresholds: Dict[str, float] = None
     error_grouping: Dict[str, Any] = None
+    difficulty_level: str = None  # 'easy', 'medium', 'hard'
+    scoring_criterion: str = None  # 'di_deu' hoặc 'di_nghiem'
+    app_mode: str = None  # 'dev' hoặc 'release'
 
 
 @router.get("/scoring", response_model=ScoringConfigResponse)
@@ -46,10 +52,13 @@ async def get_scoring_config():
         return ScoringConfigResponse(
             error_weights=SCORING_CONFIG.get("error_weights", {}),
             initial_score=SCORING_CONFIG.get("initial_score", 100.0),
-            fail_threshold=SCORING_CONFIG.get("fail_thresholds", {}).get("testing", 60.0),
+            fail_threshold=SCORING_CONFIG.get("fail_thresholds", {}).get("testing", 50.0),
             multi_person_enabled=SCORING_CONFIG.get("multi_person_enabled", False),
             error_thresholds=ERROR_THRESHOLDS,
-            error_grouping=ERROR_GROUPING_CONFIG
+            error_grouping=ERROR_GROUPING_CONFIG,
+            difficulty_level=SCORING_CONFIG.get("difficulty_level", "medium"),
+            scoring_criterion=SCORING_CONFIG.get("scoring_criterion", "di_deu"),
+            app_mode=SCORING_CONFIG.get("app_mode", "release")
         )
     except Exception as e:
         logger.error(f"Error getting scoring config: {e}", exc_info=True)
@@ -98,6 +107,24 @@ async def update_scoring_config(config: ScoringConfigUpdate):
         # Update ERROR_GROUPING_CONFIG
         if config.error_grouping is not None:
             ERROR_GROUPING_CONFIG.update(config.error_grouping)
+        
+        # Update difficulty_level
+        if config.difficulty_level is not None:
+            if config.difficulty_level not in ["easy", "medium", "hard"]:
+                raise HTTPException(status_code=400, detail="difficulty_level phải là 'easy', 'medium', hoặc 'hard'")
+            SCORING_CONFIG["difficulty_level"] = config.difficulty_level
+        
+        # Update scoring_criterion
+        if config.scoring_criterion is not None:
+            if config.scoring_criterion not in ["di_deu", "di_nghiem"]:
+                raise HTTPException(status_code=400, detail="scoring_criterion phải là 'di_deu' hoặc 'di_nghiem'")
+            SCORING_CONFIG["scoring_criterion"] = config.scoring_criterion
+        
+        # Update app_mode
+        if config.app_mode is not None:
+            if config.app_mode not in ["dev", "release"]:
+                raise HTTPException(status_code=400, detail="app_mode phải là 'dev' hoặc 'release'")
+            SCORING_CONFIG["app_mode"] = config.app_mode
         
         logger.info(f"Scoring configuration updated: {config.dict(exclude_none=True)}")
         

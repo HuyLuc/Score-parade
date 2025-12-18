@@ -23,6 +23,8 @@ class DatabaseService:
         total_frames: int = 0,
         video_path: Optional[str] = None,
         skeleton_video_url: Optional[str] = None,
+        candidate_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> Optional[Session]:
         """Tạo hoặc cập nhật session"""
         try:
@@ -39,6 +41,10 @@ class DatabaseService:
                         session.video_path = video_path
                     if skeleton_video_url is not None:
                         session.skeleton_video_url = skeleton_video_url
+                    if candidate_id is not None:
+                        session.candidate_id = UUID(candidate_id)
+                    if user_id is not None:
+                        session.user_id = UUID(user_id)
                     if status == "completed":
                         session.end_time = datetime.utcnow()
                     logger.debug(f"✅ Updated session: {session_id}")
@@ -51,6 +57,8 @@ class DatabaseService:
                         total_frames=total_frames,
                         video_path=video_path,
                         skeleton_video_url=skeleton_video_url,
+                        candidate_id=UUID(candidate_id) if candidate_id else None,
+                        user_id=UUID(user_id) if user_id else None,
                     )
                     db.add(session)
                     logger.info(f"✅ Created session: {session_id}")

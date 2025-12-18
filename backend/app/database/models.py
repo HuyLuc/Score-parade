@@ -28,8 +28,12 @@ class Session(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
+    candidate_id = Column(UUID(as_uuid=True), ForeignKey("candidates.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     persons = relationship("Person", back_populates="session", cascade="all, delete-orphan")
     errors = relationship("Error", back_populates="session", cascade="all, delete-orphan")
+    candidate = relationship("Candidate", back_populates="sessions")
+    user = relationship("User", back_populates="sessions")
 
     def __repr__(self):
         return f"<Session(session_id='{self.session_id}', mode='{self.mode}', status='{self.status}')>"
@@ -122,4 +126,54 @@ class Config(Base):
 
     def __repr__(self):
         return f"<Config(key='{self.key}')>"
+
+
+class User(Base):
+    """Users table - Lưu thông tin người dùng (đăng ký/đăng nhập)"""
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)  # Bcrypt hash
+    full_name = Column(String(200), nullable=True)
+    age = Column(Integer, nullable=True)
+    rank = Column(String(50), nullable=True)  # Cấp bậc (đại đội trưởng, v.v.)
+    insignia = Column(String(50), nullable=True)  # Quân hàm (đại uý, v.v.)
+    avatar_path = Column(String(500), nullable=True)  # Đường dẫn ảnh đại diện
+    gender = Column(String(10), nullable=True)  # 'male', 'female', 'other'
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    candidates = relationship("Candidate", back_populates="created_by_user", cascade="all, delete-orphan")
+    sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<User(username='{self.username}', full_name='{self.full_name}')>"
+
+
+class Candidate(Base):
+    """Candidates table - Lưu thông tin thí sinh"""
+    __tablename__ = "candidates"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    full_name = Column(String(200), nullable=False)
+    age = Column(Integer, nullable=True)
+    gender = Column(String(10), nullable=True)  # 'male', 'female', 'other'
+    rank = Column(String(50), nullable=True)  # Cấp bậc
+    insignia = Column(String(50), nullable=True)  # Quân hàm
+    avatar_path = Column(String(500), nullable=True)  # Đường dẫn ảnh đại diện
+    notes = Column(Text, nullable=True)  # Ghi chú thêm
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    created_by_user = relationship("User", back_populates="candidates")
+    sessions = relationship("Session", back_populates="candidate", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Candidate(full_name='{self.full_name}', rank='{self.rank}')>"
 

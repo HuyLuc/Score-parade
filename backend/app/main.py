@@ -58,6 +58,34 @@ async def startup_event():
 app.include_router(global_mode.router)
 app.include_router(config.router)
 
+# Import local mode router
+try:
+    from backend.app.api import local_mode
+    app.include_router(local_mode.router)
+except ImportError:
+    logger.warning("⚠️ Local mode module not available - local mode disabled")
+
+# Import auth router
+try:
+    from backend.app.api import auth
+    app.include_router(auth.router)
+except ImportError:
+    logger.warning("⚠️ Auth module not available - authentication disabled")
+
+# Import candidates router
+try:
+    from backend.app.api import candidates
+    app.include_router(candidates.router)
+except ImportError:
+    logger.warning("⚠️ Candidates module not available - candidates management disabled")
+
+# Import barem router
+try:
+    from backend.app.api import barem
+    app.include_router(barem.router)
+except ImportError:
+    logger.warning("⚠️ Barem module not available - barem view disabled")
+
 # Health check endpoint for Docker (at /api/health)
 @app.get("/api/health")
 async def api_health_check():

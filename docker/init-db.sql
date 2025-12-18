@@ -6,6 +6,42 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
+-- Users table - Lưu thông tin người dùng (đăng ký/đăng nhập)
+-- ============================================
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(200),
+    age INTEGER,
+    rank VARCHAR(50), -- Cấp bậc (đại đội trưởng, v.v.)
+    insignia VARCHAR(50), -- Quân hàm (đại uý, v.v.)
+    avatar_path VARCHAR(500), -- Đường dẫn ảnh đại diện
+    gender VARCHAR(10), -- 'male', 'female', 'other'
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- Candidates table - Lưu thông tin thí sinh
+-- ============================================
+CREATE TABLE IF NOT EXISTS candidates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    full_name VARCHAR(200) NOT NULL,
+    age INTEGER,
+    gender VARCHAR(10), -- 'male', 'female', 'other'
+    rank VARCHAR(50), -- Cấp bậc
+    insignia VARCHAR(50), -- Quân hàm
+    avatar_path VARCHAR(500), -- Đường dẫn ảnh đại diện
+    notes TEXT, -- Ghi chú thêm
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
 -- Sessions table - Lưu thông tin phiên chấm điểm
 -- ============================================
 CREATE TABLE IF NOT EXISTS sessions (
@@ -17,6 +53,10 @@ CREATE TABLE IF NOT EXISTS sessions (
     end_time TIMESTAMP WITH TIME ZONE,
     total_frames INTEGER DEFAULT 0,
     video_path VARCHAR(500),
+    -- URL tương đối để truy cập skeleton video qua API
+    skeleton_video_url VARCHAR(500),
+    candidate_id UUID REFERENCES candidates(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -91,9 +131,18 @@ CREATE TABLE IF NOT EXISTS configs (
 -- ============================================
 -- Indexes for better query performance
 -- ============================================
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
+
+CREATE INDEX IF NOT EXISTS idx_candidates_created_by ON candidates(created_by);
+CREATE INDEX IF NOT EXISTS idx_candidates_is_active ON candidates(is_active);
+CREATE INDEX IF NOT EXISTS idx_candidates_full_name ON candidates(full_name);
+
 CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
 CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sessions_candidate_id ON sessions(candidate_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_persons_session_id ON persons(session_id);
 CREATE INDEX IF NOT EXISTS idx_persons_person_id ON persons(person_id);
@@ -187,12 +236,26 @@ CREATE TRIGGER update_configs_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_candidates_updated_at ON candidates;
+CREATE TRIGGER update_candidates_updated_at
+    BEFORE UPDATE ON candidates
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================
 -- Grant permissions (if needed)
 -- ============================================
 -- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO scoreuser;
 -- GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO scoreuser;
 
+COMMENT ON TABLE users IS 'Bảng lưu thông tin người dùng (đăng ký/đăng nhập)';
+COMMENT ON TABLE candidates IS 'Bảng lưu thông tin thí sinh';
 COMMENT ON TABLE sessions IS 'Bảng lưu thông tin các phiên chấm điểm';
 COMMENT ON TABLE persons IS 'Bảng lưu thông tin từng người trong mỗi phiên';
 COMMENT ON TABLE errors IS 'Bảng lưu chi tiết các lỗi phát hiện được';

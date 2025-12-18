@@ -29,7 +29,7 @@ import {
   HelpOutline,
 } from '@mui/icons-material'
 import { toast } from 'react-toastify'
-import { configAPI } from '../services/api'
+import { configAPI, authAPI } from '../services/api'
 
 interface ErrorGroupingConfig {
   enabled: boolean
@@ -46,6 +46,85 @@ interface ScoringConfig {
   multi_person_enabled?: boolean
   error_thresholds: Record<string, number>
   error_grouping: ErrorGroupingConfig
+  difficulty_level?: string  // 'easy', 'medium', 'hard'
+  scoring_criterion?: string  // 'di_deu' hoặc 'di_nghiem'
+  app_mode?: string  // 'dev' hoặc 'release'
+}
+
+// Change Password Component
+function ChangePasswordForm() {
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changing, setChanging] = useState(false)
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp')
+      return
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự')
+      return
+    }
+
+    setChanging(true)
+    try {
+      await authAPI.changePassword(oldPassword, newPassword)
+      toast.success('Đổi mật khẩu thành công!')
+      setOldPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || 'Đổi mật khẩu thất bại')
+    } finally {
+      setChanging(false)
+    }
+  }
+
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        <TextField
+          fullWidth
+          label="Mật khẩu cũ"
+          type="password"
+          value={oldPassword}
+          onChange={(e) => setOldPassword(e.target.value)}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <TextField
+          fullWidth
+          label="Mật khẩu mới"
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          helperText="Tối thiểu 6 ký tự"
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <TextField
+          fullWidth
+          label="Xác nhận mật khẩu mới"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={handleChangePassword}
+          disabled={changing || !oldPassword || !newPassword || !confirmPassword}
+        >
+          {changing ? 'Đang đổi...' : 'Đổi Mật Khẩu'}
+        </Button>
+      </Grid>
+    </Grid>
+  )
 }
 
 const ERROR_DESCRIPTIONS: Record<string, string> = {
@@ -97,6 +176,9 @@ export default function Settings() {
         multi_person_enabled: config.multi_person_enabled,
         error_thresholds: config.error_thresholds,
         error_grouping: config.error_grouping,
+        difficulty_level: config.difficulty_level,
+        scoring_criterion: config.scoring_criterion,
+        app_mode: config.app_mode,
       })
       toast.success('Cấu hình đã được lưu thành công!')
     } catch (err: any) {
@@ -269,7 +351,81 @@ export default function Settings() {
                     helperText="Điểm tối thiểu để được coi là ĐẠT trong chế độ Testing. Practising luôn dùng để luyện tập, không trượt."
                   />
                 </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Mức Độ Khắt Khe"
+                    value={config.difficulty_level || 'medium'}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        difficulty_level: e.target.value,
+                      })
+                    }
+                    helperText="Điều chỉnh mức độ khắt khe khi chấm điểm"
+                  >
+                    <MenuItem value="easy">Dễ - Khoan dung hơn</MenuItem>
+                    <MenuItem value="medium">Trung bình - Cân bằng</MenuItem>
+                    <MenuItem value="hard">Khó - Khắt khe hơn</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Tiêu Chí Chấm"
+                    value={config.scoring_criterion || 'di_deu'}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        scoring_criterion: e.target.value,
+                      })
+                    }
+                    helperText="Chọn tiêu chí chấm điểm"
+                  >
+                    <MenuItem value="di_deu">Đi Đều</MenuItem>
+                    <MenuItem value="di_nghiem">Đi Nghiêm</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Chế Độ Hoạt Động"
+                    value={config.app_mode || 'release'}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        app_mode: e.target.value,
+                      })
+                    }
+                    helperText="Chế độ dev hiển thị thông tin debug, release là chế độ production"
+                  >
+                    <MenuItem value="dev">Development - Hiển thị debug</MenuItem>
+                    <MenuItem value="release">Release - Production</MenuItem>
+                  </TextField>
+                </Grid>
               </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Change Password */}
+        <Grid item xs={12} md={6}>
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: '0 14px 40px rgba(15,23,42,0.08)',
+              border: '1px solid rgba(15,23,42,0.08)',
+            }}
+          >
+            <CardContent>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
+                Đổi Mật Khẩu
+              </Typography>
+              <Divider sx={{ my: 2 }} />
+              <ChangePasswordForm />
             </CardContent>
           </Card>
         </Grid>

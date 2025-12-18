@@ -13,19 +13,26 @@ import {
   CircularProgress,
   Alert,
   Chip,
+  FormControlLabel,
+  Switch,
 } from '@mui/material'
 import {
   Stop,
   PlayArrow,
   Refresh,
+  VolumeUp,
+  VolumeOff,
 } from '@mui/icons-material'
 import { toast } from 'react-toastify'
 import { globalModeAPI } from '../services/api'
 import { useSessionStore } from '../store/useSessionStore'
+import { drawSkeleton, drawPersonLabel, parseKeypoints, Keypoint } from '../utils/skeletonDrawer'
+import { ttsManager } from '../utils/ttsManager'
 
 export default function RealTimeMonitoring() {
   const navigate = useNavigate()
   const webcamRef = useRef<Webcam>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isRunning, setIsRunning] = useState(false)
   const [sessionId, setSessionId] = useState('')
   const [mode, setMode] = useState<'testing' | 'practising'>('practising')
@@ -36,11 +43,26 @@ export default function RealTimeMonitoring() {
   const [stablePersonIds, setStablePersonIds] = useState<number[]>([])
   const [frameNumber, setFrameNumber] = useState(0)
   const [processing, setProcessing] = useState(false)
+  const [showSkeleton, setShowSkeleton] = useState(true)
+  const [ttsEnabled, setTtsEnabled] = useState(true)
+  const [currentKeypoints, setCurrentKeypoints] = useState<Record<number, Keypoint[]>>({})
   const { addSession, updateSession, setActiveSession } = useSessionStore()
 
   useEffect(() => {
     generateSessionId()
+    // Khởi tạo TTS
+    ttsManager.setEnabled(ttsEnabled)
+    
+    return () => {
+      // Cleanup khi component unmount
+      ttsManager.clear()
+    }
   }, [])
+
+  // Cập nhật TTS khi toggle
+  useEffect(() => {
+    ttsManager.setEnabled(ttsEnabled)
+  }, [ttsEnabled])
 
   const generateSessionId = () => {
     const id = `realtime_${Date.now()}`
@@ -77,6 +99,8 @@ export default function RealTimeMonitoring() {
   const stopSession = async () => {
     setIsRunning(false)
     setFrameNumber(0)
+    ttsManager.stop() // Dừng TTS
+    setCurrentKeypoints({}) // Clear skeleton
     
     try {
       if (sessionId) {
@@ -114,10 +138,39 @@ export default function RealTimeMonitoring() {
       const persons = result.persons || []
       const nextScores: Record<number, number> = { ...scores }
       const nextErrors: Record<number, number> = { ...errorsCount }
+      const nextKeypoints: Record<number, Keypoint[]> = {}
+      
       if (persons.length > 0) {
         persons.forEach((p: any) => {
-          nextScores[p.person_id] = p.score ?? nextScores[p.person_id] ?? 100
-          nextErrors[p.person_id] = (p.errors?.length ?? 0)
+          const pid = p.person_id
+          nextScores[pid] = p.score ?? nextScores[pid] ?? 100
+          nextErrors[pid] = (p.errors?.length ?? 0)
+          
+          // Parse keypoints nếu có
+          if (p.keypoints) {
+            const parsed = parseKeypoints(p.keypoints)
+            if (parsed) {
+              nextKeypoints[pid] = parsed
+            }
+          }
+          
+          // Đọc lỗi mới bằng TTS
+          if (p.errors && Array.isArray(p.errors) && p.errors.length > 0) {
+            // Chỉ đọc lỗi mới (so sánh với lỗi cũ)
+            const oldErrorCount = errorsCount[pid] || 0
+            const newErrorCount = p.errors.length
+            if (newErrorCount > oldErrorCount) {
+              // Có lỗi mới - đọc lỗi cuối cùng
+              const latestError = p.errors[p.errors.length - 1]
+              if (latestError) {
+                ttsManager.queueError(
+                  latestError.type || latestError.error_type || 'unknown',
+                  latestError.message || latestError.description || '',
+                  pid
+                )
+              }
+            }
+          }
         })
         // Select first ID if none selected
         if (selectedPersonId === null) {
@@ -126,6 +179,7 @@ export default function RealTimeMonitoring() {
       }
       setScores(nextScores)
       setErrorsCount(nextErrors)
+      setCurrentKeypoints(nextKeypoints)
       // Cập nhật thông tin số người và các ID ổn định từ backend (nếu có)
       if (Array.isArray(result.stable_person_ids) && result.stable_person_ids.length > 0) {
         setStablePersonIds(result.stable_person_ids.map((id: any) => Number(id)))
@@ -158,6 +212,86 @@ export default function RealTimeMonitoring() {
     }
   }, [isRunning, sessionId, frameNumber, processing, navigate, updateSession])
 
+  // Effect để vẽ skeleton lên canvas - re-render mỗi khi keypoints thay đổi
+  useEffect(() => {
+    if (!canvasRef.current || !showSkeleton) {
+      return
+    }
+
+    const drawSkeletonFrame = () => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      // Set canvas size to match webcam container (display size)
+      const container = canvas.parentElement
+      if (!container) return
+      
+      const rect = container.getBoundingClientRect()
+      const displayWidth = rect.width
+      const displayHeight = rect.height
+      
+      // Set canvas size với devicePixelRatio cho độ sắc nét
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = displayWidth * dpr
+      canvas.height = displayHeight * dpr
+      canvas.style.width = `${displayWidth}px`
+      canvas.style.height = `${displayHeight}px`
+      
+      // Scale context để match với display size
+      ctx.setTransform(1, 0, 0, 1, 0, 0) // Reset transform
+      ctx.scale(dpr, dpr)
+
+      // Clear canvas
+      ctx.clearRect(0, 0, displayWidth, displayHeight)
+
+      // Lấy kích thước screenshot thực tế từ webcam video element
+      const videoElement = webcamRef.current?.video
+      const screenshotWidth = videoElement?.videoWidth || 1280
+      const screenshotHeight = videoElement?.videoHeight || 720
+
+      // Tính scale từ screenshot coordinates sang display coordinates
+      // Keypoints từ YOLOv8 là pixel coordinates trong screenshot
+      const scaleX = displayWidth / screenshotWidth
+      const scaleY = displayHeight / screenshotHeight
+
+      // Vẽ skeleton cho tất cả người
+      Object.entries(currentKeypoints).forEach(([personIdStr, keypoints]) => {
+        const personId = Number(personIdStr)
+        
+        if (!keypoints || keypoints.length !== 17) return
+
+        // Vẽ skeleton với scale đã tính
+        drawSkeleton(ctx, keypoints, scaleX, scaleY)
+        
+        // Vẽ label person ID
+        drawPersonLabel(ctx, personId, keypoints, scaleX, scaleY)
+      })
+    }
+
+    // Vẽ ngay lập tức
+    drawSkeletonFrame()
+
+    // Re-render mỗi frame để đảm bảo mượt mà (requestAnimationFrame)
+    let animationFrameId: number
+    const animate = () => {
+      drawSkeletonFrame()
+      animationFrameId = requestAnimationFrame(animate)
+    }
+    
+    if (isRunning) {
+      animationFrameId = requestAnimationFrame(animate)
+    }
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
+    }
+  }, [currentKeypoints, showSkeleton, isRunning])
+
   useEffect(() => {
     if (!isRunning) return
     
@@ -165,7 +299,7 @@ export default function RealTimeMonitoring() {
     let interval: number | null = null
     interval = window.setInterval(() => {
       captureAndProcess()
-    }, 100) // Process every 100ms (~10 FPS)
+    }, 50) // Process every 50ms (~20 FPS) - tăng tốc độ để skeleton mượt hơn
     
     return () => {
       if (interval !== null) {
@@ -250,14 +384,32 @@ export default function RealTimeMonitoring() {
                   ref={webcamRef}
                   screenshotFormat="image/jpeg"
                   videoConstraints={{
-                    width: 1280,
-                    height: 720,
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
                     facingMode: 'user',
                   }}
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
+                  }}
+                  onUserMedia={(stream) => {
+                    // Log để debug kích thước video thực tế
+                    const videoTrack = stream.getVideoTracks()[0]
+                    const settings = videoTrack.getSettings()
+                    console.log('Webcam video size:', settings.width, 'x', settings.height)
+                  }}
+                />
+                {/* Canvas overlay cho skeleton */}
+                <canvas
+                  ref={canvasRef}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
                   }}
                 />
                 {processing && (
@@ -342,6 +494,33 @@ export default function RealTimeMonitoring() {
                 <MenuItem value="testing">Testing</MenuItem>
                 <MenuItem value="practising">Practising</MenuItem>
               </TextField>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showSkeleton}
+                    onChange={(e) => setShowSkeleton(e.target.checked)}
+                  />
+                }
+                label="Hiển thị khớp xương"
+                sx={{ mt: 1, display: 'block' }}
+              />
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={ttsEnabled}
+                    onChange={(e) => setTtsEnabled(e.target.checked)}
+                  />
+                }
+                label={
+                  <Box display="flex" alignItems="center" gap={0.5}>
+                    {ttsEnabled ? <VolumeUp fontSize="small" /> : <VolumeOff fontSize="small" />}
+                    <span>Đọc lỗi bằng giọng nói</span>
+                  </Box>
+                }
+                sx={{ mt: 1, display: 'block' }}
+              />
 
               <Alert severity="info" sx={{ mt: 2 }}>
                 Frame: {frameNumber} • Số người đang được chấm: {totalPersons || (effectivePersonIds.length || 0)}

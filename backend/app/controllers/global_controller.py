@@ -323,10 +323,19 @@ class GlobalController:
         current_person_ids = sorted(persons.keys())
         for pid in current_person_ids:
             self._ensure_person(pid)
+            # Get keypoints for this person (convert numpy array to list for JSON serialization)
+            keypoints_data = None
+            if pid in persons:
+                kp = persons[pid]
+                # Convert numpy array [17, 3] to list of [x, y, confidence]
+                if kp is not None and len(kp.shape) >= 2:
+                    keypoints_data = kp.tolist() if hasattr(kp, 'tolist') else kp
+            
             persons_result.append({
                 "person_id": pid,
                 "errors": self.errors.get(pid, []),
                 "score": self.scores.get(pid, self.initial_score),
+                "keypoints": keypoints_data,  # Add keypoints for skeleton visualization
             })
 
         # Tính danh sách ID "ổn định" (người thật) dựa trên thống kê từ tracker

@@ -118,10 +118,9 @@ export default function VideoUpload() {
         setVideoLoading(true)
         setVideoError(null)
       } else {
+        // Skeleton video không được tạo - có thể do lỗi hoặc không có pose detection
         console.warn('⚠️ No skeleton video URL in response')
-        console.warn('⚠️ Response keys:', Object.keys(result))
-        console.warn('⚠️ Full response:', JSON.stringify(result, null, 2))
-        setVideoError('Video skeleton không được tạo. Kiểm tra backend logs để xem chi tiết lỗi.')
+        setVideoError('Video skeleton không được tạo. Có thể do không phát hiện được người trong video hoặc lỗi xử lý.')
       }
 
       // Update session with results (including errors and skeleton video URL)

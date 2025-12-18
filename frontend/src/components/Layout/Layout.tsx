@@ -24,6 +24,10 @@ import AssessmentIcon from '@mui/icons-material/Assessment'
 import HistoryIcon from '@mui/icons-material/History'
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
 import SettingsIcon from '@mui/icons-material/Settings'
+import PeopleIcon from '@mui/icons-material/People'
+import ListAltIcon from '@mui/icons-material/ListAlt'
+import LogoutIcon from '@mui/icons-material/Logout'
+import { authAPI } from '../../services/api'
 
 const drawerWidth = 280
 
@@ -31,6 +35,8 @@ const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { text: 'Upload Video', icon: <VideoLibraryIcon />, path: '/upload' },
   { text: 'Real-time Monitoring', icon: <VideocamIcon />, path: '/monitoring' },
+  { text: 'Thí Sinh', icon: <PeopleIcon />, path: '/candidates' },
+  { text: 'Barem', icon: <ListAltIcon />, path: '/barem' },
   { text: 'Kết Quả', icon: <AssessmentIcon />, path: '/results' },
   { text: 'Sessions', icon: <HistoryIcon />, path: '/sessions' },
   { text: 'So Sánh', icon: <CompareArrowsIcon />, path: '/comparison' },
@@ -57,6 +63,11 @@ export default function Layout({ children }: LayoutProps) {
     if (isMobile) {
       setMobileOpen(false)
     }
+  }
+
+  const handleLogout = () => {
+    authAPI.logout()
+    navigate('/login')
   }
 
   const drawer = (
@@ -168,6 +179,9 @@ export default function Layout({ children }: LayoutProps) {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Hệ thống chấm điểm điều lệnh tự động
           </Typography>
+          <IconButton color="inherit" onClick={handleLogout} title="Đăng xuất">
+            <LogoutIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
       <Box

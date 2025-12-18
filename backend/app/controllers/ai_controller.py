@@ -654,18 +654,88 @@ class AIController:
         return errors
     
     def _check_neck_posture(self, keypoints: np.ndarray) -> List[Dict]:
-        """Kiểm tra tư thế cổ"""
+        """
+        Kiểm tra tư thế cổ
+        
+        Kiểm tra cổ có thẳng không dựa vào góc giữa đầu (nose) và vai.
+        Sử dụng logic tương tự như _check_head_posture nhưng tập trung vào góc cổ.
+        """
         errors = []
         
-        # Kiểm tra cổ có thẳng không (dựa vào góc giữa đầu và vai)
-        if keypoints.shape[0] >= 2:
-            nose = keypoints[0]
-            neck = keypoints[1]
+        # Cần ít nhất 3 keypoints: nose, left_shoulder, right_shoulder
+        if keypoints.shape[0] < 7:
+            return errors
+        
+        nose_idx = 0
+        left_shoulder_idx = 5
+        right_shoulder_idx = 6
+        
+        nose = keypoints[nose_idx]
+        left_shoulder = keypoints[left_shoulder_idx]
+        right_shoulder = keypoints[right_shoulder_idx]
+        
+        # Kiểm tra confidence
+        if (nose[2] == 0 or left_shoulder[2] == 0 or right_shoulder[2] == 0):
+            return errors
+        
+        # Tính điểm cổ (trung điểm của 2 vai)
+        neck_point = (left_shoulder[:2] + right_shoulder[:2]) / 2
+        
+        # Vector từ cổ đến mũi
+        vec_neck_to_nose = nose[:2] - neck_point
+        
+        # Tính góc cổ (tương tự head_angle nhưng tập trung vào độ thẳng)
+        # Sử dụng atan2 để có giá trị có dấu
+        import numpy as np
+        angle_rad = np.arctan2(vec_neck_to_nose[0], -vec_neck_to_nose[1])
+        neck_angle = np.degrees(angle_rad)
+        
+        # Clamp về khoảng -90 đến +90
+        neck_angle = np.clip(neck_angle, -90.0, 90.0)
+        
+        # Lấy golden statistics nếu có
+        golden_mean, golden_std = self._get_golden_stat("neck_angle")
+        threshold = ERROR_THRESHOLDS.get("neck_angle", 25.0)  # Ngưỡng mặc định cho cổ
+        
+        # Nếu có golden template, so sánh với nó
+        if golden_mean is not None and golden_std is not None:
+            is_out, diff = self._is_outlier(
+                neck_angle,
+                golden_mean,
+                golden_std,
+                threshold,
+                error_type="neck_angle"
+            )
             
-            if nose[2] > 0 and neck[2] > 0:
-                # Tính góc cổ
-                # Tạm thời: kiểm tra đơn giản
-                pass  # TODO: Implement chi tiết
+            if is_out:
+                # Phân biệt cúi vs ngẩng dựa trên dấu
+                if neck_angle < golden_mean:
+                    desc = "Cổ cúi quá thấp"
+                else:
+                    desc = "Cổ ngẩng quá cao"
+                
+                errors.append(self._build_error(
+                    "neck_angle",
+                    desc,
+                    diff,
+                    "neck"
+                ))
+        else:
+            # Không có golden template, dùng threshold tuyệt đối
+            # Giả định tư thế chuẩn là cổ thẳng (~0°)
+            if abs(neck_angle) > threshold:
+                diff = abs(neck_angle) - threshold
+                if neck_angle < 0:
+                    desc = f"Cổ cúi quá thấp ({neck_angle:.1f}°)"
+                else:
+                    desc = f"Cổ ngẩng quá cao ({neck_angle:.1f}°)"
+                
+                errors.append(self._build_error(
+                    "neck_angle",
+                    desc,
+                    diff,
+                    "neck"
+                ))
         
         return errors
     

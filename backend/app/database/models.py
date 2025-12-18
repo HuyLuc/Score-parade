@@ -3,7 +3,7 @@ SQLAlchemy models for Score Parade database
 """
 from sqlalchemy import Column, String, Integer, Float, Boolean, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, foreign
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
 
@@ -52,13 +52,6 @@ class Person(Base):
 
     # Relationships
     session = relationship("Session", back_populates="persons")
-    # Optional convenience relationship: tất cả errors thuộc cùng session.
-    # Dùng primaryjoin rõ ràng để SQLAlchemy không yêu cầu foreign key trực tiếp.
-    errors = relationship(
-        "Error",
-        primaryjoin="Person.session_id == foreign(Error.session_id)",
-        viewonly=True,
-    )
 
     __table_args__ = (
         {"postgresql_partition_by": "RANGE (created_at)"} if False else {},  # Placeholder for future partitioning

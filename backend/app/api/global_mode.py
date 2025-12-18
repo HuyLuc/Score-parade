@@ -554,7 +554,6 @@ async def upload_and_process_video(
                         print(f"[METADATA] {skeleton_metadata}")
                         
                         # Wait a bit and check again (file might be written asynchronously)
-                        import time
                         time.sleep(0.5)
                         print("[WAIT] Waiting 0.5s for file to be written...")
                         

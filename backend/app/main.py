@@ -85,6 +85,18 @@ async def get_skeleton_video(filepath: str):
     if not str(video_path).startswith(str(output_dir.resolve())):
         logger.error(f"❌ Security: Attempted directory traversal: {filepath}")
         raise HTTPException(status_code=403, detail="Access denied")
+
+    # Nếu frontend/request vẫn trỏ tới skeleton_video.mp4 (codec mp4v có thể không play được),
+    # nhưng đã có bản web-friendly skeleton_video_web.mp4 thì ưu tiên phục vụ bản web.
+    try:
+        if video_path.name == "skeleton_video.mp4":
+            web_path = video_path.with_name("skeleton_video_web.mp4")
+            if web_path.exists() and web_path.stat().st_size > 0:
+                logger.info(f"↪️ Using web-friendly skeleton video instead: {web_path}")
+                video_path = web_path
+                filename = web_path.name
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to check web-friendly skeleton video: {e}")
     # ✅ LOGGING
     logger.info(f"Request for skeleton video: {filename} (raw path: {filepath})")
     

@@ -13,15 +13,11 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  FormControlLabel,
-  Switch,
 } from '@mui/material'
 import {
   Stop,
   PlayArrow,
   Refresh,
-  VolumeUp,
-  VolumeOff,
 } from '@mui/icons-material'
 import { toast } from 'react-toastify'
 import { candidatesAPI, globalModeAPI } from '../services/api'
@@ -44,8 +40,7 @@ export default function RealTimeMonitoring() {
   const [stablePersonIds, setStablePersonIds] = useState<number[]>([])
   const [frameNumber, setFrameNumber] = useState(0)
   const [processing, setProcessing] = useState(false)
-  const [showSkeleton, setShowSkeleton] = useState(false)
-  const [ttsEnabled, setTtsEnabled] = useState(true)
+  const [showSkeleton] = useState(false)
   const [currentKeypoints, setCurrentKeypoints] = useState<Record<number, Keypoint[]>>({})
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [candidateId, setCandidateId] = useState<string>('')
@@ -55,8 +50,6 @@ export default function RealTimeMonitoring() {
   useEffect(() => {
     // Tạo Session ID dạng realtime_01, realtime_02... (tăng tự động)
     setSessionId(generateSessionCode('realtime'))
-    // Khởi tạo TTS
-    ttsManager.setEnabled(ttsEnabled)
 
     // Load danh sách thí sinh cho dropdown (chỉ lần đầu)
     candidatesAPI
@@ -81,11 +74,6 @@ export default function RealTimeMonitoring() {
       ttsManager.clear()
     }
   }, [])
-
-  // Cập nhật TTS khi toggle
-  useEffect(() => {
-    ttsManager.setEnabled(ttsEnabled)
-  }, [ttsEnabled])
 
   const startSession = async () => {
     if (!sessionId.trim()) {
@@ -205,23 +193,6 @@ export default function RealTimeMonitoring() {
             }
           }
           
-          // Đọc lỗi mới bằng TTS
-          if (p.errors && Array.isArray(p.errors) && p.errors.length > 0) {
-            // Chỉ đọc lỗi mới (so sánh với lỗi cũ)
-            const oldErrorCount = errorsCount[pid] || 0
-            const newErrorCount = p.errors.length
-            if (newErrorCount > oldErrorCount) {
-              // Có lỗi mới - đọc lỗi cuối cùng
-              const latestError = p.errors[p.errors.length - 1]
-              if (latestError) {
-                ttsManager.queueError(
-                  latestError.type || latestError.error_type || 'unknown',
-                  latestError.message || latestError.description || '',
-                  pid
-                )
-              }
-            }
-          }
         })
         // Select first ID if none selected
         if (selectedPersonId === null) {
@@ -557,24 +528,6 @@ export default function RealTimeMonitoring() {
                 <MenuItem value="testing">Testing</MenuItem>
                 <MenuItem value="practising">Practising</MenuItem>
               </TextField>
-
-              {/* Ẩn khớp xương theo yêu cầu, nếu sau này cần có thể bật lại bằng switch này */}
-
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={ttsEnabled}
-                    onChange={(e) => setTtsEnabled(e.target.checked)}
-                  />
-                }
-                label={
-                  <Box display="flex" alignItems="center" gap={0.5}>
-                    {ttsEnabled ? <VolumeUp fontSize="small" /> : <VolumeOff fontSize="small" />}
-                    <span>Đọc lỗi bằng giọng nói</span>
-                  </Box>
-                }
-                sx={{ mt: 1, display: 'block' }}
-              />
 
               <Alert severity="info" sx={{ mt: 2 }}>
                 Frame: {frameNumber} • Số người đang được chấm: {totalPersons || (effectivePersonIds.length || 0)}

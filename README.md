@@ -1,26 +1,42 @@
-# 🎵 Score Parade v2.0
+# 🎵 Score Parade – Chấm Điều Lệnh Tự Động
 
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Tests](https://img.shields.io/badge/tests-pytest-orange.svg)](https://docs.pytest.org/)
-[![Version](https://img.shields.io/badge/version-2.0.0-brightgreen.svg)](https://github.com/HuyLuc/Score-parade)
 
-**Score Parade** là hệ thống chấm điểm điều lệnh tự động sử dụng AI, phân tích video biểu diễn và cung cấp phản hồi theo thời gian thực với độ chính xác chuyên nghiệp. Được xây dựng với YOLOv8-Pose cho ước tính tư thế, ByteTrack cho theo dõi nhiều người, và các thuật toán phân tích thời gian tiên tiến.
+**Score Parade** là hệ thống chấm điểm điều lệnh tự động sử dụng AI, phân tích video chiến sĩ/sĩ quan thực hành đi điều lệnh và cung cấp phản hồi theo thời gian thực (Local Mode – Làm chậm) và bài tổng hợp (Global Mode). Hệ thống sử dụng YOLOv8-Pose cho ước tính tư thế, ByteTrack cho theo dõi nhiều người, beat detection để kiểm tra nhịp, và cơ chế nhóm lỗi theo chuỗi để tránh trừ điểm quá mức.
 
-## ✨ Tính Năng Chính
+## ✨ Tính năng chính (theo trạng thái hiện tại)
 
-- 🎯 **Phân Tích Tư Thế Thời Gian Thực** - Theo dõi khung xương bằng YOLOv8-Pose với độ chính xác cao
-- 👥 **Theo Dõi Nhiều Người** - Tự động phát hiện và theo dõi nhiều người trong video với ByteTrack
-- 📊 **Công Cụ Chấm Điểm Nâng Cao** - Đánh giá đa chiều với làm mịn thời gian và nhóm lỗi liên tiếp
-- 🎬 **Xử Lý Video** - Hỗ trợ nhiều định dạng với phân tích từng khung hình
-- 🔄 **So Sánh Chuỗi** - Thuật toán dựa trên DTW để căn chỉnh thời gian
-- 🎼 **Phát Hiện Nhịp** - Phân tích chuyển động đồng bộ với âm thanh
-- ⚙️ **Ngưỡng Thích Ứng** - Điều chỉnh điểm động dựa trên ngữ cảnh biểu diễn
-- 📈 **Chỉ Số Hiệu Suất** - Phân tích và trực quan hóa chi tiết theo từng người
-- 🗄️ **Database PostgreSQL** - Lưu trữ sessions, errors, và cấu hình hệ thống
-- 🐳 **Docker Support** - Triển khai dễ dàng với Docker Compose
-- 🛠️ **Kiến Trúc Linh Hoạt** - Thiết kế mô-đun dễ tùy chỉnh
+- 🎯 **Phân tích tư thế thời gian thực (Local Mode – Làm chậm)**  
+  - Kiểm tra tay, chân, vai, đầu, cổ, lưng theo từng frame với 1 camera.  
+  - Chế độ **Testing**: trừ điểm dần, dừng khi điểm dưới ngưỡng.  
+  - Chế độ **Practising**: không trừ điểm, chỉ hiển thị lỗi (có đọc lỗi bằng TTS).
+
+- 🌍 **Chấm “Tổng hợp” (Global Mode)**  
+  - Giám sát thời gian thực qua webcam hoặc upload video.  
+  - Chấm tư thế + nhịp (beat detection) + multi-person tracking (ByteTrack).  
+  - Nhóm lỗi liên tiếp thành chuỗi để tránh trừ điểm quá nhiều.
+
+- 👤 **Quản lý tài khoản & thí sinh**  
+  - Đăng ký / đăng nhập / đổi mật khẩu (Auth + JWT).  
+  - Quản lý danh sách thí sinh, import từ Excel, chọn thí sinh cho từng session (Local & Global).
+
+- ⚙️ **Cấu hình chấm điểm & Barem**  
+  - Điều chỉnh trọng số từng loại lỗi, ngưỡng phát hiện, độ khắt khe (easy/medium/hard), tiêu chí đi đều/đi nghiêm, app_mode (dev/release).  
+  - Xem và chỉnh Barem trực tiếp trên frontend.
+
+- 🎼 **Beat detection & skeleton video**  
+  - Upload/chọn file audio khi khởi tạo Global Mode để kiểm tra nhịp so với bước chân.  
+  - Sau khi upload video, backend tạo video skeleton overlay (kèm bản H.264/AAC thân thiện trình duyệt).
+
+- 🗄️ **Hạ tầng backend**  
+  - FastAPI + PostgreSQL, connection pooling, khởi tạo DB qua `docker/init-db.sql`.  
+  - Lưu `sessions`, `persons`, `errors`, `golden_templates`, `configs` với index tối ưu.
+
+- 🖥️ **Frontend React + TypeScript**  
+  - Dashboard, Candidates, Settings, Barem, Real-time Monitoring (Global), Local Mode, Upload Video, Results, Sessions, Comparison.
 
 ## 📊 Chỉ Số Hiệu Suất
 
@@ -33,27 +49,35 @@
 | **Định Dạng Hỗ Trợ** | MP4, AVI, MOV, MKV | Định dạng video đầu vào |
 | **Độ Phân Giải Tối Đa** | 1920x1080 | Độ phân giải xử lý tối ưu |
 
-## 📁 Cấu Trúc Dự Án
+## 📁 Cấu trúc dự án
 
 ```
 Score-parade/
 ├── backend/                           # Backend API (FastAPI)
 │   ├── app/
 │   │   ├── api/                      # API routes
-│   │   │   ├── config.py             # Cấu hình API
-│   │   │   └── global_mode.py        # Global mode endpoints
+│   │   │   ├── auth.py               # Auth endpoints
+│   │   │   ├── candidates.py         # Quản lý thí sinh
+│   │   │   ├── barem.py              # Barem & cấu hình chấm điểm
+│   │   │   ├── global_mode.py        # Global mode endpoints
+│   │   │   └── local_mode.py         # Local mode (Làm chậm) endpoints
 │   │   ├── controllers/              # Business logic controllers
-│   │   │   ├── global_controller.py  # Base controller
+│   │   │   ├── ai_controller.py      # Phát hiện lỗi tư thế, sequence scoring
+│   │   │   ├── global_controller.py  # Base Global Mode controller
 │   │   │   ├── global_testing_controller.py
-│   │   │   └── global_practising_controller.py
+│   │   │   ├── global_practising_controller.py
+│   │   │   ├── local_testing_controller.py
+│   │   │   └── local_practising_controller.py
 │   │   ├── services/                 # Core services
-│   │   │   ├── pose_estimation.py    # YOLOv8 pose detection
+│   │   │   ├── pose_service.py       # YOLOv8 pose detection
 │   │   │   ├── scoring_service.py    # Scoring logic
 │   │   │   ├── bytetrack_service.py  # Multi-person tracking
 │   │   │   ├── tracker_service.py    # SORT-style tracker
-│   │   │   ├── error_grouping.py     # Error sequence grouping
-│   │   │   └── ...                   # Other services
-│   │   ├── utils/                    # Utilities
+│   │   │   ├── beat_detection.py     # Phát hiện beat nhạc
+│   │   │   ├── sequence_comparison.py# Nhóm lỗi theo chuỗi
+│   │   │   ├── video_utils.py        # Load/validate video
+│   │   │   └── skeleton_visualization.py # Tạo skeleton video
+│   │   ├── utils/                    # Utilities (video validator, cache, progress...)
 │   │   ├── config.py                 # Configuration
 │   │   └── main.py                   # FastAPI app entry
 │   ├── requirements.txt              # Python dependencies
@@ -63,10 +87,16 @@ Score-parade/
 │   │   ├── pages/                    # Page components
 │   │   │   ├── Dashboard.tsx
 │   │   │   ├── VideoUpload.tsx
-│   │   │   ├── RealTimeMonitoring.tsx
+│   │   │   ├── RealTimeMonitoring.tsx   # Global Mode (tổng hợp, realtime)
+│   │   │   ├── LocalMode.tsx           # Local Mode (Làm chậm, realtime)
 │   │   │   ├── Results.tsx
-│   │   │   └── Settings.tsx
-│   │   ├── components/               # Reusable components
+│   │   │   ├── Sessions.tsx
+│   │   │   ├── Candidates.tsx
+│   │   │   ├── Barem.tsx
+│   │   │   ├── Settings.tsx
+│   │   │   ├── Login.tsx / Register.tsx
+│   │   │   └── Comparison.tsx
+│   │   ├── components/               # Layout, charts, skeleton drawer...
 │   │   ├── services/                 # API services
 │   │   └── store/                    # State management
 │   ├── package.json
@@ -309,11 +339,11 @@ npm list --depth=0
 cd ..
 ```
 
-## 💻 Sử Dụng
+## 💻 Sử dụng
 
-### 🚀 Chạy Ứng Dụng
+### 🚀 Chạy ứng dụng
 
-#### Cách 1: Chạy Full Stack (Backend + Frontend)
+#### Cách 1: Chạy full stack (Backend + Frontend)
 
 **Bước 1: Khởi động Backend API**
 
@@ -370,9 +400,9 @@ Frontend sẽ chạy tại: `http://localhost:3000`
 - Nếu frontend không kết nối được backend, kiểm tra file `frontend/.env` có `VITE_API_URL=http://localhost:8000`
 - Nếu port 8000 hoặc 3000 đã được sử dụng, dừng process cũ hoặc đổi port
 
-#### Cách 2: Chạy CLI Scoring (Không cần Backend/Frontend)
+#### Cách 2: Chạy CLI Scoring (không cần frontend)
 
-Sử dụng script CLI để tạo golden template và chấm điểm video:
+Sử dụng script CLI `run_scoring.py` để tạo golden template và chấm điểm video:
 
 ```bash
 # Tạo golden template từ video mẫu
@@ -382,31 +412,7 @@ python run_scoring.py create_golden "data/golden_template/golden_video.mp4" --ou
 python run_scoring.py evaluate "data/input_videos/video1.mp4" --golden-dir data/golden_template --output-dir data/output
 ```
 
-### 📋 Giao Diện Dòng Lệnh (CLI)
-
-#### Tạo Golden Template
-
-```bash
-python run_scoring.py create_golden <video_path> --output-dir <output_directory>
-```
-
-Ví dụ:
-```bash
-python run_scoring.py create_golden "data/input_videos/golden.mp4" --output-dir data/golden_template
-```
-
-#### Đánh Giá Video
-
-```bash
-python run_scoring.py evaluate <video_path> --golden-dir <golden_directory> --output-dir <output_directory>
-```
-
-Ví dụ:
-```bash
-python run_scoring.py evaluate "data/input_videos/test.mp4" --golden-dir data/golden_template --output-dir data/output
-```
-
-### 🌐 Chế Độ API (Backend)
+### 🌐 API backend hiện tại
 
 #### Khởi Động Máy Chủ Backend
 
@@ -434,21 +440,21 @@ python -c "import sys; sys.path.insert(0, '.'); from backend.app.main import app
 - ✅ Sử dụng `python -m uvicorn` để đảm bảo Python tìm đúng module paths
 - ✅ Flag `--reload` cho phép tự động reload khi code thay đổi (chỉ dùng trong development)
 
-#### Điểm Cuối API
+#### Điểm cuối cơ bản
 
-**1. Kiểm Tra Sức Khỏe**
+**1. Kiểm tra sức khỏe**
 ```bash
 curl http://localhost:8000/health
 ```
 
-**2. Bắt Đầu Session (Global Mode)**
+**2. Bắt đầu session (Global Mode)**
 ```bash
 curl -X POST http://localhost:8000/api/global/{session_id}/start \
   -F "mode=testing" \
   -F "audio_file=@path/to/audio.wav"
 ```
 
-**3. Xử Lý Frame**
+**3. Xử lý frame (Global Mode)**
 ```bash
 curl -X POST http://localhost:8000/api/global/{session_id}/process-frame \
   -F "frame_data=@frame.jpg" \
@@ -456,27 +462,38 @@ curl -X POST http://localhost:8000/api/global/{session_id}/process-frame \
   -F "frame_number=1"
 ```
 
-**4. Lấy Điểm Số**
+**4. Lấy điểm số (Global Mode)**
 ```bash
 curl http://localhost:8000/api/global/{session_id}/score
 ```
 
-**5. Lấy Danh Sách Lỗi**
+**5. Lấy danh sách lỗi (Global Mode)**
 ```bash
 curl http://localhost:8000/api/global/{session_id}/errors
 ```
 
-**6. Reset Session**
+**6. Reset session (Global Mode)**
 ```bash
 curl -X POST http://localhost:8000/api/global/{session_id}/reset
 ```
 
-**7. Xóa Session**
+**7. Xóa session (Global Mode)**
 ```bash
 curl -X DELETE http://localhost:8000/api/global/{session_id}
 ```
 
-### 🎨 Frontend Web Interface
+**8. Local Mode – Làm chậm**
+
+- `POST /api/local/{session_id}/start` (form: `mode`, `candidate_id?`)  
+- `POST /api/local/{session_id}/process-frame` (frame_data, timestamp, frame_number)  
+- `GET /api/local/{session_id}/score`  
+- `GET /api/local/{session_id}/errors`  
+- `POST /api/local/{session_id}/reset`  
+- `DELETE /api/local/{session_id}`
+
+> Chi tiết xem trong `backend/app/api/global_mode.py` và `backend/app/api/local_mode.py`.
+
+### 🎨 Frontend web interface
 
 #### Khởi Động Frontend
 
@@ -498,14 +515,19 @@ Frontend sẽ chạy tại: `http://localhost:3000`
 - ✅ Kiểm tra file `frontend/.env` có `VITE_API_URL=http://localhost:8000`
 - ✅ Nếu port 3000 đã được sử dụng, Vite sẽ tự động đề xuất port khác
 
-#### Các Trang Chính
+#### Các trang chính
 
-1. **Dashboard** (`/`) - Trang chủ với thống kê tổng quan
-2. **Upload Video** (`/upload`) - Upload và xử lý video
-3. **Real-time Monitoring** (`/monitoring`) - Giám sát thời gian thực qua webcam
-4. **Kết Quả** (`/results/:sessionId`) - Xem chi tiết kết quả chấm điểm
-5. **Sessions** (`/sessions`) - Quản lý và xem lịch sử sessions
-6. **So Sánh** (`/comparison`) - So sánh nhiều sessions với nhau
+1. **Dashboard** (`/`) – Trang chủ với thống kê tổng quan.  
+2. **Upload Video** (`/upload`) – Upload video, backend xử lý và chấm điểm + tạo skeleton video.  
+3. **Real-time Monitoring (Global Mode)** (`/monitoring`) – Giám sát thời gian thực qua webcam, chấm tổng hợp (tư thế + nhịp), hỗ trợ multi-person.  
+4. **Local Mode – Làm chậm** (`/local-mode`) – Giám sát thời gian thực cho bài Làm chậm, chỉ kiểm tra tư thế, có nút phát câu lệnh “Nghiêm. Đi đều bước”.  
+5. **Results** (`/results/:sessionId?`) – Xem chi tiết kết quả chấm điểm cho một session.  
+6. **Sessions** (`/sessions`) – Quản lý và xem lịch sử các phiên chấm.  
+7. **Comparison** (`/comparison`) – So sánh nhiều sessions với nhau.  
+8. **Settings** (`/settings`) – Cấu hình chấm điểm, error grouping, difficulty, app_mode, v.v.  
+9. **Barem** (`/barem`) – Xem và chỉnh Barem.  
+10. **Candidates** (`/candidates`) – Quản lý danh sách thí sinh (CRUD + import Excel).  
+11. **Login/Register** (`/login`, `/register`) – Đăng nhập, đăng ký tài khoản.
 
 #### Build Production
 
@@ -596,40 +618,14 @@ curl -X POST http://localhost:8000/api/v1/batch \
   }'
 ```
 
-### Python API
+> Lưu ý: Phần “Python API” với các lớp `PoseEstimator`, `ScoreCalculator`, `VideoProcessor` trong README cũ không còn áp dụng cho repo hiện tại (kiến trúc đã được tổ chức lại thành `backend/app/...` và `run_scoring.py`).  
+> Nếu cần dùng programmatic API, hãy import trực tiếp từ `backend.app.services` và `backend.app.controllers`.
 
-```python
-from src.core.pose_estimator import PoseEstimator
-from src.core.score_calculator import ScoreCalculator
-from src.core.video_processor import VideoProcessor
+## 🧪 Kiểm tra
 
-# Khởi tạo các thành phần
-pose_estimator = PoseEstimator()
-score_calculator = ScoreCalculator()
-video_processor = VideoProcessor()
+### Chạy kiểm tra
 
-# Xử lý video
-frames = video_processor.load_video("input.mp4")
-reference_frames = video_processor.load_video("reference.mp4")
-
-# Trích xuất tư thế
-poses = [pose_estimator.estimate(frame) for frame in frames]
-ref_poses = [pose_estimator.estimate(frame) for frame in reference_frames]
-
-# Tính điểm
-score = score_calculator.calculate(poses, ref_poses)
-
-print(f"Điểm Cuối Cùng: {score['total_score']:.2f}")
-print(f"Độ Chính Xác Vị Trí: {score['position_score']:.2f}")
-print(f"Độ Chính Xác Thời Gian: {score['timing_score']:.2f}")
-print(f"Độ Mượt Mà: {score['smoothness_score']:.2f}")
-```
-
-## 🧪 Kiểm Tra
-
-### Chạy Kiểm Tra
-
-#### Chạy Tất Cả Kiểm Tra
+#### Chạy tất cả kiểm tra backend
 ```bash
 # Chạy bộ kiểm tra đầy đủ
 pytest
@@ -641,7 +637,7 @@ pytest --cov=src --cov-report=html
 pytest -v
 ```
 
-#### Chạy Danh Mục Kiểm Tra Cụ Thể
+#### Chạy một số nhóm kiểm tra tiêu biểu
 
 ```bash
 # Chỉ kiểm tra đơn vị
@@ -686,7 +682,7 @@ pytest --cov=src --cov-report=xml --junitxml=test-results.xml
 pytest --cov=src --cov-report=term-missing
 ```
 
-### Cấu Hình Kiểm Tra
+### Cấu hình kiểm tra (tùy chọn)
 
 Tạo `pytest.ini` cho cấu hình tùy chỉnh:
 
@@ -706,113 +702,29 @@ addopts =
     -ra
 ```
 
-## ⚙️ Cấu Hình
+## ⚙️ Cấu hình
 
-### 🗄️ Database Schema
+### 🗄️ Database schema
 
-Hệ thống sử dụng PostgreSQL để lưu trữ dữ liệu:
+Hệ thống sử dụng PostgreSQL để lưu trữ dữ liệu. Schema được khởi tạo bởi file `docker/init-db.sql` với các bảng chính:
 
-**Các Bảng Chính:**
+- `users` – người dùng hệ thống (đăng ký/đăng nhập).  
+- `candidates` – thí sinh.  
+- `sessions` – phiên chấm điểm (Local/Global, mode testing/practising, video_path, skeleton_video_url, candidate_id, user_id...).  
+- `persons` – từng người (track ID) trong một session, điểm, số lỗi, first/last frame.  
+- `errors` – chi tiết lỗi (type, severity, deduction, frame, is_sequence, sequence_length, start_frame, end_frame...).  
+- `golden_templates` – thông tin golden template (video, skeleton, profile, camera_angle...).  
+- `configs` – cấu hình hệ thống (scoring_config, multi_person_config, error_thresholds...).
 
-- **`sessions`** - Lưu thông tin các phiên chấm điểm
-  - `session_id`, `mode`, `status`, `start_time`, `end_time`, `total_frames`
-  
-- **`persons`** - Lưu thông tin từng người trong session
-  - `person_id`, `score`, `total_errors`, `status`, `first_frame`, `last_frame`
-  
-- **`errors`** - Lưu chi tiết các lỗi phát hiện được
-  - `error_type`, `severity`, `deduction`, `frame_number`, `is_sequence`, `sequence_length`
-  
-- **`golden_templates`** - Lưu thông tin các template chuẩn
-  - `name`, `video_path`, `skeleton_path`, `profile_path`, `is_active`
-  
-- **`configs`** - Lưu cấu hình hệ thống
-  - `key`, `value` (JSONB), `description`
-
-**Khởi Tạo Database:**
-
-Schema được tự động tạo khi chạy Docker Compose. Nếu cài đặt thủ công:
+**Khởi tạo database thủ công:**
 
 ```bash
 psql -U scoreuser -d score_parade -f docker/init-db.sql
 ```
 
-### Các Phần Cấu Hình
+### Biến môi trường chính
 
-Score Parade sử dụng cấu hình dựa trên YAML với 6 phần chính:
-
-#### 1. **Cấu Hình Ước Tính Tư Thế**
-
-```yaml
-pose_estimation:
-  model_complexity: 2              # 0, 1, hoặc 2 (cao hơn = chính xác hơn)
-  min_detection_confidence: 0.5    # Độ tin cậy tối thiểu cho phát hiện
-  min_tracking_confidence: 0.5     # Độ tin cậy tối thiểu cho theo dõi
-  smooth_landmarks: true           # Bật làm mịn điểm mốc
-  static_image_mode: false         # Xử lý mỗi khung hình độc lập
-```
-
-#### 2. **Cấu Hình Chấm Điểm**
-
-```yaml
-scoring:
-  weights:
-    position: 0.40                 # Trọng số cho độ chính xác vị trí
-    timing: 0.30                   # Trọng số cho độ chính xác thời gian
-    smoothness: 0.20               # Trọng số cho độ mượt mà chuyển động
-    beat_alignment: 0.10           # Trọng số cho đồng bộ nhịp
-  
-  thresholds:
-    excellent: 90                  # Điểm >= 90
-    good: 75                       # Điểm >= 75
-    average: 60                    # Điểm >= 60
-    poor: 0                        # Điểm < 60
-```
-
-#### 3. **Cấu Hình Làm Mịn Thời Gian**
-
-```yaml
-temporal_smoothing:
-  enabled: true
-  window_size: 5                   # Số khung hình để làm mịn
-  method: "gaussian"               # gaussian, moving_average, hoặc exponential
-  sigma: 1.0                       # Giá trị sigma Gaussian
-  alpha: 0.3                       # Alpha cho làm mịn hàm mũ
-```
-
-#### 4. **Cấu Hình Ngưỡng Thích Ứng**
-
-```yaml
-adaptive_threshold:
-  enabled: true
-  learning_rate: 0.01              # Tốc độ thích ứng ngưỡng
-  min_threshold: 0.3               # Giá trị ngưỡng tối thiểu
-  max_threshold: 0.9               # Giá trị ngưỡng tối đa
-  adaptation_window: 30            # Số khung hình để xem xét cho thích ứng
-```
-
-#### 5. **Cấu Hình So Sánh Chuỗi**
-
-```yaml
-sequence_comparison:
-  algorithm: "dtw"                 # dtw hoặc euclidean
-  distance_metric: "euclidean"     # euclidean, cosine, hoặc manhattan
-  window_size: 50                  # Ràng buộc cửa sổ DTW
-  normalize_sequences: true        # Chuẩn hóa trước khi so sánh
-```
-
-#### 6. **Cấu Hình Phát Hiện Nhịp**
-
-```yaml
-beat_detection:
-  enabled: false
-  tempo_range: [60, 180]          # Phạm vi BPM [min, max]
-  hop_length: 512                  # Mẫu âm thanh mỗi khung hình
-  onset_strength_threshold: 0.5    # Ngưỡng độ mạnh khởi phát tối thiểu
-  sync_tolerance: 0.1              # Dung sai thời gian cho đồng bộ (giây)
-```
-
-### Biến Môi Trường
+Các biến môi trường thực tế được khai báo trong `env.example`. Ví dụ:
 
 ```bash
 # Database Configuration
@@ -822,36 +734,16 @@ POSTGRES_DB=score_parade
 DATABASE_URL=postgresql://scoreuser:scorepass123@localhost:5432/score_parade
 
 # Ứng dụng
-APP_ENV=development                # development, staging, hoặc production
-APP_DEBUG=true                     # Bật chế độ debug
-LOG_LEVEL=INFO                     # DEBUG, INFO, WARNING, ERROR, CRITICAL
-
-# Đường Dẫn
-DATA_DIR=./data
-OUTPUT_DIR=./results
-CACHE_DIR=./cache
-
-# API
-API_HOST=0.0.0.0
-API_PORT=8000
-API_WORKERS=4
-API_TIMEOUT=300
-
-# CUDA Configuration (optional)
-CUDA_VISIBLE_DEVICES=0            # Để trống nếu không dùng GPU
-
-# Hiệu Suất
-MAX_FRAME_SIZE=1920x1080
-ENABLE_GPU=true
-MAX_BATCH_SIZE=32
-CACHE_ENABLED=true
+APP_ENV=development
+APP_DEBUG=true
+LOG_LEVEL=INFO
 ```
 
 **Lưu ý:** Copy `env.example` thành `.env` và điều chỉnh các giá trị phù hợp với môi trường của bạn.
 
-## 🚨 Các Loại Lỗi
+## 🚨 Các loại lỗi & exception
 
-Score Parade định nghĩa 6 loại lỗi chính để xử lý lỗi mạnh mẽ:
+Score Parade định nghĩa nhiều loại exception để xử lý lỗi mạnh mẽ, nằm chủ yếu trong `backend/app/utils/exceptions.py` (ValidationException, NotFoundException, DatabaseException, AIException, ...), và được dùng trong API (FastAPI) để trả về HTTP status + message phù hợp. Ngoài ra, các service (video, pose, DTW, beat detection) cũng log chi tiết để hỗ trợ debug.
 
 ### 1. **VideoProcessingError**
 ```python

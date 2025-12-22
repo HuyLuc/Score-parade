@@ -388,6 +388,13 @@ POST_PROCESSING_FILTERS_CONFIG = {
     "max_arm_asymmetry_ratio": 0.3,  # Tỷ lệ chênh lệch tay trái/phải tối đa (0.3 = 30%)
     "ghost_nms_iou_threshold": 0.5,  # IoU threshold cho NMS bổ sung (0.5)
     "ghost_min_confidence": 0.5,  # Confidence tối thiểu cho keypoint (0.5)
+    
+    # Video-Level Post-Processor - Xử lý sau khi đã có toàn bộ tracks
+    "video_post_processor_enabled": True,  # Bật/tắt video-level post-processing
+    "min_frame_ratio": 0.7,  # Tỷ lệ frame tối thiểu track phải xuất hiện (0.7 = 70%)
+    "max_torso_std": 20.0,  # Độ lệch chuẩn tối đa của torso length (20 pixels)
+    "min_avg_confidence": 0.6,  # Confidence trung bình tối thiểu (0.6)
+    "max_tracks": 2,  # Số tracks tối đa giữ lại (2)
 }
 
 # Visualization configuration for multi-person tracking

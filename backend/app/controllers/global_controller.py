@@ -20,7 +20,7 @@ from backend.app.config import (
     ERROR_THRESHOLDS,
     POST_PROCESSING_FILTERS_CONFIG,
 )
-from backend.app.services.post_processing_filters import PostProcessingFilters
+from backend.app.services.post_processing_filters import PostProcessingFilters, VideoLevelPostProcessor
 
 
 class GlobalController:
@@ -130,8 +130,23 @@ class GlobalController:
         else:
             self.post_processing_filters = None
         
+        # Initialize video-level post-processor
+        if POST_PROCESSING_FILTERS_CONFIG.get("video_post_processor_enabled", True):
+            self.video_post_processor = VideoLevelPostProcessor(
+                min_frame_ratio=POST_PROCESSING_FILTERS_CONFIG.get("min_frame_ratio", 0.7),
+                max_torso_std=POST_PROCESSING_FILTERS_CONFIG.get("max_torso_std", 20.0),
+                min_avg_confidence=POST_PROCESSING_FILTERS_CONFIG.get("min_avg_confidence", 0.6),
+                max_tracks=POST_PROCESSING_FILTERS_CONFIG.get("max_tracks", 2),
+                enabled=True
+            )
+        else:
+            self.video_post_processor = None
+        
         # Keypoint history for occlusion interpolation (per person)
         self.keypoints_history: Dict[int, List[np.ndarray]] = {}
+        
+        # Frame data history for video-level post-processing
+        self.frame_data_history: List[Dict] = []
         
     def set_audio(self, audio_path: str):
         """
@@ -406,10 +421,28 @@ class GlobalController:
             
             persons_result.append({
                 "person_id": pid,
+                "track_id": pid,  # Add track_id for video-level post-processing
                 "errors": self.errors.get(pid, []),
                 "score": self.scores.get(pid, self.initial_score),
                 "keypoints": keypoints_data,  # Add keypoints for skeleton visualization
             })
+        
+        # Lưu frame data vào history cho video-level post-processing
+        if self.video_post_processor is not None:
+            frame_data = {
+                'frame_num': frame_number,
+                'timestamp': timestamp,
+                'persons': [
+                    {
+                        'track_id': pid,
+                        'keypoints': persons[pid] if pid in persons else None,
+                        'score': self.scores.get(pid, self.initial_score),
+                    }
+                    for pid in current_person_ids
+                    if pid in persons and persons[pid] is not None
+                ]
+            }
+            self.frame_data_history.append(frame_data)
 
         # Tính danh sách ID "ổn định" (người thật) dựa trên thống kê từ tracker
         stable_person_ids = []
@@ -749,6 +782,25 @@ class GlobalController:
         for pid in list(self.frame_errors_buffer.keys()):
             if self.frame_errors_buffer[pid]:
                 self._process_error_grouping(pid)
+        
+        # Video-level post-processing: cleanup tracks
+        if self.video_post_processor is not None and len(self.frame_data_history) > 0:
+            cleaned_frames = self.video_post_processor.cleanup_tracks(self.frame_data_history)
+            
+            # Lấy danh sách valid track IDs từ cleaned frames
+            valid_track_ids = set()
+            for frame_data in cleaned_frames:
+                for person in frame_data.get('persons', []):
+                    tid = person.get('track_id')
+                    if tid is not None:
+                        valid_track_ids.add(tid)
+            
+            # Lọc lại errors và scores chỉ giữ lại valid tracks
+            if valid_track_ids:
+                self.errors = {pid: errs for pid, errs in self.errors.items() if pid in valid_track_ids}
+                self.scores = {pid: score for pid, score in self.scores.items() if pid in valid_track_ids}
+                # Clear frame data history sau khi đã xử lý
+                self.frame_data_history = []
     
     def reset(self):
         """Reset controller state"""
@@ -761,6 +813,7 @@ class GlobalController:
         self.person_first_frame = {}
         self.person_last_frame = {}
         self.keypoints_history = {}
+        self.frame_data_history = []  # Reset frame data history
         # Reset all trackers
         if self.tracker:
             self.tracker.reset()

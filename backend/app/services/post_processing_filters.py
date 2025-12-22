@@ -7,6 +7,8 @@ Filters:
 2. Keypoint Geometric Consistency Filter - Validates anatomical constraints
 3. Velocity-Based Filter - Detects and filters tracks with unrealistic motion
 4. Occlusion Detection - Identifies and handles occlusion cases
+5. Ghost Detection Filter - Filters ghost detections using heuristics
+6. Video-Level Post-Processor - Cleans up tracks after video processing
 """
 import numpy as np
 from typing import List, Dict, Optional, Tuple
@@ -866,4 +868,213 @@ class PostProcessingFilters:
             keypoints_history,
             current_keypoints
         )
+
+
+class VideoLevelPostProcessor:
+    """
+    Xử lý sau khi đã có toàn bộ tracks (video-level post-processing)
+    
+    Chạy SAU KHI đã xử lý hết video để:
+    1. Thu thập thống kê mỗi track
+    2. Xác định tracks "thật" dựa trên:
+       - Xuất hiện đủ lâu (>= min_frame_ratio % video)
+       - Body proportion ổn định (torso_std <= max_torso_std)
+       - Confidence cao (avg_conf >= min_avg_confidence)
+    3. Chỉ giữ lại N tracks tốt nhất
+    4. Lọc lại data
+    """
+    
+    def __init__(
+        self,
+        min_frame_ratio: float = 0.7,
+        max_torso_std: float = 20.0,
+        min_avg_confidence: float = 0.6,
+        max_tracks: int = 2,
+        enabled: bool = True
+    ):
+        """
+        Args:
+            min_frame_ratio: Tỷ lệ frame tối thiểu track phải xuất hiện (0.7 = 70%)
+            max_torso_std: Độ lệch chuẩn tối đa của torso length (20 pixels)
+            min_avg_confidence: Confidence trung bình tối thiểu (0.6)
+            max_tracks: Số tracks tối đa giữ lại (2)
+            enabled: Enable/disable post-processor
+        """
+        self.min_frame_ratio = min_frame_ratio
+        self.max_torso_std = max_torso_std
+        self.min_avg_confidence = min_avg_confidence
+        self.max_tracks = max_tracks
+        self.enabled = enabled
+    
+    def _calculate_torso_length(self, keypoints: np.ndarray) -> Optional[float]:
+        """Calculate torso length (shoulder to hip)"""
+        ls_idx = KEYPOINT_INDICES["left_shoulder"]
+        rs_idx = KEYPOINT_INDICES["right_shoulder"]
+        lh_idx = KEYPOINT_INDICES["left_hip"]
+        rh_idx = KEYPOINT_INDICES["right_hip"]
+        
+        min_confidence = 0.3
+        
+        # Get shoulder center
+        if (keypoints[ls_idx, 2] >= min_confidence and
+            keypoints[rs_idx, 2] >= min_confidence):
+            shoulder_center = (
+                (keypoints[ls_idx, 0] + keypoints[rs_idx, 0]) / 2,
+                (keypoints[ls_idx, 1] + keypoints[rs_idx, 1]) / 2
+            )
+        elif keypoints[ls_idx, 2] >= min_confidence:
+            shoulder_center = (keypoints[ls_idx, 0], keypoints[ls_idx, 1])
+        elif keypoints[rs_idx, 2] >= min_confidence:
+            shoulder_center = (keypoints[rs_idx, 0], keypoints[rs_idx, 1])
+        else:
+            return None
+        
+        # Get hip center
+        if (keypoints[lh_idx, 2] >= min_confidence and
+            keypoints[rh_idx, 2] >= min_confidence):
+            hip_center = (
+                (keypoints[lh_idx, 0] + keypoints[rh_idx, 0]) / 2,
+                (keypoints[lh_idx, 1] + keypoints[rh_idx, 1]) / 2
+            )
+        elif keypoints[lh_idx, 2] >= min_confidence:
+            hip_center = (keypoints[lh_idx, 0], keypoints[lh_idx, 1])
+        elif keypoints[rh_idx, 2] >= min_confidence:
+            hip_center = (keypoints[rh_idx, 0], keypoints[rh_idx, 1])
+        else:
+            return None
+        
+        return np.sqrt(
+            (shoulder_center[0] - hip_center[0]) ** 2 +
+            (shoulder_center[1] - hip_center[1]) ** 2
+        )
+    
+    def cleanup_tracks(
+        self,
+        all_frames_data: List[Dict]
+    ) -> List[Dict]:
+        """
+        Chạy SAU KHI đã xử lý hết video để cleanup tracks
+        
+        Args:
+            all_frames_data: List of frame data dictionaries, mỗi dict có:
+                {
+                    'frame_num': int,
+                    'persons': [
+                        {
+                            'track_id': int,
+                            'keypoints': np.ndarray [17, 3],
+                            ...
+                        },
+                        ...
+                    ],
+                    ...
+                }
+        
+        Returns:
+            Cleaned frames data (chỉ giữ lại valid tracks)
+        """
+        if not self.enabled or not all_frames_data:
+            return all_frames_data
+        
+        total_frames = len(all_frames_data)
+        if total_frames == 0:
+            return all_frames_data
+        
+        track_stats = {}
+        
+        # Bước 1: Thu thập thống kê mỗi track
+        for frame_data in all_frames_data:
+            frame_num = frame_data.get('frame_num', 0)
+            persons = frame_data.get('persons', [])
+            
+            for person in persons:
+                tid = person.get('track_id')
+                if tid is None:
+                    continue
+                
+                keypoints = person.get('keypoints')
+                if keypoints is None:
+                    continue
+                
+                # Convert to numpy array if needed
+                if not isinstance(keypoints, np.ndarray):
+                    try:
+                        keypoints = np.array(keypoints)
+                    except (ValueError, TypeError):
+                        continue
+                
+                # Validate keypoints shape
+                if len(keypoints.shape) < 2 or keypoints.shape[0] < 17:
+                    continue
+                
+                if tid not in track_stats:
+                    track_stats[tid] = {
+                        'frames': [],
+                        'torso_lengths': [],
+                        'avg_confidence': []
+                    }
+                
+                track_stats[tid]['frames'].append(frame_num)
+                
+                # Tính torso length
+                torso = self._calculate_torso_length(keypoints)
+                if torso is not None:
+                    track_stats[tid]['torso_lengths'].append(torso)
+                
+                # Tính average confidence
+                if keypoints.shape[0] > 0 and keypoints.shape[1] >= 3:
+                    avg_conf = np.mean(keypoints[:, 2])
+                    track_stats[tid]['avg_confidence'].append(avg_conf)
+        
+        # Bước 2: Xác định tracks "thật"
+        valid_tracks = []
+        for tid, stats in track_stats.items():
+            # Tiêu chí 1: Xuất hiện đủ lâu
+            num_frames = len(stats['frames'])
+            min_required_frames = int(total_frames * self.min_frame_ratio)
+            if num_frames < min_required_frames:
+                logger.debug(f"Video post-processor: Rejected track {tid} (insufficient frames: {num_frames}/{total_frames}, required: {min_required_frames})")
+                continue  # xuất hiện < min_frame_ratio % video = ghost
+            
+            # Tiêu chí 2: Body proportion ổn định
+            if len(stats['torso_lengths']) > 0:
+                torso_std = np.std(stats['torso_lengths'])
+                if torso_std > self.max_torso_std:
+                    logger.debug(f"Video post-processor: Rejected track {tid} (torso std too high: {torso_std:.1f}, max: {self.max_torso_std})")
+                    continue  # biến động quá lớn
+            
+            # Tiêu chí 3: Confidence cao
+            if len(stats['avg_confidence']) > 0:
+                avg_conf = np.mean(stats['avg_confidence'])
+                if avg_conf < self.min_avg_confidence:
+                    logger.debug(f"Video post-processor: Rejected track {tid} (low confidence: {avg_conf:.2f}, min: {self.min_avg_confidence})")
+                    continue
+            
+            valid_tracks.append(tid)
+        
+        # Bước 3: Chỉ giữ lại N tracks tốt nhất (sắp xếp theo số frames)
+        if len(valid_tracks) > self.max_tracks:
+            valid_tracks = sorted(
+                valid_tracks,
+                key=lambda t: len(track_stats[t]['frames']),
+                reverse=True
+            )[:self.max_tracks]
+        
+        logger.info(f"Video post-processor: Kept {len(valid_tracks)}/{len(track_stats)} tracks: {valid_tracks}")
+        
+        # Bước 4: Lọc lại data
+        cleaned_frames = []
+        for frame_data in all_frames_data:
+            persons = frame_data.get('persons', [])
+            filtered_persons = [
+                p for p in persons
+                if p.get('track_id') in valid_tracks
+            ]
+            
+            # Tạo frame data mới với persons đã lọc
+            cleaned_frame_data = frame_data.copy()
+            cleaned_frame_data['persons'] = filtered_persons
+            cleaned_frames.append(cleaned_frame_data)
+        
+        return cleaned_frames
 

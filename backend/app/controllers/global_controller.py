@@ -257,7 +257,8 @@ class GlobalController:
             if self.post_processing_filters:
                 detections_meta = self.post_processing_filters.filter_detections(
                     detections_meta,
-                    frame_shape
+                    frame_shape,
+                    frame=frame
                 )
             
             if self.bytetrack_service:

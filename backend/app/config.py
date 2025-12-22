@@ -379,6 +379,15 @@ POST_PROCESSING_FILTERS_CONFIG = {
     "occlusion_enabled": True,
     "occlusion_threshold": 0.5,  # Minimum visible ratio to consider as occlusion
     "interpolation_window": 5,  # Frames to use for keypoint interpolation
+    
+    # Ghost Detection Filter - Lọc "người ảo" bằng heuristics
+    "ghost_enabled": True,  # Bật/tắt ghost detection filter
+    "min_visible_keypoints": 8,  # Số keypoint tối thiểu phải visible (8/17)
+    "ghost_min_torso_length": 50.0,  # Torso length tối thiểu (pixels)
+    "ghost_max_torso_length": 500.0,  # Torso length tối đa (pixels)
+    "max_arm_asymmetry_ratio": 0.3,  # Tỷ lệ chênh lệch tay trái/phải tối đa (0.3 = 30%)
+    "ghost_nms_iou_threshold": 0.5,  # IoU threshold cho NMS bổ sung (0.5)
+    "ghost_min_confidence": 0.5,  # Confidence tối thiểu cho keypoint (0.5)
 }
 
 # Visualization configuration for multi-person tracking

@@ -810,7 +810,8 @@ class PostProcessingFilters:
     def filter_detections(
         self,
         detections: List[Dict],
-        frame_shape: Tuple[int, int]
+        frame_shape: Tuple[int, int],
+        frame: Optional[np.ndarray] = None
     ) -> List[Dict]:
         """
         Apply all filters to detections
@@ -818,12 +819,16 @@ class PostProcessingFilters:
         Args:
             detections: List of detection dictionaries
             frame_shape: (height, width) of frame
+            frame: Current frame image (optional, for ghost filter)
         
         Returns:
             Filtered detections
         """
-        # Apply spatial filter first (fastest)
-        filtered = self.spatial_filter.filter(detections, frame_shape)
+        # Apply ghost filter first (lọc người ảo sớm nhất)
+        filtered = self.ghost_filter.filter_ghosts(detections, frame)
+        
+        # Apply spatial filter (fastest)
+        filtered = self.spatial_filter.filter(filtered, frame_shape)
         
         # Apply geometric filter
         filtered = self.geometric_filter.filter(filtered)

@@ -14,6 +14,151 @@ from scipy.optimize import linear_sum_assignment
 from collections import deque
 from backend.app.services.adaptive_kalman_filter import AdaptiveKalmanFilter
 from backend.app.services.reid_service import ReIDService
+from backend.app.services.formation_tracker import FormationTracker
+from backend.app.config import KEYPOINT_INDICES, MULTI_PERSON_CONFIG
+
+
+def _calculate_torso_length(keypoints: np.ndarray) -> float:
+    """
+    Tính chiều dài torso (vai → hông) cho 1 frame.
+    Sử dụng trung bình vai trái/phải và hông trái/phải.
+    """
+    ls = KEYPOINT_INDICES["left_shoulder"]
+    rs = KEYPOINT_INDICES["right_shoulder"]
+    lh = KEYPOINT_INDICES["left_hip"]
+    rh = KEYPOINT_INDICES["right_hip"]
+
+    shoulder_y = (keypoints[ls, 1] + keypoints[rs, 1]) / 2.0
+    hip_y = (keypoints[lh, 1] + keypoints[rh, 1]) / 2.0
+    shoulder_x = (keypoints[ls, 0] + keypoints[rs, 0]) / 2.0
+    hip_x = (keypoints[lh, 0] + keypoints[rh, 0]) / 2.0
+
+    return float(np.sqrt((shoulder_x - hip_x) ** 2 + (shoulder_y - hip_y) ** 2))
+
+
+def _calculate_arm_length(keypoints: np.ndarray) -> float:
+    """
+    Tính chiều dài tay (vai → cổ tay), lấy trung bình 2 tay.
+    """
+    ls = KEYPOINT_INDICES["left_shoulder"]
+    rs = KEYPOINT_INDICES["right_shoulder"]
+    lw = KEYPOINT_INDICES["left_wrist"]
+    rw = KEYPOINT_INDICES["right_wrist"]
+
+    left_len = np.sqrt(
+        (keypoints[ls, 0] - keypoints[lw, 0]) ** 2
+        + (keypoints[ls, 1] - keypoints[lw, 1]) ** 2
+    )
+    right_len = np.sqrt(
+        (keypoints[rs, 0] - keypoints[rw, 0]) ** 2
+        + (keypoints[rs, 1] - keypoints[rw, 1]) ** 2
+    )
+
+    return float((left_len + right_len) / 2.0)
+
+
+def calculate_skeleton_consistency(kpts1: np.ndarray, kpts2: np.ndarray) -> float:
+    """
+    So sánh pose giữa 2 frame liên tiếp của cùng 1 người dựa trên body proportions.
+
+    Body proportions (torso, tỉ lệ tay/torsor) của 1 người về cơ bản không đổi theo thời gian.
+    Giá trị trả về càng gần 1.0 thì 2 frame càng giống nhau.
+    """
+    torso1 = _calculate_torso_length(kpts1)
+    torso2 = _calculate_torso_length(kpts2)
+
+    arm_len1 = _calculate_arm_length(kpts1)
+    arm_len2 = _calculate_arm_length(kpts2)
+
+    # Tỉ lệ chiều dài tay / chiều dài torso
+    arm_ratio1 = arm_len1 / (torso1 + 1e-6)
+    arm_ratio2 = arm_len2 / (torso2 + 1e-6)
+
+    proportion_diff = abs(torso1 - torso2) + abs(arm_ratio1 - arm_ratio2)
+
+    return 1.0 / (1.0 + proportion_diff)
+
+
+class TrackValidator:
+    """
+    Kiểm tra tính ổn định theo thời gian của từng track dựa trên body proportions.
+
+    Ý tưởng:
+    - Với mỗi track, lưu lại lịch sử tỉ lệ arm_len / torso.
+    - Nếu độ lệch chuẩn (std) của tỉ lệ này trong một cửa sổ gần nhất quá lớn
+      → nhiều khả năng có ID switch / gộp nhiều người vào 1 track.
+    - Chỉ coi track là "ổn định" nếu:
+        + Đủ độ dài (>= min_track_length)
+        + std trong cửa sổ gần nhất <= max_proportion_std.
+    """
+
+    def __init__(
+        self,
+        min_track_length: int = 30,
+        window_size: int = 30,
+        max_proportion_std: float = 0.15,
+        enabled: bool = True,
+    ):
+        self.min_track_length = int(min_track_length)
+        self.window_size = int(window_size)
+        self.max_proportion_std = float(max_proportion_std)
+        self.enabled = enabled
+
+        # track_id -> {
+        #   "body_proportions": [float, ...],
+        #   "start_frame": int,
+        #   "last_frame": int,
+        # }
+        self.tracks_history: Dict[int, Dict] = {}
+
+    def update_track(self, track_id: int, keypoints: Optional[np.ndarray], frame_num: int):
+        """Cập nhật lịch sử body proportion cho 1 track."""
+        if not self.enabled or keypoints is None:
+            return
+
+        if track_id not in self.tracks_history:
+            self.tracks_history[track_id] = {
+                "body_proportions": [],
+                "start_frame": frame_num,
+                "last_frame": frame_num,
+            }
+
+        history = self.tracks_history[track_id]
+        history["last_frame"] = frame_num
+
+        torso = _calculate_torso_length(keypoints)
+        arm_len = _calculate_arm_length(keypoints)
+        proportion = arm_len / (torso + 1e-6)
+
+        history["body_proportions"].append(proportion)
+
+        # Giữ kích thước lịch sử ở mức vừa phải
+        if len(history["body_proportions"]) > max(self.window_size * 2, 60):
+            history["body_proportions"] = history["body_proportions"][-max(self.window_size * 2, 60) :]
+
+    def is_stable(self, track_id: int) -> bool:
+        """
+        Kiểm tra track có ổn định hay không.
+        - False nếu chưa đủ độ dài (chưa đủ tự tin).
+        - False nếu std của body proportion trong cửa sổ gần nhất > ngưỡng.
+        """
+        if not self.enabled:
+            return True
+
+        history = self.tracks_history.get(track_id)
+        if history is None:
+            return False
+
+        proportions = history.get("body_proportions", [])
+        if len(proportions) < self.min_track_length:
+            return False
+
+        window = proportions[-self.window_size :]
+        if len(window) == 0:
+            return False
+
+        prop_std = float(np.std(window))
+        return prop_std <= self.max_proportion_std
 
 
 class STrack:
@@ -204,7 +349,8 @@ class ByteTrackService:
         low_thresh: float = 0.1,
         use_adaptive_kalman: bool = True,
         adaptive_kalman_config: Optional[Dict] = None,
-        reid_config: Optional[Dict] = None
+        reid_config: Optional[Dict] = None,
+        formation_config: Optional[Dict] = None,
     ):
         """
         Args:
@@ -215,6 +361,8 @@ class ByteTrackService:
             low_thresh: Low confidence threshold (below this = ignore)
             use_adaptive_kalman: Use AdaptiveKalmanFilter instead of simple KalmanFilter
             adaptive_kalman_config: Configuration for AdaptiveKalmanFilter
+            reid_config: Configuration for ReID service
+            formation_config: Configuration for FormationTracker
         """
         self.track_thresh = track_thresh
         self.track_buffer = track_buffer
@@ -225,6 +373,28 @@ class ByteTrackService:
         self.adaptive_kalman_config = adaptive_kalman_config or {}
         self.reid_service = ReIDService(reid_config or {"enabled": False})
         self.reid_alpha = float((reid_config or {}).get("alpha", 0.5)) if reid_config else 0.5
+        
+        # Formation-based tracking (cho điều lệnh đội hình)
+        formation_config = formation_config or {}
+        if formation_config.get("enabled", False):
+            self.formation_tracker = FormationTracker(
+                expected_num_people=formation_config.get("expected_num_people", 2),
+                init_frames=formation_config.get("init_frames", 30),
+                match_threshold=formation_config.get("match_threshold", 200.0),
+                ema_alpha=formation_config.get("ema_alpha", 0.1),
+                enabled=True
+            )
+        else:
+            self.formation_tracker = None
+        
+        # Temporal consistency validator (body proportion stability)
+        temporal_min_len = MULTI_PERSON_CONFIG.get("min_track_length", 30)
+        self.track_validator = TrackValidator(
+            min_track_length=temporal_min_len,
+            window_size=min(temporal_min_len, 30),
+            max_proportion_std=0.15,
+            enabled=True,
+        )
         
         # Track management
         self.tracked_stracks: List[STrack] = []
@@ -240,11 +410,16 @@ class ByteTrackService:
         Args:
             detections: List of {"bbox": [x1,y1,x2,y2], "score": float, "keypoints": np.ndarray}
             frame_id: Current frame number
+            frame: Current frame image (optional, for ReID)
         
         Returns:
             List of active tracks
         """
         self.frame_id = frame_id
+        
+        # Apply formation-based tracking nếu enabled (cho điều lệnh đội hình)
+        if self.formation_tracker is not None:
+            detections = self.formation_tracker.assign_to_formation(detections, frame_id)
         
         # Separate detections by confidence
         high_dets = []
@@ -328,6 +503,11 @@ class ByteTrackService:
             if track.time_since_update > self.track_buffer:
                 track.mark_removed()
         
+        # Cập nhật lịch sử temporal consistency cho tất cả tracked + lost tracks
+        for track in self.tracked_stracks + self.lost_stracks:
+            # Sử dụng keypoints hiện tại của track (sau Kalman + update)
+            self.track_validator.update_track(track.track_id, track.keypoints, self.frame_id)
+
         # Remove dead tracks
         self.tracked_stracks = [t for t in self.tracked_stracks if t.state == 'tracked']
         self.lost_stracks = [t for t in self.lost_stracks if t.state == 'lost']
@@ -470,6 +650,10 @@ class ByteTrackService:
             avg_height = track.total_height / max(track.frames_seen, 1)
             if avg_height < min_height:
                 continue
+
+            # Temporal consistency: body proportions phải ổn định
+            if not self.track_validator.is_stable(track.track_id):
+                continue
             
             candidates.append((track.track_id, track.frames_seen, avg_height))
         
@@ -512,3 +696,10 @@ class ByteTrackService:
         self.removed_stracks = []
         self.frame_id = 0
         STrack._count = 0
+        
+        # Reset formation tracker nếu có
+        if self.formation_tracker is not None:
+            self.formation_tracker.reset()
+        
+        # Reset track validator
+        self.track_validator.reset()

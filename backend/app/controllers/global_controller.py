@@ -64,6 +64,7 @@ class GlobalController:
                 bytetrack_config = MULTI_PERSON_CONFIG.get("bytetrack", {})
                 adaptive_kalman_config = bytetrack_config.get("adaptive_kalman", {})
                 reid_config = MULTI_PERSON_CONFIG.get("reid", {})
+                formation_config = MULTI_PERSON_CONFIG.get("formation_tracking", {})
                 self.bytetrack_service = ByteTrackService(
                     track_thresh=bytetrack_config.get("track_thresh", 0.5),
                     track_buffer=bytetrack_config.get("track_buffer", 30),
@@ -73,6 +74,7 @@ class GlobalController:
                     use_adaptive_kalman=bytetrack_config.get("use_adaptive_kalman", True),
                     adaptive_kalman_config=adaptive_kalman_config,
                     reid_config=reid_config,
+                    formation_config=formation_config,
                 )
             elif tracking_method == "sort":
                 # Use SORT-style tracker

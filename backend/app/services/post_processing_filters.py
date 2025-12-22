@@ -547,6 +547,208 @@ class OcclusionDetector:
         return interpolated
 
 
+class GhostDetectionFilter:
+    """
+    Lọc "người ảo" (ghost detections) bằng các heuristics:
+    1. Số keypoint hợp lệ (ít nhất 8/17)
+    2. Body structure hợp lý (torso length trong khoảng hợp lý)
+    3. Symmetry (đối xứng tay/chân)
+    4. Overlap với detections khác (NMS bổ sung)
+    """
+    
+    def __init__(
+        self,
+        min_visible_keypoints: int = 8,
+        min_torso_length: float = 50.0,
+        max_torso_length: float = 500.0,
+        max_arm_asymmetry_ratio: float = 0.3,
+        nms_iou_threshold: float = 0.5,
+        min_confidence: float = 0.5,
+        enabled: bool = True
+    ):
+        """
+        Args:
+            min_visible_keypoints: Số keypoint tối thiểu phải visible (8/17)
+            min_torso_length: Torso length tối thiểu (pixels)
+            max_torso_length: Torso length tối đa (pixels)
+            max_arm_asymmetry_ratio: Tỷ lệ chênh lệch tay trái/phải tối đa (0.3 = 30%)
+            nms_iou_threshold: IoU threshold cho NMS (0.5)
+            min_confidence: Confidence tối thiểu cho keypoint (0.5)
+            enabled: Enable/disable filter
+        """
+        self.min_visible_keypoints = min_visible_keypoints
+        self.min_torso_length = min_torso_length
+        self.max_torso_length = max_torso_length
+        self.max_arm_asymmetry_ratio = max_arm_asymmetry_ratio
+        self.nms_iou_threshold = nms_iou_threshold
+        self.min_confidence = min_confidence
+        self.enabled = enabled
+    
+    def _calculate_torso_length(self, keypoints: np.ndarray) -> Optional[float]:
+        """Calculate torso length (shoulder to hip)"""
+        ls_idx = KEYPOINT_INDICES["left_shoulder"]
+        rs_idx = KEYPOINT_INDICES["right_shoulder"]
+        lh_idx = KEYPOINT_INDICES["left_hip"]
+        rh_idx = KEYPOINT_INDICES["right_hip"]
+        
+        # Get shoulder center
+        if (keypoints[ls_idx, 2] >= self.min_confidence and
+            keypoints[rs_idx, 2] >= self.min_confidence):
+            shoulder_center = (
+                (keypoints[ls_idx, 0] + keypoints[rs_idx, 0]) / 2,
+                (keypoints[ls_idx, 1] + keypoints[rs_idx, 1]) / 2
+            )
+        elif keypoints[ls_idx, 2] >= self.min_confidence:
+            shoulder_center = (keypoints[ls_idx, 0], keypoints[ls_idx, 1])
+        elif keypoints[rs_idx, 2] >= self.min_confidence:
+            shoulder_center = (keypoints[rs_idx, 0], keypoints[rs_idx, 1])
+        else:
+            return None
+        
+        # Get hip center
+        if (keypoints[lh_idx, 2] >= self.min_confidence and
+            keypoints[rh_idx, 2] >= self.min_confidence):
+            hip_center = (
+                (keypoints[lh_idx, 0] + keypoints[rh_idx, 0]) / 2,
+                (keypoints[lh_idx, 1] + keypoints[rh_idx, 1]) / 2
+            )
+        elif keypoints[lh_idx, 2] >= self.min_confidence:
+            hip_center = (keypoints[lh_idx, 0], keypoints[lh_idx, 1])
+        elif keypoints[rh_idx, 2] >= self.min_confidence:
+            hip_center = (keypoints[rh_idx, 0], keypoints[rh_idx, 1])
+        else:
+            return None
+        
+        return np.sqrt(
+            (shoulder_center[0] - hip_center[0]) ** 2 +
+            (shoulder_center[1] - hip_center[1]) ** 2
+        )
+    
+    def _calculate_arm_length(self, keypoints: np.ndarray, side: str = "left") -> Optional[float]:
+        """
+        Calculate arm length (shoulder to wrist)
+        
+        Args:
+            keypoints: [17, 3] keypoints array
+            side: "left" or "right"
+        
+        Returns:
+            Arm length in pixels or None if not available
+        """
+        if side == "left":
+            shoulder_idx = KEYPOINT_INDICES["left_shoulder"]
+            wrist_idx = KEYPOINT_INDICES["left_wrist"]
+        else:
+            shoulder_idx = KEYPOINT_INDICES["right_shoulder"]
+            wrist_idx = KEYPOINT_INDICES["right_wrist"]
+        
+        if (keypoints[shoulder_idx, 2] >= self.min_confidence and
+            keypoints[wrist_idx, 2] >= self.min_confidence):
+            return np.sqrt(
+                (keypoints[shoulder_idx, 0] - keypoints[wrist_idx, 0]) ** 2 +
+                (keypoints[shoulder_idx, 1] - keypoints[wrist_idx, 1]) ** 2
+            )
+        return None
+    
+    @staticmethod
+    def _calculate_iou(bbox1: np.ndarray, bbox2: np.ndarray) -> float:
+        """Calculate IoU between two bboxes [x1, y1, x2, y2]"""
+        x1_1, y1_1, x2_1, y2_1 = bbox1
+        x1_2, y1_2, x2_2, y2_2 = bbox2
+        
+        x1_i = max(x1_1, x1_2)
+        y1_i = max(y1_1, y1_2)
+        x2_i = min(x2_1, x2_2)
+        y2_i = min(y2_1, y2_2)
+        
+        if x2_i < x1_i or y2_i < y1_i:
+            return 0.0
+        
+        inter = (x2_i - x1_i) * (y2_i - y1_i)
+        area1 = (x2_1 - x1_1) * (y2_1 - y1_1)
+        area2 = (x2_2 - x1_2) * (y2_2 - y1_2)
+        union = area1 + area2 - inter
+        
+        return float(inter / union) if union > 0 else 0.0
+    
+    def filter_ghosts(
+        self,
+        detections: List[Dict],
+        frame: Optional[np.ndarray] = None
+    ) -> List[Dict]:
+        """
+        Lọc các ghost detections bằng heuristics
+        
+        Args:
+            detections: List of {"bbox": [x1,y1,x2,y2], "score": float, "keypoints": np.ndarray}
+            frame: Current frame image (optional, không dùng trong implementation hiện tại)
+        
+        Returns:
+            List of valid detections (ghost detections đã bị lọc)
+        """
+        if not self.enabled:
+            return detections
+        
+        valid_detections = []
+        
+        for det in detections:
+            kpts = det.get('keypoints')
+            bbox = det.get('bbox')
+            
+            if kpts is None or bbox is None:
+                continue
+            
+            # Check 1: Số điểm keypoint hợp lệ
+            visible_kpts = np.sum(kpts[:, 2] >= self.min_confidence)
+            if visible_kpts < self.min_visible_keypoints:
+                logger.debug(f"Ghost filter: Rejected detection (insufficient keypoints: {visible_kpts}/{len(kpts)})")
+                continue
+            
+            # Check 2: Body structure hợp lý (torso length)
+            torso = self._calculate_torso_length(kpts)
+            if torso is None:
+                logger.debug(f"Ghost filter: Rejected detection (cannot calculate torso)")
+                continue
+            
+            if torso < self.min_torso_length or torso > self.max_torso_length:
+                logger.debug(f"Ghost filter: Rejected detection (invalid torso length: {torso:.1f}px)")
+                continue
+            
+            # Check 3: Symmetry (đối xứng tay/chân)
+            left_arm = self._calculate_arm_length(kpts, side='left')
+            right_arm = self._calculate_arm_length(kpts, side='right')
+            
+            if left_arm is not None and right_arm is not None:
+                arm_diff_ratio = abs(left_arm - right_arm) / (left_arm + 1e-6)
+                if arm_diff_ratio > self.max_arm_asymmetry_ratio:
+                    logger.debug(f"Ghost filter: Rejected detection (arm asymmetry: {arm_diff_ratio:.2f})")
+                    continue
+            
+            # Check 4: Overlap với detections khác (NMS bổ sung)
+            is_overlap = False
+            for valid_det in valid_detections:
+                valid_bbox = valid_det.get('bbox')
+                if valid_bbox is None:
+                    continue
+                
+                iou = self._calculate_iou(np.array(bbox), np.array(valid_bbox))
+                if iou > self.nms_iou_threshold:
+                    # Nếu overlap cao, giữ detection có score cao hơn
+                    if det.get('score', 0.0) > valid_det.get('score', 0.0):
+                        # Thay thế detection cũ bằng detection mới (score cao hơn)
+                        valid_detections.remove(valid_det)
+                        is_overlap = False  # Cho phép thêm detection mới
+                        break
+                    else:
+                        is_overlap = True
+                        break
+            
+            if not is_overlap:
+                valid_detections.append(det)
+        
+        return valid_detections
+
+
 class PostProcessingFilters:
     """
     Main class combining all post-processing filters
@@ -593,6 +795,16 @@ class PostProcessingFilters:
             occlusion_threshold=filter_config.get("occlusion_threshold", 0.5),
             interpolation_window=filter_config.get("interpolation_window", 5),
             enabled=filter_config.get("occlusion_enabled", True)
+        )
+        
+        self.ghost_filter = GhostDetectionFilter(
+            min_visible_keypoints=filter_config.get("min_visible_keypoints", 8),
+            min_torso_length=filter_config.get("ghost_min_torso_length", 50.0),
+            max_torso_length=filter_config.get("ghost_max_torso_length", 500.0),
+            max_arm_asymmetry_ratio=filter_config.get("max_arm_asymmetry_ratio", 0.3),
+            nms_iou_threshold=filter_config.get("ghost_nms_iou_threshold", 0.5),
+            min_confidence=filter_config.get("ghost_min_confidence", 0.5),
+            enabled=filter_config.get("ghost_enabled", True)
         )
     
     def filter_detections(

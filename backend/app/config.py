@@ -337,6 +337,14 @@ MULTI_PERSON_CONFIG = {
         "similarity_threshold": 0.7,   # Ngưỡng cosine similarity để coi là cùng người
         "alpha": 0.5,                  # Trọng số kết hợp IOU và similarity (0.5 = cân bằng)
         "method": "osnet_fallback_pose"  # osnet_fallback_pose: ưu tiên OSNet, fallback pose embedding
+    },
+    # Formation-based Tracking configuration (cho điều lệnh đội hình)
+    "formation_tracking": {
+        "enabled": False,              # Bật/tắt formation tracking (mặc định False để không ảnh hưởng tracking hiện tại)
+        "expected_num_people": 2,       # Số người mong đợi trong đội hình
+        "init_frames": 30,             # Số frame để khởi tạo formation (30 frames @ 30fps = 1 giây)
+        "match_threshold": 200.0,      # Ngưỡng khoảng cách tối đa để match với formation position (pixels)
+        "ema_alpha": 0.1,              # Hệ số EMA smoothing cho cập nhật vị trí (0.0-1.0)
     }
 }
 

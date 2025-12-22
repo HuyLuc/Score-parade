@@ -11,8 +11,9 @@ class TestSequenceComparator:
     def test_init_default_params(self):
         """Test initialization with default parameters"""
         comparator = SequenceComparator()
-        assert comparator.min_sequence_length == 3
-        assert comparator.severity_aggregation == "mean"
+        assert comparator.min_sequence_length == 5  # Updated from 3 to 5
+        assert comparator.severity_aggregation == "median"  # Updated from "mean" to "median"
+        assert comparator.max_gap_frames == 3  # Updated from 1 to 3
         assert comparator.enabled is True
     
     def test_init_custom_params(self):

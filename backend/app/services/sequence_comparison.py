@@ -23,18 +23,21 @@ class SequenceComparator:
     
     def __init__(
         self,
-        min_sequence_length: int = 3,
-        severity_aggregation: str = "mean",
-        max_gap_frames: int = 1,
+        min_sequence_length: int = 5,
+        severity_aggregation: str = "median",
+        max_gap_frames: int = 3,
         enabled: bool = True
     ):
         """
         Initialize SequenceComparator
         
         Args:
-            min_sequence_length: Minimum number of consecutive frames to form a sequence (default: 3)
-            max_gap_frames: Maximum gap (frames) still considered consecutive inside a sequence
+            min_sequence_length: Minimum number of consecutive frames to form a sequence (default: 5)
+                Tăng từ 3 → 5 để tránh nhóm các lỗi ngắn không liên quan
+            max_gap_frames: Maximum gap (frames) still considered consecutive inside a sequence (default: 3)
+                Tăng từ 1 → 3 để xử lý transition frames và lỗi cách nhau 2-3 frames
             severity_aggregation: How to aggregate severity across sequence ("mean", "max", "median")
+                Default: "median" để giảm ảnh hưởng của frame outlier
             enabled: Whether sequence comparison is enabled
         
         Raises:

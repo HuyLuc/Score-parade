@@ -105,9 +105,9 @@ class GlobalController:
         sequence_enabled = SEQUENCE_COMPARISON_CONFIG.get("enabled", True)
         if sequence_enabled:
             self.sequence_comparator = SequenceComparator(
-                min_sequence_length=SEQUENCE_COMPARISON_CONFIG.get("min_sequence_length", 2),
-                severity_aggregation=SEQUENCE_COMPARISON_CONFIG.get("severity_aggregation", "mean"),
-                max_gap_frames=SEQUENCE_COMPARISON_CONFIG.get("max_gap_frames", 1),
+                min_sequence_length=SEQUENCE_COMPARISON_CONFIG.get("min_sequence_length", 5),
+                severity_aggregation=SEQUENCE_COMPARISON_CONFIG.get("severity_aggregation", "median"),
+                max_gap_frames=SEQUENCE_COMPARISON_CONFIG.get("max_gap_frames", 3),
                 enabled=True
             )
         else:

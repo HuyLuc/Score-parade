@@ -196,12 +196,14 @@ DTW_CONFIG = {
 # Sequence Comparison configuration for grouping consecutive errors
 SEQUENCE_COMPARISON_CONFIG = {
     "enabled": True,  # Enable/disable sequence-based error detection
-    # Gộp từ 2 frame liên tiếp trở lên thành 1 lỗi để chỉ trừ điểm một lần
-    "min_sequence_length": 2,  # Minimum frames to form a sequence
-    # Cho phép hụt tối đa 1 frame giữa chuỗi
-    "max_gap_frames": 1,  # Frames gap allowed inside a sequence
-    # Dùng median để giảm ảnh hưởng của frame outlier
-    "severity_aggregation": "median",  # "mean", "max", "median"
+    # Gộp từ 5 frame liên tiếp trở lên thành 1 lỗi để chỉ trừ điểm một lần
+    # Tăng từ 2 → 5 để tránh nhóm các lỗi ngắn không liên quan
+    "min_sequence_length": 5,  # Minimum frames to form a sequence (tối ưu: 5-7 frames)
+    # Cho phép hụt tối đa 3 frames giữa chuỗi (tăng từ 1 → 3)
+    # Để xử lý transition frames và lỗi cách nhau 2-3 frames vẫn được nhóm
+    "max_gap_frames": 3,  # Frames gap allowed inside a sequence (tối ưu: 3-5 frames)
+    # Dùng median để giảm ảnh hưởng của frame outlier (tốt hơn mean)
+    "severity_aggregation": "median",  # "mean", "max", "median" (khuyến nghị: "median")
 }
 
 # Error Grouping configuration - Nhóm các lỗi liên tiếp để tránh phạt trùng lặp

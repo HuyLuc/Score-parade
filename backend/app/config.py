@@ -188,9 +188,35 @@ ADAPTIVE_THRESHOLD_CONFIG = {
 
 # Cấu hình DTW (Dynamic Time Warping) cho xử lý tempo variation
 DTW_CONFIG = {
-    "enabled": False,  # Bật/tắt DTW alignment (default: False để tránh ảnh hưởng hệ thống hiện tại)
-    "window_size": 50,  # Window size cho DTW alignment
+    "enabled": True,  # Bật/tắt DTW alignment - Enable để xử lý tempo variations (người thực hiện nhanh/chậm hơn golden template)
+    "window_size": 50,  # Window size cho DTW alignment (giới hạn warping path)
     "distance_metric": "euclidean",  # Distance metric: "euclidean", "manhattan", "cosine"
+}
+
+# Cấu hình Attention Mechanism - Thêm attention weights cho từng body part theo context
+# Giúp tăng độ chính xác bằng cách tập trung vào các body part quan trọng nhất trong từng động tác
+CONTEXT_ATTENTION = {
+    "nghiem": {
+        "arm": 1.5,      # Tay quan trọng nhất trong động tác "Nghiêm"
+        "leg": 0.5,      # Chân ít quan trọng hơn
+        "head": 1.2,     # Đầu quan trọng
+        "neck": 1.0,     # Cổ bình thường
+        "rhythm": 0.8,   # Timing ít quan trọng hơn trong nghiêm
+    },
+    "di_deu": {
+        "leg": 1.5,      # Chân quan trọng nhất trong động tác "Đi đều bước"
+        "arm": 1.0,      # Tay bình thường
+        "head": 1.0,     # Đầu bình thường
+        "neck": 1.0,     # Cổ bình thường
+        "rhythm": 1.8,   # Timing rất quan trọng trong đi đều
+    },
+    "default": {
+        "arm": 1.0,      # Mặc định: tất cả body parts đều quan trọng như nhau
+        "leg": 1.0,
+        "head": 1.0,
+        "neck": 1.0,
+        "rhythm": 1.0,
+    }
 }
 
 # Sequence Comparison configuration for grouping consecutive errors

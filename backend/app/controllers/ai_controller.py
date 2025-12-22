@@ -22,7 +22,7 @@ from backend.app.services.temporal_smoothing import TemporalSmoother, KeypointSm
 from backend.app.services.adaptive_threshold import AdaptiveThresholdManager
 from backend.app.services.dtw_alignment import DTWAligner
 from backend.app.services.sequence_comparison import SequenceComparator
-from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG, DTW_CONFIG, SEQUENCE_COMPARISON_CONFIG
+from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG, DTW_CONFIG, SEQUENCE_COMPARISON_CONFIG, CONTEXT_ATTENTION
 
 
 class AIController:
@@ -82,6 +82,59 @@ class AIController:
             self.sequence_comparator = None
 
     # ===================== Helper =====================
+    def _get_context(self) -> str:
+        """
+        Lấy context hiện tại dựa trên scoring_criterion
+        
+        Returns:
+            Context string: "nghiem", "di_deu", hoặc "default"
+        """
+        scoring_criterion = SCORING_CONFIG.get("scoring_criterion", "di_deu")
+        
+        # Map scoring_criterion to context
+        if scoring_criterion == "di_nghiem" or scoring_criterion == "nghiem":
+            return "nghiem"
+        elif scoring_criterion == "di_deu":
+            return "di_deu"
+        else:
+            return "default"
+    
+    def _get_attention_weight(self, body_part: str, error_type: str) -> float:
+        """
+        Lấy attention weight cho body part và error type dựa trên context
+        
+        Args:
+            body_part: "arm", "leg", "head", "neck"
+            error_type: "arm_angle", "leg_angle", "head_angle", "rhythm", etc.
+        
+        Returns:
+            Attention weight (default: 1.0)
+        """
+        context = self._get_context()
+        context_attention = CONTEXT_ATTENTION.get(context, CONTEXT_ATTENTION.get("default", {}))
+        
+        # Map error_type to body_part category
+        body_part_category = None
+        if "arm" in error_type:
+            body_part_category = "arm"
+        elif "leg" in error_type:
+            body_part_category = "leg"
+        elif "head" in error_type:
+            body_part_category = "head"
+        elif "neck" in error_type:
+            body_part_category = "neck"
+        elif "rhythm" in error_type:
+            body_part_category = "rhythm"
+        
+        # Fallback to body_part parameter if body_part_category not found
+        if body_part_category is None:
+            body_part_category = body_part.lower()
+        
+        # Get attention weight from context
+        attention_weight = context_attention.get(body_part_category, 1.0)
+        
+        return attention_weight
+    
     def _build_error(
         self,
         error_type: str,
@@ -91,14 +144,18 @@ class AIController:
         side: Optional[str] = None
     ) -> Dict:
         """
-        Tạo dict lỗi kèm severity và deduction dựa trên config
+        Tạo dict lỗi kèm severity và deduction dựa trên config và attention mechanism
         
         Sử dụng sqrt để severity tăng chậm hơn (sub-linear growth)
         thay vì tuyến tính, giúp giảm điểm trừ cho các lỗi nhỏ.
         
+        Áp dụng attention weights dựa trên context (nghiem/di_deu) để tập trung
+        vào các body parts quan trọng nhất trong từng động tác.
+        
         VD: 
         - Trước: diff=60, threshold=30, weight=2.0 → severity = 60/30 = 2.0 → deduction = 2.0 * 2.0 = 4.0
         - Sau:  diff=60, threshold=30, weight=1.0 → severity = sqrt(60/30) = 1.41 → deduction = 1.0 * 1.41 = 1.41
+        - Với attention (nghiem, arm): deduction = 1.0 * 1.41 * 1.5 = 2.12
         """
         weight = SCORING_CONFIG["error_weights"].get(error_type, 1.0)
         threshold = ERROR_THRESHOLDS.get(error_type, 10.0)
@@ -106,7 +163,12 @@ class AIController:
         
         # Sử dụng sqrt để severity tăng chậm hơn + cap ở 3.0 thay vì 10.0
         severity = min(math.sqrt(diff / threshold), 3.0)
-        deduction = weight * severity
+        
+        # Áp dụng attention weight dựa trên context
+        attention_weight = self._get_attention_weight(body_part, error_type)
+        
+        # Final deduction = base_weight * severity * attention_weight
+        deduction = weight * severity * attention_weight
         
         return {
             "type": error_type,
@@ -114,6 +176,7 @@ class AIController:
             "severity": severity,
             "deduction": deduction,
             "body_part": body_part,
+            "attention_weight": attention_weight,  # Thêm attention_weight vào error dict để debug
             **({"side": side} if side else {})
         }
 

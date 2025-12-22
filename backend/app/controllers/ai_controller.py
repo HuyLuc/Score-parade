@@ -36,8 +36,8 @@ class AIController:
         
         # Initialize temporal smoothers
         smoothing_enabled = TEMPORAL_SMOOTHING_CONFIG.get("enabled", False)
-        window_size = TEMPORAL_SMOOTHING_CONFIG.get("window_size", 5)
-        method = TEMPORAL_SMOOTHING_CONFIG.get("method", "moving_average")
+        window_size = TEMPORAL_SMOOTHING_CONFIG.get("window_size", 7)  # Updated default: 7 frames
+        method = TEMPORAL_SMOOTHING_CONFIG.get("method", "gaussian")  # Updated default: gaussian
         
         if smoothing_enabled:
             self.keypoint_smoother = KeypointSmoother(

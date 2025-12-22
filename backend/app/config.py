@@ -165,9 +165,14 @@ NORMALIZATION_CONFIG = {
 # Cấu hình temporal smoothing cho noise reduction
 TEMPORAL_SMOOTHING_CONFIG = {
     "enabled": True,  # Bật/tắt temporal smoothing
-    # Tăng nhẹ window để giảm nhiễu frame đơn lẻ (giảm false positive giữa A→C)
-    "window_size": 7,  # 7 frames @ 30fps ~ 233ms latency
-    "method": "moving_average",  # "moving_average" hoặc "median"
+    # Tăng window size để giảm nhiễu từ YOLOv8 jitter
+    "window_size": 7,  # 7 frames @ 30fps ~ 233ms latency (tối ưu: 7-9 frames)
+    # Phương pháp smoothing:
+    # - "moving_average": Đơn giản, nhanh (mặc định)
+    # - "median": Chống nhiễu tốt, loại bỏ outliers
+    # - "gaussian": Mượt mà, giữ được xu hướng (khuyến nghị)
+    # - "savitzky_golay": Tốt nhất cho giữ nguyên đặc điểm động tác (khuyến nghị cho chính xác cao)
+    "method": "gaussian",  # "moving_average", "median", "gaussian", "savitzky_golay"
     "smooth_keypoints": True,  # Làm mượt keypoint coordinates
     "smooth_metrics": True,  # Làm mượt các metric (góc, chiều cao)
 }

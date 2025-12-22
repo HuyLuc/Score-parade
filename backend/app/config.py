@@ -50,6 +50,13 @@ POSE_CONFIG = {
     "min_valid_keypoints": 4,  # Giảm từ 5 xuống 4 để linh hoạt hơn
 }
 
+# Cấu hình Confidence-Based Filtering - Lọc keypoints có confidence thấp
+CONFIDENCE_FILTERING_CONFIG = {
+    "enabled": True,  # Bật/tắt confidence filtering
+    "threshold": 0.5,  # Ngưỡng confidence tối thiểu để chấm lỗi (keypoints có confidence < threshold sẽ bị mask)
+    # Không chấm lỗi trên keypoints có confidence < threshold để tránh false positives
+}
+
 # Cấu hình tracking
 TRACKING_CONFIG = {
     "method": "simple",  # simple, oc_sort, byte_track

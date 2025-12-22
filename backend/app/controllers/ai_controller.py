@@ -22,7 +22,8 @@ from backend.app.services.temporal_smoothing import TemporalSmoother, KeypointSm
 from backend.app.services.adaptive_threshold import AdaptiveThresholdManager
 from backend.app.services.dtw_alignment import DTWAligner
 from backend.app.services.sequence_comparison import SequenceComparator
-from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG, DTW_CONFIG, SEQUENCE_COMPARISON_CONFIG, CONTEXT_ATTENTION
+from backend.app.config import GOLDEN_TEMPLATE_DIR, SCORING_CONFIG, ERROR_THRESHOLDS, NORMALIZATION_CONFIG, TEMPORAL_SMOOTHING_CONFIG, ADAPTIVE_THRESHOLD_CONFIG, DTW_CONFIG, SEQUENCE_COMPARISON_CONFIG, CONTEXT_ATTENTION, CONFIDENCE_FILTERING_CONFIG
+from backend.app.services.pose_estimation import filter_low_confidence_keypoints
 
 
 class AIController:
@@ -382,13 +383,19 @@ class AIController:
         if difficulty_level is None:
             difficulty_level = SCORING_CONFIG.get("difficulty_level", "medium")
         
-        # Calculate torso length for height adjustment
+        # Apply confidence-based filtering if enabled
+        filtered_keypoints = keypoints
+        if CONFIDENCE_FILTERING_CONFIG.get("enabled", True):
+            confidence_threshold = CONFIDENCE_FILTERING_CONFIG.get("threshold", 0.5)
+            filtered_keypoints = filter_low_confidence_keypoints(keypoints, threshold=confidence_threshold)
+        
+        # Calculate torso length for height adjustment (use filtered keypoints)
         from backend.app.services.keypoint_normalization import calculate_torso_length
-        torso_length = calculate_torso_length(keypoints)
+        torso_length = calculate_torso_length(filtered_keypoints)
         reference_torso_length = NORMALIZATION_CONFIG.get("reference_torso_length", 100.0)
         
-        # Apply temporal smoothing to keypoints if enabled
-        smoothed_keypoints = keypoints
+        # Apply temporal smoothing to keypoints if enabled (use filtered keypoints)
+        smoothed_keypoints = filtered_keypoints
         if self.keypoint_smoother is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_keypoints", True):
             self.keypoint_smoother.add_keypoints(keypoints)
             smoothed = self.keypoint_smoother.get_smoothed_keypoints()

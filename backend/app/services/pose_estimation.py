@@ -7,6 +7,33 @@ from typing import List, Tuple, Optional
 import backend.app.config as config
 
 
+def filter_low_confidence_keypoints(keypoints: np.ndarray, threshold: float = 0.5) -> np.ndarray:
+    """
+    Mask keypoints với confidence < threshold
+    
+    Args:
+        keypoints: Keypoints array [17, 3] với (x, y, confidence)
+        threshold: Ngưỡng confidence tối thiểu (default: 0.5)
+    
+    Returns:
+        Keypoints array với các keypoints có confidence < threshold được mask (set về 0)
+    """
+    if keypoints.shape[1] < 3:
+        # Nếu không có confidence channel, return nguyên bản
+        return keypoints
+    
+    # Tạo copy để không modify original
+    filtered_keypoints = keypoints.copy()
+    
+    # Mask keypoints có confidence < threshold (set x, y về 0, giữ nguyên confidence)
+    low_confidence_mask = filtered_keypoints[:, 2] < threshold
+    filtered_keypoints[low_confidence_mask, 0] = 0  # x
+    filtered_keypoints[low_confidence_mask, 1] = 0  # y
+    # Giữ nguyên confidence để có thể debug
+    
+    return filtered_keypoints
+
+
 class PoseEstimator:
     """Base class cho pose estimation"""
     

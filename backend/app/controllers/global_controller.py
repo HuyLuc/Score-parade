@@ -70,15 +70,15 @@ class GlobalController:
             elif tracking_method == "sort":
                 # Use SORT-style tracker
                 self.tracker_service = TrackerService(
-                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 60),
-                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.25),
+                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 90),
+                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.4),
                 )
             else:
                 # Use legacy tracker
                 self.tracker = PersonTracker(
-                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 60),
-                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.25),
-                    enable_reid=False
+                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 90),
+                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.4),
+                    enable_reid=MULTI_PERSON_CONFIG.get("reid_features", True)
                 )
         
         # Motion detection state (per person if multi)
@@ -361,8 +361,10 @@ class GlobalController:
             # Ưu tiên ByteTrack nếu có
             if self.bytetrack_service:
                 try:
+                    # Sử dụng min_track_length từ config để lọc ghost detections
+                    min_track_length = MULTI_PERSON_CONFIG.get("min_track_length", 30)
                     stable_person_ids = self.bytetrack_service.get_stable_track_ids(
-                        min_frames=10,          # Giảm từ 20 → 10 frames (~0.33s @ 30fps) cho video ngắn
+                        min_frames=min_track_length,  # Sử dụng min_track_length từ config
                         min_height=30.0,        # Giảm từ 40.0 → 30.0 pixels
                         min_frame_ratio=0.40,   # Giảm từ 0.70 → 0.40 (40% frames) cho video ngắn
                         max_persons=max_persons,
@@ -373,8 +375,10 @@ class GlobalController:
             # Fallback: tracker_service
             elif self.tracker_service:
                 try:
+                    # Sử dụng min_track_length từ config để lọc ghost detections
+                    min_track_length = MULTI_PERSON_CONFIG.get("min_track_length", 30)
                     stable_person_ids = self.tracker_service.get_stable_track_ids(
-                        min_frames=10,
+                        min_frames=min_track_length,  # Sử dụng min_track_length từ config
                         min_height=30.0,
                         min_frame_ratio=0.40,
                     )
@@ -384,8 +388,10 @@ class GlobalController:
             # Fallback: legacy tracker
             elif self.tracker:
                 try:
+                    # Sử dụng min_track_length từ config để lọc ghost detections
+                    min_track_length = MULTI_PERSON_CONFIG.get("min_track_length", 30)
                     stable_person_ids = self.tracker.get_stable_person_ids(
-                        min_frames=10,
+                        min_frames=min_track_length,  # Sử dụng min_track_length từ config
                         min_height=30.0,
                         min_frame_ratio=0.40,
                     )
@@ -587,10 +593,13 @@ class GlobalController:
         max_persons = MULTI_PERSON_CONFIG.get("max_persons", 5)
         stable_ids = []
         
+        # Sử dụng min_track_length từ config để lọc ghost detections
+        min_track_length = MULTI_PERSON_CONFIG.get("min_track_length", 30)
+        
         if self.bytetrack_service:
             try:
                 stable_ids = self.bytetrack_service.get_stable_track_ids(
-                    min_frames=10,          # Giảm từ 20 → 10 cho video ngắn
+                    min_frames=min_track_length,  # Sử dụng min_track_length từ config
                     min_height=30.0,        # Giảm từ 40.0 → 30.0
                     min_frame_ratio=0.40,   # Giảm từ 0.70 → 0.40
                     max_persons=max_persons,
@@ -600,7 +609,7 @@ class GlobalController:
         elif self.tracker_service:
             try:
                 stable_ids = self.tracker_service.get_stable_track_ids(
-                    min_frames=10,
+                    min_frames=min_track_length,  # Sử dụng min_track_length từ config
                     min_height=30.0,
                     min_frame_ratio=0.40,
                 )
@@ -608,8 +617,10 @@ class GlobalController:
                 print(f"Warning: Could not get stable track IDs: {e}")
         elif self.tracker:
             try:
+                # Sử dụng min_track_length từ config để lọc ghost detections
+                min_track_length = MULTI_PERSON_CONFIG.get("min_track_length", 30)
                 stable_ids = self.tracker.get_stable_person_ids(
-                    min_frames=10,
+                    min_frames=min_track_length,  # Sử dụng min_track_length từ config
                     min_height=30.0,
                     min_frame_ratio=0.40,
                 )
@@ -633,10 +644,13 @@ class GlobalController:
         max_persons = MULTI_PERSON_CONFIG.get("max_persons", 5)
         stable_ids = []
         
+        # Sử dụng min_track_length từ config để lọc ghost detections
+        min_track_length = MULTI_PERSON_CONFIG.get("min_track_length", 30)
+        
         if self.bytetrack_service:
             try:
                 stable_ids = self.bytetrack_service.get_stable_track_ids(
-                    min_frames=10,          # Giảm từ 20 → 10 cho video ngắn
+                    min_frames=min_track_length,  # Sử dụng min_track_length từ config
                     min_height=30.0,        # Giảm từ 40.0 → 30.0
                     min_frame_ratio=0.40,   # Giảm từ 0.70 → 0.40
                     max_persons=max_persons,
@@ -646,7 +660,7 @@ class GlobalController:
         elif self.tracker_service:
             try:
                 stable_ids = self.tracker_service.get_stable_track_ids(
-                    min_frames=10,
+                    min_frames=min_track_length,  # Sử dụng min_track_length từ config
                     min_height=30.0,
                     min_frame_ratio=0.40,
                 )
@@ -654,8 +668,10 @@ class GlobalController:
                 pass
         elif self.tracker:
             try:
+                # Sử dụng min_track_length từ config để lọc ghost detections
+                min_track_length = MULTI_PERSON_CONFIG.get("min_track_length", 30)
                 stable_ids = self.tracker.get_stable_person_ids(
-                    min_frames=10,
+                    min_frames=min_track_length,  # Sử dụng min_track_length từ config
                     min_height=30.0,
                     min_frame_ratio=0.40,
                 )

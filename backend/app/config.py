@@ -224,9 +224,15 @@ MULTI_PERSON_CONFIG = {
     # Giới hạn số người tối đa để tránh sinh quá nhiều ID ảo từ noise
     "max_persons": 5,  # Tăng từ 3 lên 5 để hỗ trợ nhiều người hơn
     # Cho phép một người "mất dấu" lâu hơn trước khi tạo ID mới
-    "max_disappeared": 60,  # Giảm từ 90 xuống 60 (~2s @30fps)
+    # Tăng từ 60 → 90 frames (~3s @30fps) để giảm track loss khi người bị che khuất
+    "max_disappeared": 90,  # Tăng từ 60 → 90 để xử lý occlusion tốt hơn
     # Giảm IoU threshold để cùng một người vẫn được match dù bbox hơi dao động
-    "iou_threshold": 0.25,  # Giảm từ 0.3 xuống 0.25 để theo dõi tốt hơn
+    # Giảm từ 0.5 → 0.4 để nhạy hơn, tránh ID switching khi người giao nhau
+    "iou_threshold": 0.4,  # Giảm từ 0.5 → 0.4 để theo dõi tốt hơn
+    # Lọc track ngắn (ghost detections) - chỉ giữ track có >= 30 frames
+    "min_track_length": 30,  # Minimum frames để track được coi là hợp lệ (lọc ghost detections)
+    # Enable ReID features để cải thiện re-identification sau occlusion
+    "reid_features": True,  # Enable person re-identification features
     "similarity_threshold": 0.6,  # Pose similarity threshold for matching (0.0-1.0)
     "enable_visualization": True,  # Draw tracking boxes and IDs
     "batch_size": 8,  # Batch size for multi-person detection

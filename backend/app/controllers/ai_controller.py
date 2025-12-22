@@ -1342,12 +1342,14 @@ class AIController:
             self.multi_person_manager.add_golden_template(template_id, keypoints, profile)
         
         # Initialize person tracker
-        max_disappeared = MULTI_PERSON_CONFIG.get("max_disappeared", 30)
-        iou_threshold = MULTI_PERSON_CONFIG.get("iou_threshold", 0.5)
+        max_disappeared = MULTI_PERSON_CONFIG.get("max_disappeared", 90)
+        iou_threshold = MULTI_PERSON_CONFIG.get("iou_threshold", 0.4)
+        enable_reid = MULTI_PERSON_CONFIG.get("reid_features", True)
         from backend.app.services.multi_person_tracker import PersonTracker
         self.person_tracker = PersonTracker(
             max_disappeared=max_disappeared,
-            iou_threshold=iou_threshold
+            iou_threshold=iou_threshold,
+            enable_reid=enable_reid
         )
         
         print(f"✅ Multi-person mode enabled with {len(golden_templates)} templates")

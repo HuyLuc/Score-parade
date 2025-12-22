@@ -64,14 +64,14 @@ class LocalController:
                 )
             elif tracking_method == "sort":
                 self.tracker_service = TrackerService(
-                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 60),
-                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.25),
+                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 90),
+                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.4),
                 )
             else:
                 self.tracker = PersonTracker(
-                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 60),
-                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.25),
-                    enable_reid=False
+                    max_disappeared=MULTI_PERSON_CONFIG.get("max_disappeared", 90),
+                    iou_threshold=MULTI_PERSON_CONFIG.get("iou_threshold", 0.4),
+                    enable_reid=MULTI_PERSON_CONFIG.get("reid_features", True)
                 )
         
         # Error tracking per person

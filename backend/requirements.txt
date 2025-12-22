@@ -42,3 +42,6 @@ xlrd<2.0  # For Excel .xls reading (Excel 97-2003 format)
 librosa>=0.10.0
 soundfile>=0.12.1  # Required by librosa
 
+# Object storage client (MinIO)
+minio>=7.2.0
+

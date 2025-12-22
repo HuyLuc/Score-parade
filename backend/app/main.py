@@ -5,7 +5,7 @@ Score Parade - Hệ thống chấm điểm điều lệnh tự động
 import logging
 from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 import tempfile
 from pathlib import Path
 
@@ -100,15 +100,64 @@ async def api_health_check():
 
 output_dir = Path("data") / "output"
 
+
 @app.get("/api/videos/{filepath:path}")
 async def get_skeleton_video(filepath: str):
     """
-    Serve skeleton video files from data/output directory
-    Supports paths like: session_id/skeleton_video.mp4
+    Serve skeleton video files.
+
+    Khi MinIO được bật (MINIO_CONFIG.enabled = True), endpoint này sẽ đọc trực tiếp
+    từ MinIO. Nếu MinIO tắt, sẽ fallback đọc từ filesystem data/output như trước.
     """
+    from backend.app.config import MINIO_CONFIG
+
     # Lấy tên file để log / header
     filename = Path(filepath).name
+    logger.info(f"Request for skeleton video: {filename} (raw path: {filepath})")
 
+    # Nếu MinIO bật, ưu tiên đọc từ MinIO
+    if MINIO_CONFIG.get("enabled", False):
+        try:
+            from backend.app.services.minio_service import get_object_from_minio
+
+            obj = get_object_from_minio(filepath)
+            if obj is None:
+                logger.error(f"❌ MinIO object not found: {filepath}")
+                raise HTTPException(status_code=404, detail=f"Video not found: {filename}")
+
+            # Determine content type based on file extension
+            ext = Path(filepath).suffix.lower()
+            if ext == ".mp4":
+                media_type = "video/mp4"
+            elif ext == ".avi":
+                media_type = "video/x-msvideo"
+            elif ext == ".mov":
+                media_type = "video/quicktime"
+            elif ext == ".mkv":
+                media_type = "video/x-matroska"
+            else:
+                media_type = "application/octet-stream"
+
+            def iter_minio():
+                try:
+                    for d in obj.stream(1024 * 1024):
+                        yield d
+                finally:
+                    obj.close()
+                    obj.release_conn()
+
+            headers = {
+                "Content-Disposition": f'inline; filename="{filename}"'
+            }
+
+            return StreamingResponse(iter_minio(), media_type=media_type, headers=headers)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Error streaming video from MinIO: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Error streaming video from MinIO")
+
+    # Fallback: đọc từ filesystem data/output như trước
     # Security: Prevent directory traversal attacks
     video_path = (output_dir / filepath).resolve()
     if not str(video_path).startswith(str(output_dir.resolve())):
@@ -126,13 +175,11 @@ async def get_skeleton_video(filepath: str):
                 filename = web_path.name
     except Exception as e:
         logger.warning(f"⚠️ Failed to check web-friendly skeleton video: {e}")
-    # ✅ LOGGING
-    logger.info(f"Request for skeleton video: {filename} (raw path: {filepath})")
-    
+
     if not video_path.exists():
         logger.error(f"❌ Video not found: {video_path}")
         raise HTTPException(status_code=404, detail=f"Video not found: {filename}")
-    
+
     # ✅ CHECK file size
     try:
         file_size = video_path.stat().st_size
@@ -142,12 +189,12 @@ async def get_skeleton_video(filepath: str):
     except OSError as e:
         logger.error(f"❌ Cannot access video file: {e}")
         raise HTTPException(status_code=500, detail="Cannot access video file")
-    
+
     # ✅ VALIDATE extension
     if video_path.suffix not in ['.mp4', '.avi', '.mov', '.mkv']:
         logger.error(f"❌ Invalid video format: {video_path.suffix}")
         raise HTTPException(status_code=400, detail=f"Invalid video format: {video_path.suffix}")
-    
+
     try:
         logger.info(f"✅ Serving skeleton video: {filename} ({file_size} bytes) at path: {video_path}")
         return FileResponse(

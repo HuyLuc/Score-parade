@@ -18,7 +18,9 @@ from backend.app.config import (
     MULTI_PERSON_CONFIG,
     SCORING_CONFIG,
     ERROR_THRESHOLDS,
+    POST_PROCESSING_FILTERS_CONFIG,
 )
+from backend.app.services.post_processing_filters import PostProcessingFilters
 
 
 class GlobalController:
@@ -60,12 +62,15 @@ class GlobalController:
             if tracking_method == "bytetrack":
                 # Use ByteTrack (best performance)
                 bytetrack_config = MULTI_PERSON_CONFIG.get("bytetrack", {})
+                adaptive_kalman_config = bytetrack_config.get("adaptive_kalman", {})
                 self.bytetrack_service = ByteTrackService(
                     track_thresh=bytetrack_config.get("track_thresh", 0.5),
                     track_buffer=bytetrack_config.get("track_buffer", 30),
                     match_thresh=bytetrack_config.get("match_thresh", 0.8),
                     high_thresh=bytetrack_config.get("high_thresh", 0.6),
                     low_thresh=bytetrack_config.get("low_thresh", 0.1),
+                    use_adaptive_kalman=bytetrack_config.get("use_adaptive_kalman", True),
+                    adaptive_kalman_config=adaptive_kalman_config,
                 )
             elif tracking_method == "sort":
                 # Use SORT-style tracker
@@ -112,6 +117,17 @@ class GlobalController:
             )
         else:
             self.sequence_comparator = None
+        
+        # Initialize post-processing filters
+        if POST_PROCESSING_FILTERS_CONFIG.get("enabled", True):
+            self.post_processing_filters = PostProcessingFilters(
+                config={"post_processing_filters": POST_PROCESSING_FILTERS_CONFIG}
+            )
+        else:
+            self.post_processing_filters = None
+        
+        # Keypoint history for occlusion interpolation (per person)
+        self.keypoints_history: Dict[int, List[np.ndarray]] = {}
         
     def set_audio(self, audio_path: str):
         """
@@ -213,6 +229,8 @@ class GlobalController:
             self.person_first_frame[person_id] = None
         if person_id not in self.person_last_frame:
             self.person_last_frame[person_id] = None
+        if person_id not in self.keypoints_history:
+            self.keypoints_history[person_id] = []
 
     def process_frame(
         self,
@@ -226,9 +244,17 @@ class GlobalController:
         """
         # 1. Detect pose + bbox (multi-person)
         persons: Dict[int, np.ndarray] = {}
+        frame_shape = frame.shape[:2]  # (height, width)
         
         if self.multi_person_enabled:
             detections_meta = self.pose_service.predict_multi_person(frame)
+            
+            # Apply post-processing filters to detections
+            if self.post_processing_filters:
+                detections_meta = self.post_processing_filters.filter_detections(
+                    detections_meta,
+                    frame_shape
+                )
             
             if self.bytetrack_service:
                 # Use ByteTrack (recommended)
@@ -241,6 +267,11 @@ class GlobalController:
                     })
                 
                 tracks = self.bytetrack_service.update(detections_for_bytetrack, frame_number)
+                
+                # Apply velocity filter to tracks
+                if self.post_processing_filters:
+                    tracks = self.post_processing_filters.filter_tracks(tracks, frame_number)
+                
                 for track in tracks:
                     persons[track.track_id] = track.keypoints
                     
@@ -278,9 +309,27 @@ class GlobalController:
                 self.person_first_frame[person_id] = frame_number
             self.person_last_frame[person_id] = frame_number
 
+            # Handle occlusion and interpolate missing keypoints
+            if self.post_processing_filters:
+                # Detect occlusion
+                is_occluded, occlusion_ratio = self.post_processing_filters.detect_occlusion(keypoints)
+                
+                # Interpolate missing keypoints from history
+                if person_id in self.keypoints_history and len(self.keypoints_history[person_id]) > 0:
+                    keypoints = self.post_processing_filters.interpolate_keypoints(
+                        self.keypoints_history[person_id],
+                        keypoints
+                    )
+                
+                # Update keypoints history
+                self.keypoints_history[person_id].append(keypoints.copy())
+                # Keep only recent history (last 10 frames)
+                if len(self.keypoints_history[person_id]) > 10:
+                    self.keypoints_history[person_id] = self.keypoints_history[person_id][-10:]
+
             # Get difficulty level from config
             difficulty_level = SCORING_CONFIG.get("difficulty_level", "medium")
-            
+
             posture_errors = self.ai_controller.detect_posture_errors(
                 keypoints,
                 frame_number=frame_number,
@@ -702,6 +751,7 @@ class GlobalController:
         self.scores = {}
         self.person_first_frame = {}
         self.person_last_frame = {}
+        self.keypoints_history = {}
         # Reset all trackers
         if self.tracker:
             self.tracker.reset()
@@ -709,3 +759,6 @@ class GlobalController:
             self.tracker_service.reset()
         if self.bytetrack_service:
             self.bytetrack_service.reset()
+        # Reset post-processing filters
+        if self.post_processing_filters and hasattr(self.post_processing_filters.velocity_filter, 'track_history'):
+            self.post_processing_filters.velocity_filter.track_history = {}

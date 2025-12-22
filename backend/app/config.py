@@ -57,6 +57,13 @@ CONFIDENCE_FILTERING_CONFIG = {
     # Không chấm lỗi trên keypoints có confidence < threshold để tránh false positives
 }
 
+# Cấu hình Confidence-Based Filtering - Lọc keypoints có confidence thấp
+CONFIDENCE_FILTERING_CONFIG = {
+    "enabled": True,  # Bật/tắt confidence filtering
+    "threshold": 0.5,  # Ngưỡng confidence tối thiểu để chấm lỗi (keypoints có confidence < threshold sẽ bị mask)
+    # Không chấm lỗi trên keypoints có confidence < threshold để tránh false positives
+}
+
 # Cấu hình tracking
 TRACKING_CONFIG = {
     "method": "simple",  # simple, oc_sort, byte_track
@@ -226,6 +233,43 @@ CONTEXT_ATTENTION = {
     }
 }
 
+# Cấu hình MinIO cho lưu trữ skeleton video
+MINIO_CONFIG = {
+    "enabled": True,  # Bật/tắt lưu skeleton video lên MinIO (nếu False sẽ dùng filesystem data/output như cũ)
+    "endpoint": os.getenv("MINIO_ENDPOINT", "http://minio:9000"),
+    "access_key": os.getenv("MINIO_ACCESS_KEY", "admin"),
+    "secret_key": os.getenv("MINIO_SECRET_KEY", "admin123"),
+    "bucket": os.getenv("MINIO_BUCKET", "skeleton-videos"),
+    # Nếu bạn cấu hình MinIO với HTTPS, chuyển secure=True
+    "secure": os.getenv("MINIO_SECURE", "false").lower() == "true",
+}
+
+# Cấu hình Attention Mechanism - Thêm attention weights cho từng body part theo context
+# Giúp tăng độ chính xác bằng cách tập trung vào các body part quan trọng nhất trong từng động tác
+CONTEXT_ATTENTION = {
+    "nghiem": {
+        "arm": 1.5,      # Tay quan trọng nhất trong động tác "Nghiêm"
+        "leg": 0.5,      # Chân ít quan trọng hơn
+        "head": 1.2,     # Đầu quan trọng
+        "neck": 1.0,     # Cổ bình thường
+        "rhythm": 0.8,   # Timing ít quan trọng hơn trong nghiêm
+    },
+    "di_deu": {
+        "leg": 1.5,      # Chân quan trọng nhất trong động tác "Đi đều bước"
+        "arm": 1.0,      # Tay bình thường
+        "head": 1.0,     # Đầu bình thường
+        "neck": 1.0,     # Cổ bình thường
+        "rhythm": 1.8,   # Timing rất quan trọng trong đi đều
+    },
+    "default": {
+        "arm": 1.0,      # Mặc định: tất cả body parts đều quan trọng như nhau
+        "leg": 1.0,
+        "head": 1.0,
+        "neck": 1.0,
+        "rhythm": 1.0,
+    }
+}
+
 # Sequence Comparison configuration for grouping consecutive errors
 SEQUENCE_COMPARISON_CONFIG = {
     "enabled": True,  # Enable/disable sequence-based error detection
@@ -277,7 +321,49 @@ MULTI_PERSON_CONFIG = {
         "match_thresh": 0.6,       # IOU threshold for matching (giảm từ 0.7 → 0.6 để match dễ hơn)
         "high_thresh": 0.35,       # High confidence threshold (giảm từ 0.45 → 0.35)
         "low_thresh": 0.05,        # Low confidence threshold (giảm từ 0.1 → 0.05)
+        # Adaptive Kalman Filter configuration
+        "use_adaptive_kalman": True,  # Use AdaptiveKalmanFilter instead of simple KalmanFilter
+        "adaptive_kalman": {
+            "adaptive_enabled": True,  # Enable adaptive noise adjustment
+            "base_process_noise": 0.1,  # Base process noise (Q) - tuned for better tracking
+            "base_measurement_noise": 1.0,  # Base measurement noise (R) - tuned for better tracking
+            "motion_history_size": 10,  # Number of frames to keep for motion analysis
+            "keypoint_prediction_enabled": True,  # Enable keypoint prediction (not just bbox)
+        }
     }
+}
+
+# Post-Processing Filters configuration for multi-person tracking
+# Giảm false positives, ID switching, và cải thiện tracking accuracy
+POST_PROCESSING_FILTERS_CONFIG = {
+    "enabled": True,  # Enable/disable all post-processing filters
+    
+    # Spatial Consistency Filter - Lọc detections không hợp lý về mặt không gian
+    "spatial_enabled": True,
+    "min_height": 50.0,  # Minimum bbox height in pixels
+    "max_height_ratio": 0.9,  # Maximum height as ratio of frame height
+    "min_aspect_ratio": 0.3,  # Minimum width/height ratio (person standing)
+    "max_aspect_ratio": 0.7,  # Maximum width/height ratio
+    "edge_margin_ratio": 0.1,  # Margin from edges (10% margin)
+    
+    # Keypoint Geometric Consistency Filter - Kiểm tra anatomical constraints
+    "geometric_enabled": True,
+    "min_torso_leg_ratio": 0.4,  # Minimum torso length / leg length ratio
+    "max_torso_leg_ratio": 0.6,  # Maximum torso length / leg length ratio
+    "max_head_shoulder_ratio": 0.3,  # Maximum head height above shoulders / person height
+    "min_symmetry_score": 0.7,  # Minimum left-right symmetry score (0-1)
+    "min_confidence": 0.3,  # Minimum keypoint confidence to consider
+    
+    # Velocity-Based Filter - Lọc tracks có vận tốc bất thường
+    "velocity_enabled": True,
+    "max_velocity": 50.0,  # Maximum allowed velocity (pixels/frame @ 30fps)
+    "max_jump_distance": 100.0,  # Maximum allowed position jump in one frame (ID switching detection)
+    "min_track_length": 5,  # Minimum track length to apply velocity check
+    
+    # Occlusion Detection and Handling
+    "occlusion_enabled": True,
+    "occlusion_threshold": 0.5,  # Minimum visible ratio to consider as occlusion
+    "interpolation_window": 5,  # Frames to use for keypoint interpolation
 }
 
 # Visualization configuration for multi-person tracking

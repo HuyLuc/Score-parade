@@ -510,32 +510,25 @@ async def upload_and_process_video(
                 debug_log.write(f"[INFO] Importing create_skeleton_video...\n")
             
             from backend.app.services.skeleton_visualization import create_skeleton_video
-            from backend.app.config import OUTPUT_DIR
+            from backend.app.config import MINIO_CONFIG, OUTPUT_DIR
+            from backend.app.services.minio_service import upload_file_to_minio
             
             with open(debug_log_path, "a", encoding="utf-8") as debug_log:
                 debug_log.write(f"[OK] Import successful\n")
             
-            # Save skeleton video to data/output/{session_id}/ directory
-            # This ensures the video persists and is accessible even if codec is not browser-compatible
-            # Create a dedicated folder for each session (an toàn với trường hợp thư mục đã tồn tại)
-            session_output_dir = OUTPUT_DIR / session_id
-            try:
-                session_output_dir.mkdir(parents=True, exist_ok=True)
-            except FileExistsError:
-                # Nếu đã tồn tại file/dir cùng tên, chỉ bỏ qua khi nó là thư mục
-                if not session_output_dir.is_dir():
-                    logger.error(
-                        f"[SKELETON] session_output_dir tồn tại nhưng không phải thư mục: {session_output_dir}"
-                    )
-                    raise
-            skeleton_video_path = session_output_dir / "skeleton_video.mp4"
+            # Luôn tạo skeleton video trong thư mục tạm, sau đó:
+            # - Nếu MinIO bật: upload lên MinIO và KHÔNG giữ lại file trong data/output
+            # - Nếu MinIO tắt: fallback về lưu ở data/output như cũ
+            from pathlib import Path
+            import tempfile
+            
+            temp_skeleton_dir = Path(tempfile.mkdtemp(prefix=f"skeleton_{session_id}_"))
+            skeleton_video_path = temp_skeleton_dir / "skeleton_video.mp4"
             
             logger.info(f"[SKELETON] Bat dau tao video voi skeleton tu: {temp_video_path}")
-            logger.info(f"[SKELETON] Output path se la: {skeleton_video_path}")
-            logger.info(f"[SKELETON] Output directory: {session_output_dir.absolute()}")
+            logger.info(f"[SKELETON] Temporary output path: {skeleton_video_path}")
             print(f"[SKELETON] Input video: {temp_video_path}")
-            print(f"[SKELETON] Output video: {skeleton_video_path}")
-            print(f"[SKELETON] Output dir: {session_output_dir.absolute()}")
+            print(f"[SKELETON] Temp output video: {skeleton_video_path}")
             
             # Make sure input video still exists
             if not temp_video_path.exists():
@@ -571,10 +564,6 @@ async def upload_and_process_video(
                     
                     try:
                         logger.info(f"Creating skeleton video: {temp_video_path} -> {skeleton_video_path}")
-                        
-                        # Ensure output directory exists
-                        session_output_dir.mkdir(parents=True, exist_ok=True)
-                        
                         skeleton_metadata = create_skeleton_video(
                             str(temp_video_path),
                             str(skeleton_video_path),
@@ -597,7 +586,8 @@ async def upload_and_process_video(
                             # ---------------------------------------------
                             # Convert skeleton video sang H.264/AAC thân thiện với trình duyệt
                             # ---------------------------------------------
-                            web_skeleton_path = session_output_dir / "skeleton_video_web.mp4"
+                            # Web-friendly version nằm cùng thư mục tạm
+                            web_skeleton_path = temp_skeleton_dir / "skeleton_video_web.mp4"
                             try:
                                 ffmpeg_cmd = [
                                     "ffmpeg",
@@ -650,11 +640,34 @@ async def upload_and_process_video(
                                 )
                                 target_path = skeleton_video_path
 
-                            # Use relative path from OUTPUT_DIR for URL (ưu tiên bản web nếu có)
-                            skeleton_video_filename = f"{session_id}/{target_path.name}"
-                            skeleton_video_url = f"/api/videos/{skeleton_video_filename}"
+                            # Upload hoặc lưu file tuỳ theo MinIO_CONFIG
+                            try:
+                                object_name = f"{session_id}/{target_path.name}"
+                                
+                                if MINIO_CONFIG.get("enabled", False):
+                                    # Upload lên MinIO
+                                    upload_file_to_minio(str(target_path), object_name)
+                                    # skeleton_video_url vẫn dùng endpoint /api/videos để frontend không phải đổi
+                                    skeleton_video_filename = object_name
+                                    skeleton_video_url = f"/api/videos/{skeleton_video_filename}"
+                                    logger.info(f"[SKELETON] Uploaded skeleton video to MinIO as: {object_name}")
+                                else:
+                                    # Fallback filesystem: lưu vào data/output như cũ
+                                    session_output_dir = OUTPUT_DIR / session_id
+                                    session_output_dir.mkdir(parents=True, exist_ok=True)
+                                    fs_target_path = session_output_dir / target_path.name
+                                    
+                                    import shutil
+                                    shutil.copy2(target_path, fs_target_path)
+                                    
+                                    skeleton_video_filename = f"{session_id}/{fs_target_path.name}"
+                                    skeleton_video_url = f"/api/videos/{skeleton_video_filename}"
+                                    logger.info(f"[SKELETON] Skeleton video saved to filesystem at: {fs_target_path}")
                             
-                            logger.info(f"Skeleton video created: {file_size} bytes, {processed_frames}/{total_frames} frames with skeleton")
+                                logger.info(f"Skeleton video created: {file_size} bytes, {processed_frames}/{total_frames} frames with skeleton")
+                            except Exception as upload_err:
+                                logger.error(f"[SKELETON] Error while uploading/saving skeleton video: {upload_err}", exc_info=True)
+                                skeleton_video_url = None
                             
                             if processed_frames == 0:
                                 logger.warning("No skeletons detected in video")

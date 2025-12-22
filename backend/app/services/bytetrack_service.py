@@ -12,46 +12,7 @@ import numpy as np
 from typing import List, Tuple, Dict, Optional
 from scipy.optimize import linear_sum_assignment
 from collections import deque
-
-
-class KalmanFilter:
-    """Simplified Kalman Filter for bbox tracking"""
-    
-    def __init__(self):
-        # State: [x, y, w, h, vx, vy, vw, vh]
-        self.state = np.zeros(8)
-        self.covariance = np.eye(8) * 10
-        
-        # Transition matrix (constant velocity model)
-        self.F = np.eye(8)
-        for i in range(4):
-            self.F[i, i+4] = 1
-        
-        # Measurement matrix
-        self.H = np.eye(4, 8)
-        
-        # Process noise
-        self.Q = np.eye(8) * 0.1
-        
-        # Measurement noise
-        self.R = np.eye(4) * 1.0
-    
-    def predict(self):
-        """Predict next state"""
-        self.state = self.F @ self.state
-        self.covariance = self.F @ self.covariance @ self.F.T + self.Q
-        return self.state[:4]
-    
-    def update(self, measurement: np.ndarray):
-        """Update with measurement [x, y, w, h]"""
-        y = measurement - self.H @ self.state
-        S = self.H @ self.covariance @ self.H.T + self.R
-        K = self.covariance @ self.H.T @ np.linalg.inv(S)
-        
-        self.state = self.state + K @ y
-        self.covariance = (np.eye(8) - K @ self.H) @ self.covariance
-        
-        return self.state[:4]
+from backend.app.services.adaptive_kalman_filter import AdaptiveKalmanFilter
 
 
 class STrack:
@@ -59,12 +20,21 @@ class STrack:
     
     _count = 0
     
-    def __init__(self, bbox: np.ndarray, score: float, keypoints: Optional[np.ndarray] = None):
+    def __init__(
+        self,
+        bbox: np.ndarray,
+        score: float,
+        keypoints: Optional[np.ndarray] = None,
+        use_adaptive_kalman: bool = True,
+        adaptive_kalman_config: Optional[Dict] = None
+    ):
         """
         Args:
             bbox: [x1, y1, x2, y2]
             score: detection confidence
             keypoints: [17, 3] keypoints if available
+            use_adaptive_kalman: Use AdaptiveKalmanFilter instead of simple KalmanFilter
+            adaptive_kalman_config: Configuration for AdaptiveKalmanFilter
         """
         self.track_id = STrack._count
         STrack._count += 1
@@ -81,9 +51,29 @@ class STrack:
         self.score = score
         self.keypoints = keypoints
         
-        # Kalman filter
-        self.kalman = KalmanFilter()
-        self.kalman.state[:4] = self.bbox_xywh
+        # Use Adaptive Kalman Filter
+        if use_adaptive_kalman:
+            config = adaptive_kalman_config or {}
+            self.kalman = AdaptiveKalmanFilter(
+                adaptive_enabled=config.get("adaptive_enabled", True),
+                base_process_noise=config.get("base_process_noise", 0.1),
+                base_measurement_noise=config.get("base_measurement_noise", 1.0),
+                motion_history_size=config.get("motion_history_size", 10),
+                keypoint_prediction_enabled=config.get("keypoint_prediction_enabled", True)
+            )
+            # Initialize bbox state
+            self.kalman.bbox_state[:4] = self.bbox_xywh
+            # Initialize keypoints if available
+            if keypoints is not None:
+                self.kalman.initialize_keypoints(keypoints)
+        else:
+            # Fallback to simple KalmanFilter (legacy)
+            from backend.app.services.adaptive_kalman_filter import AdaptiveKalmanFilter as SimpleKalman
+            self.kalman = SimpleKalman(
+                adaptive_enabled=False,
+                keypoint_prediction_enabled=False
+            )
+            self.kalman.bbox_state[:4] = self.bbox_xywh
         
         # Track state
         self.state = 'new'  # new, tracked, lost, removed
@@ -103,10 +93,22 @@ class STrack:
         self.frames_seen = 0
     
     def predict(self):
-        """Predict next bbox using Kalman filter"""
+        """Predict next bbox and keypoints using Kalman filter"""
         if self.state != 'tracked':
-            self.kalman.state[4:] = 0  # Reset velocity if lost
-        self.bbox_xywh = self.kalman.predict()
+            self.kalman.bbox_state[4:] = 0  # Reset velocity if lost
+            if hasattr(self.kalman, 'keypoint_state') and self.kalman.keypoint_state is not None:
+                self.kalman.keypoint_state[34:] = 0  # Reset keypoint velocities
+        
+        # Predict bbox
+        self.bbox_xywh = self.kalman.predict_bbox()
+        
+        # Predict keypoints if enabled
+        if (hasattr(self.kalman, 'keypoint_prediction_enabled') and 
+            self.kalman.keypoint_prediction_enabled and 
+            self.kalman.keypoint_state is not None):
+            predicted_keypoints = self.kalman.predict_keypoints()
+            if predicted_keypoints is not None:
+                self.keypoints = predicted_keypoints
     
     def update(self, new_track: 'STrack', frame_id: int):
         """Update with new detection"""
@@ -115,10 +117,21 @@ class STrack:
         self.tracklet_len += 1
         self.time_since_update = 0
         
-        # Update Kalman filter
-        self.bbox_xywh = self.kalman.update(new_track.bbox_xywh)
+        # Update Kalman filter (bbox)
+        self.bbox_xywh = self.kalman.update_bbox(new_track.bbox_xywh)
         self.score = new_track.score
-        self.keypoints = new_track.keypoints
+        
+        # Update keypoints if available and prediction enabled
+        if (hasattr(self.kalman, 'keypoint_prediction_enabled') and 
+            self.kalman.keypoint_prediction_enabled and 
+            new_track.keypoints is not None):
+            updated_keypoints = self.kalman.update_keypoints(new_track.keypoints)
+            if updated_keypoints is not None:
+                self.keypoints = updated_keypoints
+            else:
+                self.keypoints = new_track.keypoints
+        else:
+            self.keypoints = new_track.keypoints
         
         # Update history
         self.bbox_history.append(self.bbox_xywh.copy())
@@ -186,7 +199,9 @@ class ByteTrackService:
         track_buffer: int = 30,
         match_thresh: float = 0.8,
         high_thresh: float = 0.6,
-        low_thresh: float = 0.1
+        low_thresh: float = 0.1,
+        use_adaptive_kalman: bool = True,
+        adaptive_kalman_config: Optional[Dict] = None
     ):
         """
         Args:
@@ -195,12 +210,16 @@ class ByteTrackService:
             match_thresh: IOU threshold for matching
             high_thresh: High confidence threshold
             low_thresh: Low confidence threshold (below this = ignore)
+            use_adaptive_kalman: Use AdaptiveKalmanFilter instead of simple KalmanFilter
+            adaptive_kalman_config: Configuration for AdaptiveKalmanFilter
         """
         self.track_thresh = track_thresh
         self.track_buffer = track_buffer
         self.match_thresh = match_thresh
         self.high_thresh = high_thresh
         self.low_thresh = low_thresh
+        self.use_adaptive_kalman = use_adaptive_kalman
+        self.adaptive_kalman_config = adaptive_kalman_config or {}
         
         # Track management
         self.tracked_stracks: List[STrack] = []

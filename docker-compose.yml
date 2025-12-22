@@ -32,6 +32,11 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-scoreuser}:${POSTGRES_PASSWORD:-scorepass123}@db:5432/${POSTGRES_DB:-score_parade}
       - PYTHONPATH=/app
       - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+      # MinIO configuration for skeleton videos
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=admin
+      - MINIO_SECRET_KEY=admin123
+      - MINIO_BUCKET=skeleton-videos
     volumes:
       # Persist data
       - ./data/output:/app/data/output
@@ -49,6 +54,23 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    networks:
+      - score-parade-network
+
+  # MinIO - Object storage for skeleton videos
+  minio:
+    image: minio/minio:latest
+    container_name: score-parade-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # S3 API
+      - "9001:9001"  # Web console
+    volumes:
+      - ./data/minio:/data
     networks:
       - score-parade-network
 

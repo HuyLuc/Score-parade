@@ -16,7 +16,9 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Python backend with CUDA support (optional)
-FROM python:3.11-slim AS backend
+# Stage 2: Python backend
+# Dùng Python 3.10 để tương thích torchreid (OSNet)
+FROM python:3.10-slim AS backend
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1

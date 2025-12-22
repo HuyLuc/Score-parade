@@ -55,12 +55,16 @@ class LocalController:
         if self.multi_person_enabled:
             if tracking_method == "bytetrack":
                 bytetrack_config = MULTI_PERSON_CONFIG.get("bytetrack", {})
+                reid_config = MULTI_PERSON_CONFIG.get("reid", {})
                 self.bytetrack_service = ByteTrackService(
                     track_thresh=bytetrack_config.get("track_thresh", 0.5),
                     track_buffer=bytetrack_config.get("track_buffer", 30),
                     match_thresh=bytetrack_config.get("match_thresh", 0.8),
                     high_thresh=bytetrack_config.get("high_thresh", 0.6),
                     low_thresh=bytetrack_config.get("low_thresh", 0.1),
+                    use_adaptive_kalman=bytetrack_config.get("use_adaptive_kalman", True),
+                    adaptive_kalman_config=bytetrack_config.get("adaptive_kalman", {}),
+                    reid_config=reid_config,
                 )
             elif tracking_method == "sort":
                 self.tracker_service = TrackerService(
@@ -126,7 +130,11 @@ class LocalController:
                         "keypoints": det["keypoints"]
                     })
                 
-                tracks = self.bytetrack_service.update(detections_for_bytetrack, frame_number)
+                tracks = self.bytetrack_service.update(
+                    detections_for_bytetrack,
+                    frame_number,
+                    frame=frame
+                )
                 for track in tracks:
                     persons[track.track_id] = track.keypoints
                     

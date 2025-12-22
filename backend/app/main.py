@@ -175,11 +175,11 @@ async def get_skeleton_video(filepath: str):
                 filename = web_path.name
     except Exception as e:
         logger.warning(f"⚠️ Failed to check web-friendly skeleton video: {e}")
-
+    
     if not video_path.exists():
         logger.error(f"❌ Video not found: {video_path}")
         raise HTTPException(status_code=404, detail=f"Video not found: {filename}")
-
+    
     # ✅ CHECK file size
     try:
         file_size = video_path.stat().st_size
@@ -189,12 +189,12 @@ async def get_skeleton_video(filepath: str):
     except OSError as e:
         logger.error(f"❌ Cannot access video file: {e}")
         raise HTTPException(status_code=500, detail="Cannot access video file")
-
+    
     # ✅ VALIDATE extension
     if video_path.suffix not in ['.mp4', '.avi', '.mov', '.mkv']:
         logger.error(f"❌ Invalid video format: {video_path.suffix}")
         raise HTTPException(status_code=400, detail=f"Invalid video format: {video_path.suffix}")
-
+    
     try:
         logger.info(f"✅ Serving skeleton video: {filename} ({file_size} bytes) at path: {video_path}")
         return FileResponse(

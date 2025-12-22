@@ -330,6 +330,13 @@ MULTI_PERSON_CONFIG = {
             "motion_history_size": 10,  # Number of frames to keep for motion analysis
             "keypoint_prediction_enabled": True,  # Enable keypoint prediction (not just bbox)
         }
+    },
+    # ReID configuration (appearance embedding)
+    "reid": {
+        "enabled": True,               # Bật/tắt ReID
+        "similarity_threshold": 0.7,   # Ngưỡng cosine similarity để coi là cùng người
+        "alpha": 0.5,                  # Trọng số kết hợp IOU và similarity (0.5 = cân bằng)
+        "method": "osnet_fallback_pose"  # osnet_fallback_pose: ưu tiên OSNet, fallback pose embedding
     }
 }
 

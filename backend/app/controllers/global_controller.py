@@ -63,6 +63,7 @@ class GlobalController:
                 # Use ByteTrack (best performance)
                 bytetrack_config = MULTI_PERSON_CONFIG.get("bytetrack", {})
                 adaptive_kalman_config = bytetrack_config.get("adaptive_kalman", {})
+                reid_config = MULTI_PERSON_CONFIG.get("reid", {})
                 self.bytetrack_service = ByteTrackService(
                     track_thresh=bytetrack_config.get("track_thresh", 0.5),
                     track_buffer=bytetrack_config.get("track_buffer", 30),
@@ -71,6 +72,7 @@ class GlobalController:
                     low_thresh=bytetrack_config.get("low_thresh", 0.1),
                     use_adaptive_kalman=bytetrack_config.get("use_adaptive_kalman", True),
                     adaptive_kalman_config=adaptive_kalman_config,
+                    reid_config=reid_config,
                 )
             elif tracking_method == "sort":
                 # Use SORT-style tracker
@@ -266,7 +268,11 @@ class GlobalController:
                         "keypoints": det["keypoints"]
                     })
                 
-                tracks = self.bytetrack_service.update(detections_for_bytetrack, frame_number)
+                tracks = self.bytetrack_service.update(
+                    detections_for_bytetrack,
+                    frame_number,
+                    frame=frame
+                )
                 
                 # Apply velocity filter to tracks
                 if self.post_processing_filters:

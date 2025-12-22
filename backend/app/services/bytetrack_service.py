@@ -13,6 +13,7 @@ from typing import List, Tuple, Dict, Optional
 from scipy.optimize import linear_sum_assignment
 from collections import deque
 from backend.app.services.adaptive_kalman_filter import AdaptiveKalmanFilter
+from backend.app.services.reid_service import ReIDService
 
 
 class STrack:
@@ -50,6 +51,7 @@ class STrack:
         
         self.score = score
         self.keypoints = keypoints
+        self.embedding: Optional[np.ndarray] = None
         
         # Use Adaptive Kalman Filter
         if use_adaptive_kalman:
@@ -201,7 +203,8 @@ class ByteTrackService:
         high_thresh: float = 0.6,
         low_thresh: float = 0.1,
         use_adaptive_kalman: bool = True,
-        adaptive_kalman_config: Optional[Dict] = None
+        adaptive_kalman_config: Optional[Dict] = None,
+        reid_config: Optional[Dict] = None
     ):
         """
         Args:
@@ -220,6 +223,8 @@ class ByteTrackService:
         self.low_thresh = low_thresh
         self.use_adaptive_kalman = use_adaptive_kalman
         self.adaptive_kalman_config = adaptive_kalman_config or {}
+        self.reid_service = ReIDService(reid_config or {"enabled": False})
+        self.reid_alpha = float((reid_config or {}).get("alpha", 0.5)) if reid_config else 0.5
         
         # Track management
         self.tracked_stracks: List[STrack] = []
@@ -228,7 +233,7 @@ class ByteTrackService:
         
         self.frame_id = 0
     
-    def update(self, detections: List[Dict], frame_id: int) -> List[STrack]:
+    def update(self, detections: List[Dict], frame_id: int, frame: Optional[np.ndarray] = None) -> List[STrack]:
         """
         Update tracker with new detections
         
@@ -247,7 +252,15 @@ class ByteTrackService:
         
         for det in detections:
             score = det["score"]
-            track = STrack(det["bbox"], score, det.get("keypoints"))
+            emb = self.reid_service.get_embedding(frame, np.array(det["bbox"]), det.get("keypoints"))
+            track = STrack(
+                det["bbox"],
+                score,
+                det.get("keypoints"),
+                use_adaptive_kalman=self.use_adaptive_kalman,
+                adaptive_kalman_config=self.adaptive_kalman_config
+            )
+            track.embedding = emb
             
             if score >= self.high_thresh:
                 high_dets.append(track)
@@ -343,8 +356,8 @@ class ByteTrackService:
         if len(tracks) == 0 or len(detections) == 0:
             return [], list(range(len(tracks))), list(range(len(detections)))
         
-        # Compute IOU cost matrix
-        cost_matrix = self._compute_iou_cost(tracks, detections)
+        # Compute IOU + ReID combined cost matrix
+        cost_matrix = self._compute_combined_cost(tracks, detections)
         
         # Hungarian algorithm
         row_idx, col_idx = linear_sum_assignment(cost_matrix)
@@ -363,23 +376,37 @@ class ByteTrackService:
         
         return matches, unmatched_tracks, unmatched_dets
     
-    def _compute_iou_cost(
+    def _compute_combined_cost(
         self,
         tracks: List[STrack],
         detections: List[STrack]
     ) -> np.ndarray:
-        """Compute IOU-based cost matrix"""
+        """
+        Cost = alpha*(1-IOU) + (1-alpha)*(1-sim)
+        Fallback: nếu thiếu embedding, chỉ dùng IOU.
+        """
         num_tracks = len(tracks)
         num_dets = len(detections)
         cost_matrix = np.zeros((num_tracks, num_dets))
         
         for i, track in enumerate(tracks):
+            bbox1 = track.get_bbox_xyxy()
+            emb1 = getattr(track, "embedding", None)
             for j, det in enumerate(detections):
-                iou = self._calculate_iou(
-                    track.get_bbox_xyxy(),
-                    det.get_bbox_xyxy()
-                )
-                cost_matrix[i, j] = 1 - iou  # Convert to cost
+                bbox2 = det.get_bbox_xyxy()
+                iou = self._calculate_iou(bbox1, bbox2)
+                
+                sim = 0.0
+                emb2 = getattr(det, "embedding", None)
+                if emb1 is not None and emb2 is not None:
+                    sim = self.reid_service.cosine_similarity(emb1, emb2)
+                
+                if emb1 is None or emb2 is None:
+                    cost = 1 - iou
+                else:
+                    alpha = self.reid_alpha
+                    cost = alpha * (1 - iou) + (1 - alpha) * (1 - sim)
+                cost_matrix[i, j] = cost
         
         return cost_matrix
     

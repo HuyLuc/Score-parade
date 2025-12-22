@@ -39,7 +39,7 @@ def create_golden_template(video_path: Path, output_dir: Path = None):
     output_dir.mkdir(parents=True, exist_ok=True)
     
     print(f"📹 Đang xử lý video golden: {video_path}")
-
+    
     # Validate video trước khi xử lý để tránh crash do file lỗi/corrupt
     is_valid, error_message = validate_video(video_path)
     if not is_valid:
@@ -48,95 +48,95 @@ def create_golden_template(video_path: Path, output_dir: Path = None):
 
     cap = None
     try:
-        # Load video
-        cap, metadata = load_video(video_path)
-        print(f"   FPS: {metadata['fps']}, Kích thước: {metadata['width']}x{metadata['height']}")
+    # Load video
+    cap, metadata = load_video(video_path)
+    print(f"   FPS: {metadata['fps']}, Kích thước: {metadata['width']}x{metadata['height']}")
+    
+    # Khởi tạo pose service
+    pose_service = PoseService()
+    
+    # Lưu trữ keypoints và đặc trưng
+    all_keypoints = []
+    features = {
+        "arm_angle": {"left": [], "right": []},
+        "leg_angle": {"left": [], "right": []},
+        "arm_height": {"left": [], "right": []},
+        "leg_height": {"left": [], "right": []},
+        "head_angle": [],
+        "torso_stability": []
+    }
+    
+    frame_count = 0
+    valid_frames = 0
+    
+    print("   Đang phân tích từng frame...")
+    for frame in get_frames(cap):
+        frame_count += 1
         
-        # Khởi tạo pose service
-        pose_service = PoseService()
+        # Detect pose
+        keypoints_list = pose_service.predict(frame)
         
-        # Lưu trữ keypoints và đặc trưng
-        all_keypoints = []
-        features = {
-            "arm_angle": {"left": [], "right": []},
-            "leg_angle": {"left": [], "right": []},
-            "arm_height": {"left": [], "right": []},
-            "leg_height": {"left": [], "right": []},
-            "head_angle": [],
-            "torso_stability": []
-        }
+        if len(keypoints_list) == 0:
+            continue
         
-        frame_count = 0
-        valid_frames = 0
+        # Lấy người đầu tiên
+        keypoints = keypoints_list[0]
         
-        print("   Đang phân tích từng frame...")
-        for frame in get_frames(cap):
-            frame_count += 1
-            
-            # Detect pose
-            keypoints_list = pose_service.predict(frame)
-            
-            if len(keypoints_list) == 0:
-                continue
-            
-            # Lấy người đầu tiên
-            keypoints = keypoints_list[0]
-            
-            # Kiểm tra keypoints hợp lệ (có đủ 17 keypoints và confidence)
-            if keypoints.shape[0] < 17 or keypoints.shape[1] < 3:
-                continue
-            
-            # Lưu keypoints
-            all_keypoints.append(keypoints.copy())
-            
-            # Tính toán đặc trưng
-            # Góc tay
-            left_arm_angle = calculate_arm_angle(keypoints, "left")
-            right_arm_angle = calculate_arm_angle(keypoints, "right")
-            if left_arm_angle is not None:
-                features["arm_angle"]["left"].append(left_arm_angle)
-            if right_arm_angle is not None:
-                features["arm_angle"]["right"].append(right_arm_angle)
-            
-            # Góc chân
-            left_leg_angle = calculate_leg_angle(keypoints, "left")
-            right_leg_angle = calculate_leg_angle(keypoints, "right")
-            if left_leg_angle is not None:
-                features["leg_angle"]["left"].append(left_leg_angle)
-            if right_leg_angle is not None:
-                features["leg_angle"]["right"].append(right_leg_angle)
-            
-            # Độ cao tay
-            left_arm_h = calculate_arm_height(keypoints, "left")
-            right_arm_h = calculate_arm_height(keypoints, "right")
-            if left_arm_h is not None:
-                features["arm_height"]["left"].append(left_arm_h)
-            if right_arm_h is not None:
-                features["arm_height"]["right"].append(right_arm_h)
-            
-            # Độ cao chân
-            left_leg_h = calculate_leg_height(keypoints, "left")
-            right_leg_h = calculate_leg_height(keypoints, "right")
-            if left_leg_h is not None:
-                features["leg_height"]["left"].append(left_leg_h)
-            if right_leg_h is not None:
-                features["leg_height"]["right"].append(right_leg_h)
-            
-            # Góc đầu
-            head_angle = calculate_head_angle(keypoints)
-            if head_angle is not None:
-                features["head_angle"].append(head_angle)
-            
-            # Ổn định thân - sẽ tính sau khi có đủ frames
-            # (torso_stability cần nhiều frames để tính variance)
-            
-            valid_frames += 1
-            
-            if frame_count % 30 == 0:
-                print(f"   Đã xử lý {frame_count} frames...")
+        # Kiểm tra keypoints hợp lệ (có đủ 17 keypoints và confidence)
+        if keypoints.shape[0] < 17 or keypoints.shape[1] < 3:
+            continue
+        
+        # Lưu keypoints
+        all_keypoints.append(keypoints.copy())
+        
+        # Tính toán đặc trưng
+        # Góc tay
+        left_arm_angle = calculate_arm_angle(keypoints, "left")
+        right_arm_angle = calculate_arm_angle(keypoints, "right")
+        if left_arm_angle is not None:
+            features["arm_angle"]["left"].append(left_arm_angle)
+        if right_arm_angle is not None:
+            features["arm_angle"]["right"].append(right_arm_angle)
+        
+        # Góc chân
+        left_leg_angle = calculate_leg_angle(keypoints, "left")
+        right_leg_angle = calculate_leg_angle(keypoints, "right")
+        if left_leg_angle is not None:
+            features["leg_angle"]["left"].append(left_leg_angle)
+        if right_leg_angle is not None:
+            features["leg_angle"]["right"].append(right_leg_angle)
+        
+        # Độ cao tay
+        left_arm_h = calculate_arm_height(keypoints, "left")
+        right_arm_h = calculate_arm_height(keypoints, "right")
+        if left_arm_h is not None:
+            features["arm_height"]["left"].append(left_arm_h)
+        if right_arm_h is not None:
+            features["arm_height"]["right"].append(right_arm_h)
+        
+        # Độ cao chân
+        left_leg_h = calculate_leg_height(keypoints, "left")
+        right_leg_h = calculate_leg_height(keypoints, "right")
+        if left_leg_h is not None:
+            features["leg_height"]["left"].append(left_leg_h)
+        if right_leg_h is not None:
+            features["leg_height"]["right"].append(right_leg_h)
+        
+        # Góc đầu
+        head_angle = calculate_head_angle(keypoints)
+        if head_angle is not None:
+            features["head_angle"].append(head_angle)
+        
+        # Ổn định thân - sẽ tính sau khi có đủ frames
+        # (torso_stability cần nhiều frames để tính variance)
+        
+        valid_frames += 1
+        
+        if frame_count % 30 == 0:
+            print(f"   Đã xử lý {frame_count} frames...")
     finally:
         if cap is not None:
-            cap.release()
+    cap.release()
     
     if valid_frames == 0:
         print("❌ Không tìm thấy người nào trong video!")

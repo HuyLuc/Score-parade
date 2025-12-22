@@ -278,10 +278,14 @@ class GlobalController:
                 self.person_first_frame[person_id] = frame_number
             self.person_last_frame[person_id] = frame_number
 
+            # Get difficulty level from config
+            difficulty_level = SCORING_CONFIG.get("difficulty_level", "medium")
+            
             posture_errors = self.ai_controller.detect_posture_errors(
                 keypoints,
                 frame_number=frame_number,
-                timestamp=timestamp
+                timestamp=timestamp,
+                difficulty_level=difficulty_level
             )
 
             if posture_errors:

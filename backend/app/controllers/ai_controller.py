@@ -139,13 +139,17 @@ class AIController:
         mean: Optional[float],
         std: Optional[float],
         default_threshold: float,
-        error_type: Optional[str] = None
+        error_type: Optional[str] = None,
+        difficulty_level: Optional[str] = None,
+        torso_length: Optional[float] = None,
+        reference_torso_length: float = 100.0
     ) -> Tuple[bool, float]:
         """
         Kiểm tra vượt ngưỡng so với golden (mean/std) hoặc ngưỡng mặc định
         
         Sử dụng adaptive threshold dựa trên golden template statistics nếu được bật.
         Falls back to 3-sigma rule hoặc default threshold nếu adaptive disabled.
+        Adjusts threshold based on difficulty level and person height (torso length).
         
         Args:
             value: Giá trị cần kiểm tra
@@ -153,6 +157,9 @@ class AIController:
             std: Standard deviation từ golden template
             default_threshold: Ngưỡng mặc định
             error_type: Loại lỗi (e.g., "arm_angle") - dùng cho adaptive threshold
+            difficulty_level: Difficulty level ("easy", "medium", "hard") - affects threshold
+            torso_length: Person's torso length in pixels (for height adjustment)
+            reference_torso_length: Reference torso length for normalization
         
         Returns:
             Tuple (is_outlier, diff)
@@ -167,11 +174,22 @@ class AIController:
             and std is not None
             and ADAPTIVE_THRESHOLD_CONFIG.get("enabled", False)
         ):
+            # Get difficulty level from config if not provided
+            if difficulty_level is None:
+                difficulty_level = SCORING_CONFIG.get("difficulty_level", "medium")
+            
+            # Get reference torso length from config if not provided
+            if reference_torso_length is None or reference_torso_length <= 0:
+                reference_torso_length = NORMALIZATION_CONFIG.get("reference_torso_length", 100.0)
+            
             threshold = self.adaptive_threshold_manager.get_threshold(
                 error_type=error_type,
                 golden_mean=mean,
                 golden_std=std,
                 default_threshold=default_threshold,
+                difficulty_level=difficulty_level,
+                torso_length=torso_length,
+                reference_torso_length=reference_torso_length
             )
         else:
             # Fallback: Use 3-sigma rule or default threshold
@@ -265,7 +283,8 @@ class AIController:
         self,
         keypoints: np.ndarray,
         frame_number: int = 0,
-        timestamp: float = 0.0
+        timestamp: float = 0.0,
+        difficulty_level: Optional[str] = None
     ) -> List[Dict]:
         """
         Phát hiện lỗi tư thế (Local Mode)
@@ -274,6 +293,7 @@ class AIController:
             keypoints: Keypoints [17, 3]
             frame_number: Số frame
             timestamp: Timestamp (giây)
+            difficulty_level: Difficulty level ("easy", "medium", "hard") - affects threshold adjustment
             
         Returns:
             List các dict chứa thông tin lỗi:
@@ -295,6 +315,15 @@ class AIController:
         if self.golden_profile is None:
             self.load_golden_template()
         
+        # Get difficulty level from config if not provided
+        if difficulty_level is None:
+            difficulty_level = SCORING_CONFIG.get("difficulty_level", "medium")
+        
+        # Calculate torso length for height adjustment
+        from backend.app.services.keypoint_normalization import calculate_torso_length
+        torso_length = calculate_torso_length(keypoints)
+        reference_torso_length = NORMALIZATION_CONFIG.get("reference_torso_length", 100.0)
+        
         # Apply temporal smoothing to keypoints if enabled
         smoothed_keypoints = keypoints
         if self.keypoint_smoother is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_keypoints", True):
@@ -313,18 +342,19 @@ class AIController:
                 normalized_keypoints = smoothed_keypoints
         
         # Kiểm tra từng bộ phận với normalized keypoints
+        # Pass difficulty_level and torso_length to error checking methods
         # 1. Tay (Arm) - use smoothed version if enabled
         if self.metric_smoothers is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_metrics", True):
-            arm_errors = self._check_arm_posture_smoothed(normalized_keypoints)
+            arm_errors = self._check_arm_posture_smoothed(normalized_keypoints, difficulty_level, torso_length, reference_torso_length)
         else:
-            arm_errors = self._check_arm_posture(normalized_keypoints)
+            arm_errors = self._check_arm_posture(normalized_keypoints, difficulty_level, torso_length, reference_torso_length)
         errors.extend(arm_errors)
         
         # 2. Chân (Leg) - use smoothed version if enabled
         if self.metric_smoothers is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_metrics", True):
-            leg_errors = self._check_leg_posture_smoothed(normalized_keypoints)
+            leg_errors = self._check_leg_posture_smoothed(normalized_keypoints, difficulty_level, torso_length, reference_torso_length)
         else:
-            leg_errors = self._check_leg_posture(normalized_keypoints)
+            leg_errors = self._check_leg_posture(normalized_keypoints, difficulty_level, torso_length, reference_torso_length)
         errors.extend(leg_errors)
         
         # 3. Vai (Shoulder)
@@ -333,13 +363,13 @@ class AIController:
         
         # 4. Mũi (Nose) - Kiểm tra đầu có cúi không - use smoothed version if enabled
         if self.metric_smoothers is not None and TEMPORAL_SMOOTHING_CONFIG.get("smooth_metrics", True):
-            nose_errors = self._check_head_posture_smoothed(normalized_keypoints)
+            nose_errors = self._check_head_posture_smoothed(normalized_keypoints, difficulty_level, torso_length, reference_torso_length)
         else:
-            nose_errors = self._check_head_posture(normalized_keypoints)
+            nose_errors = self._check_head_posture(normalized_keypoints, difficulty_level, torso_length, reference_torso_length)
         errors.extend(nose_errors)
         
         # 5. Cổ (Neck)
-        neck_errors = self._check_neck_posture(normalized_keypoints)
+        neck_errors = self._check_neck_posture(normalized_keypoints, difficulty_level, torso_length, reference_torso_length)
         errors.extend(neck_errors)
         
         # 6. Lưng (Back)
@@ -353,7 +383,13 @@ class AIController:
         
         return errors
     
-    def _check_arm_posture(self, keypoints: np.ndarray) -> List[Dict]:
+    def _check_arm_posture(
+        self, 
+        keypoints: np.ndarray,
+        difficulty_level: Optional[str] = None,
+        torso_length: Optional[float] = None,
+        reference_torso_length: float = 100.0
+    ) -> List[Dict]:
         """Kiểm tra tư thế tay"""
         errors = []
         threshold = ERROR_THRESHOLDS.get("arm_angle", 50.0)
@@ -375,7 +411,10 @@ class AIController:
                         golden_left,
                         golden_std,
                         threshold,
-                        error_type="arm_angle"
+                        error_type="arm_angle",
+                        difficulty_level=difficulty_level,
+                        torso_length=torso_length,
+                        reference_torso_length=reference_torso_length
                     )
                     if is_out:
                         desc = "Tay trái quá cao" if left_arm_angle > (golden_left or 0) else "Tay trái quá thấp"
@@ -430,7 +469,10 @@ class AIController:
                         golden_right,
                         golden_std,
                         threshold,
-                        error_type="arm_angle"
+                        error_type="arm_angle",
+                        difficulty_level=difficulty_level,
+                        torso_length=torso_length,
+                        reference_torso_length=reference_torso_length
                     )
                     if is_out:
                         desc = "Tay phải quá cao" if right_arm_angle > (golden_right or 0) else "Tay phải quá thấp"
@@ -472,7 +514,13 @@ class AIController:
         
         return errors
     
-    def _check_leg_posture(self, keypoints: np.ndarray) -> List[Dict]:
+    def _check_leg_posture(
+        self, 
+        keypoints: np.ndarray,
+        difficulty_level: Optional[str] = None,
+        torso_length: Optional[float] = None,
+        reference_torso_length: float = 100.0
+    ) -> List[Dict]:
         """Kiểm tra tư thế chân"""
         errors = []
         threshold = ERROR_THRESHOLDS.get("leg_angle", 45.0)
@@ -493,7 +541,10 @@ class AIController:
                         golden_left,
                         golden_std,
                         threshold,
-                        error_type="leg_angle"
+                        error_type="leg_angle",
+                        difficulty_level=difficulty_level,
+                        torso_length=torso_length,
+                        reference_torso_length=reference_torso_length
                     )
                     if is_out:
                         desc = f"Chân trái {'quá cao' if left_leg_angle > (golden_left or 0) else 'quá thấp'}"
@@ -529,7 +580,10 @@ class AIController:
                         golden_right,
                         golden_std,
                         threshold,
-                        error_type="leg_angle"
+                        error_type="leg_angle",
+                        difficulty_level=difficulty_level,
+                        torso_length=torso_length,
+                        reference_torso_length=reference_torso_length
                     )
                     if is_out:
                         desc = f"Chân phải {'quá cao' if right_leg_angle > (golden_right or 0) else 'quá thấp'}"
@@ -606,7 +660,13 @@ class AIController:
         
         return errors
     
-    def _check_head_posture(self, keypoints: np.ndarray) -> List[Dict]:
+    def _check_head_posture(
+        self, 
+        keypoints: np.ndarray,
+        difficulty_level: Optional[str] = None,
+        torso_length: Optional[float] = None,
+        reference_torso_length: float = 100.0
+    ) -> List[Dict]:
         """
         Kiểm tra tư thế đầu (mũi)
         
@@ -634,7 +694,10 @@ class AIController:
                 golden_mean,
                 golden_std,
                 threshold,
-                error_type="head_angle"
+                error_type="head_angle",
+                difficulty_level=difficulty_level,
+                torso_length=torso_length,
+                reference_torso_length=reference_torso_length
             )
             
             if is_out:
@@ -677,7 +740,13 @@ class AIController:
         
         return errors
     
-    def _check_neck_posture(self, keypoints: np.ndarray) -> List[Dict]:
+    def _check_neck_posture(
+        self, 
+        keypoints: np.ndarray,
+        difficulty_level: Optional[str] = None,
+        torso_length: Optional[float] = None,
+        reference_torso_length: float = 100.0
+    ) -> List[Dict]:
         """
         Kiểm tra tư thế cổ
         
@@ -728,7 +797,10 @@ class AIController:
                 golden_mean,
                 golden_std,
                 threshold,
-                error_type="neck_angle"
+                error_type="neck_angle",
+                difficulty_level=difficulty_level,
+                torso_length=torso_length,
+                reference_torso_length=reference_torso_length
             )
             
             if is_out:
@@ -834,7 +906,13 @@ class AIController:
         
         return errors
     
-    def _check_arm_posture_smoothed(self, keypoints: np.ndarray) -> List[Dict]:
+    def _check_arm_posture_smoothed(
+        self, 
+        keypoints: np.ndarray,
+        difficulty_level: Optional[str] = None,
+        torso_length: Optional[float] = None,
+        reference_torso_length: float = 100.0
+    ) -> List[Dict]:
         """
         Kiểm tra tư thế tay với temporal smoothing
         
@@ -869,7 +947,10 @@ class AIController:
                     golden_left,
                     golden_std,
                     ERROR_THRESHOLDS.get("arm_angle", 10.0),
-                    error_type="arm_angle"
+                    error_type="arm_angle",
+                    difficulty_level=difficulty_level,
+                    torso_length=torso_length,
+                    reference_torso_length=reference_torso_length
                 )
                 if is_out:
                     desc = "Tay trái quá cao" if smoothed_left > (golden_left or 0) else "Tay trái quá thấp"
@@ -893,7 +974,10 @@ class AIController:
                     golden_right,
                     golden_std,
                     ERROR_THRESHOLDS.get("arm_angle", 10.0),
-                    error_type="arm_angle"
+                    error_type="arm_angle",
+                    difficulty_level=difficulty_level,
+                    torso_length=torso_length,
+                    reference_torso_length=reference_torso_length
                 )
                 if is_out:
                     desc = "Tay phải quá cao" if smoothed_right > (golden_right or 0) else "Tay phải quá thấp"
@@ -907,7 +991,13 @@ class AIController:
         
         return errors
     
-    def _check_leg_posture_smoothed(self, keypoints: np.ndarray) -> List[Dict]:
+    def _check_leg_posture_smoothed(
+        self, 
+        keypoints: np.ndarray,
+        difficulty_level: Optional[str] = None,
+        torso_length: Optional[float] = None,
+        reference_torso_length: float = 100.0
+    ) -> List[Dict]:
         """
         Kiểm tra tư thế chân với temporal smoothing
         
@@ -939,7 +1029,10 @@ class AIController:
                     golden_left,
                     golden_std,
                     ERROR_THRESHOLDS.get("leg_angle", 10.0),
-                    error_type="leg_angle"
+                    error_type="leg_angle",
+                    difficulty_level=difficulty_level,
+                    torso_length=torso_length,
+                    reference_torso_length=reference_torso_length
                 )
                 if is_out:
                     desc = f"Chân trái {'quá cao' if smoothed_left > (golden_left or 0) else 'quá thấp'}"
@@ -962,7 +1055,10 @@ class AIController:
                     golden_right,
                     golden_std,
                     ERROR_THRESHOLDS.get("leg_angle", 10.0),
-                    error_type="leg_angle"
+                    error_type="leg_angle",
+                    difficulty_level=difficulty_level,
+                    torso_length=torso_length,
+                    reference_torso_length=reference_torso_length
                 )
                 if is_out:
                     desc = f"Chân phải {'quá cao' if smoothed_right > (golden_right or 0) else 'quá thấp'}"
@@ -976,7 +1072,13 @@ class AIController:
         
         return errors
     
-    def _check_head_posture_smoothed(self, keypoints: np.ndarray) -> List[Dict]:
+    def _check_head_posture_smoothed(
+        self, 
+        keypoints: np.ndarray,
+        difficulty_level: Optional[str] = None,
+        torso_length: Optional[float] = None,
+        reference_torso_length: float = 100.0
+    ) -> List[Dict]:
         """
         Kiểm tra tư thế đầu (mũi) với temporal smoothing
         
@@ -1007,7 +1109,10 @@ class AIController:
                 golden_mean,
                 golden_std,
                 threshold,
-                error_type="head_angle"
+                error_type="head_angle",
+                difficulty_level=difficulty_level,
+                torso_length=torso_length,
+                reference_torso_length=reference_torso_length
             )
             
             if is_out:

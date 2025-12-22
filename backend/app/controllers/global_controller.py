@@ -17,6 +17,7 @@ from backend.app.config import (
     SEQUENCE_COMPARISON_CONFIG,
     MULTI_PERSON_CONFIG,
     SCORING_CONFIG,
+    ERROR_THRESHOLDS,
 )
 
 
@@ -294,6 +295,16 @@ class GlobalController:
             )
             if motion_type:
                 self.motion_events[person_id].append((timestamp, keypoints.copy(), motion_type))
+                
+                # Kiểm tra rhythm ngay khi phát hiện motion event
+                rhythm_errors = self._check_rhythm_for_motion(
+                    person_id=person_id,
+                    timestamp=timestamp,
+                    motion_type=motion_type,
+                    frame_number=frame_number
+                )
+                if rhythm_errors:
+                    self.frame_errors_buffer[person_id].extend(rhythm_errors)
 
             self.prev_keypoints[person_id] = keypoints.copy()
             self.prev_timestamp[person_id] = timestamp
@@ -429,9 +440,80 @@ class GlobalController:
         # Clear buffer sau khi đã xử lý
         self.frame_errors_buffer[person_id] = []
     
+    def _check_rhythm_for_motion(
+        self,
+        person_id: int,
+        timestamp: float,
+        motion_type: str,
+        frame_number: int
+    ) -> List[Dict]:
+        """
+        Kiểm tra rhythm cho một motion event đơn lẻ
+        
+        Args:
+            person_id: ID của người
+            timestamp: Timestamp của motion event (giây)
+            motion_type: Loại động tác ("step_left", "step_right", "arm_swing_left", etc.)
+            frame_number: Số frame hiện tại
+            
+        Returns:
+            List các rhythm error dicts (rỗng nếu không có lỗi)
+        """
+        # Chỉ kiểm tra rhythm nếu có beat detector
+        if self.ai_controller.beat_detector is None:
+            return []
+        
+        # Chỉ kiểm tra rhythm cho các động tác quan trọng (steps, arm swings)
+        if "step" not in motion_type and "arm_swing" not in motion_type:
+            return []
+        
+        # Kiểm tra xem motion event có khớp với beat không
+        tolerance = ERROR_THRESHOLDS.get("rhythm", 0.15)
+        beat_time = self.ai_controller.beat_detector.get_beat_at_time(timestamp, tolerance)
+        
+        if beat_time is None:
+            # Không có beat trong khoảng tolerance → lỗi rhythm
+            # Tìm beat gần nhất để tính diff
+            beat_times = self.ai_controller.beat_detector.beat_times
+            if beat_times is None or len(beat_times) == 0:
+                return []
+            
+            idx = np.searchsorted(beat_times, timestamp)
+            closest_beat = None
+            if idx < len(beat_times):
+                closest_beat = float(beat_times[idx])
+            elif idx > 0:
+                closest_beat = float(beat_times[idx - 1])
+            
+            if closest_beat is None:
+                return []
+            
+            diff = abs(timestamp - closest_beat)
+            
+            # Tạo error dict
+            error = self.ai_controller._build_error(
+                error_type="rhythm",
+                description=f"Động tác {motion_type} không theo nhịp (lệch {diff:.2f}s)",
+                diff=diff,
+                body_part=motion_type,
+                side=None
+            )
+            
+            # Thêm metadata
+            error["frame_number"] = frame_number
+            error["timestamp"] = timestamp
+            error["motion_type"] = motion_type
+            error["expected_beat"] = closest_beat
+            error["actual_timestamp"] = timestamp
+            
+            return [error]
+        
+        # Có beat trong khoảng tolerance → không có lỗi
+        return []
+    
     def _process_rhythm_batch(self, person_id: int, frame_number: int, timestamp: float):
         """
-        Process accumulated motion events for rhythm errors
+        Process accumulated motion events for rhythm errors (legacy method, giữ lại để tương thích)
         
         Args:
             frame_number: Current frame number

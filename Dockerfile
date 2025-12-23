@@ -44,8 +44,15 @@ WORKDIR /app
 # Copy requirements and install Python dependencies FIRST (for better caching)
 # Dependencies change less frequently than code
 COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r backend/requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r backend/requirements.txt && \
+    pip install --no-cache-dir openmim && \
+    mim install mmengine && \
+    mim install "mmcv>=2.0.0" && \
+    pip install --no-cache-dir "chumpy==0.70" || echo "Warning: chumpy installation failed, continuing..." && \
+    pip install --no-cache-dir mmpose || \
+    (pip install --no-cache-dir mmpose --no-deps && \
+     pip install --no-cache-dir "numpy<2.0" "scipy>=1.10.0" "opencv-python>=4.8.0" "pillow>=10.0.0" "pyyaml>=6.0" "matplotlib>=3.7.0" "termcolor" "yapf" "addict" "rich" "tabulate" "model-index" "opendatalab" "openxlab")
 
 # Copy backend code (this layer will be rebuilt when code changes)
 COPY backend/ ./backend/

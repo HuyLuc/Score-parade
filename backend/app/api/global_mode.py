@@ -664,7 +664,9 @@ async def upload_and_process_video(
                                     skeleton_video_url = f"/api/videos/{skeleton_video_filename}"
                                     logger.info(f"[SKELETON] Skeleton video saved to filesystem at: {fs_target_path}")
                             
-                                logger.info(f"Skeleton video created: {file_size} bytes, {processed_frames}/{total_frames} frames with skeleton")
+                                logger.info(
+                                    f"Skeleton video created: {file_size} bytes, {processed_frames}/{total_frames} frames with skeleton"
+                                )
                             except Exception as upload_err:
                                 logger.error(f"[SKELETON] Error while uploading/saving skeleton video: {upload_err}", exc_info=True)
                                 skeleton_video_url = None

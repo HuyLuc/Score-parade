@@ -5,7 +5,7 @@
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Tests](https://img.shields.io/badge/tests-pytest-orange.svg)](https://docs.pytest.org/)
 
-**Score Parade** là hệ thống chấm điểm điều lệnh tự động sử dụng AI, phân tích video chiến sĩ/sĩ quan thực hành đi điều lệnh và cung cấp phản hồi theo thời gian thực (Local Mode – Làm chậm) và bài tổng hợp (Global Mode). Hệ thống sử dụng YOLOv8-Pose cho ước tính tư thế, ByteTrack cho theo dõi nhiều người, beat detection để kiểm tra nhịp, và cơ chế nhóm lỗi theo chuỗi để tránh trừ điểm quá mức.
+**Score Parade** là hệ thống chấm điểm điều lệnh tự động sử dụng AI, phân tích video chiến sĩ/sĩ quan thực hành đi điều lệnh và cung cấp phản hồi theo thời gian thực (Local Mode – Làm chậm) và bài tổng hợp (Global Mode). Hệ thống sử dụng **MMPose (RTMPose)** cho ước tính tư thế với độ chính xác cao, ByteTrack cho theo dõi nhiều người, beat detection để kiểm tra nhịp, và cơ chế nhóm lỗi theo chuỗi để tránh trừ điểm quá mức.
 
 ## ✨ Tính năng chính (theo trạng thái hiện tại)
 
@@ -69,7 +69,7 @@ Score-parade/
 │   │   │   ├── local_testing_controller.py
 │   │   │   └── local_practising_controller.py
 │   │   ├── services/                 # Core services
-│   │   │   ├── pose_service.py       # YOLOv8 pose detection
+│   │   │   ├── pose_service.py       # MMPose pose detection
 │   │   │   ├── scoring_service.py    # Scoring logic
 │   │   │   ├── bytetrack_service.py  # Multi-person tracking
 │   │   │   ├── tracker_service.py    # SORT-style tracker
@@ -242,6 +242,30 @@ pip install -r requirements.txt
 cd ..
 ```
 
+### Bước 3.1: Cài Đặt MMPose (QUAN TRỌNG)
+
+**Cách 1: Tự động (Khuyến nghị)**
+```bash
+# Chạy script tự động cài đặt MMPose
+python install_mmpose.py
+```
+
+**Cách 2: Thủ công**
+```bash
+# Cài đặt OpenMMLab MIM
+pip install -U openmim
+
+# Cài đặt MMPose stack
+mim install mmengine
+mim install "mmcv>=2.0.0"
+mim install "mmpose>=1.0.0"
+
+# Xác minh cài đặt
+python -c "from mmpose.apis import MMPoseInferencer; print('✅ MMPose OK')"
+```
+
+**Lưu ý:** MMPose là thư viện chính để phát hiện pose với độ chính xác cao. Xem thêm chi tiết tại [POSE_MODEL_MIGRATION.md](POSE_MODEL_MIGRATION.md).
+
 ### Bước 4: Cài Đặt Phụ Thuộc Frontend
 
 ```bash
@@ -331,7 +355,7 @@ nano .env
 
 ```bash
 # Kiểm tra backend dependencies
-python -c "import cv2; import numpy; import ultralytics; print('✅ Backend dependencies OK')"
+python -c "import cv2; import numpy; import mmpose; print('✅ Backend dependencies OK')"
 
 # Kiểm tra frontend
 cd frontend

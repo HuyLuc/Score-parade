@@ -1,5 +1,5 @@
 """
-Wrapper cho pose estimation models (RTMPose và YOLOv8-Pose)
+Wrapper cho pose estimation models (MMPose/RTMPose, AlphaPose, và YOLOv8-Pose)
 """
 import numpy as np
 import cv2
@@ -44,30 +44,72 @@ class PoseEstimator:
     
     def _initialize_model(self):
         """Khởi tạo model"""
-        if self.model_type == "rtmpose":
-            self._init_rtmpose()
+        if self.model_type in ["rtmpose", "mmpose"]:
+            self._init_mmpose()
+        elif self.model_type == "alphapose":
+            self._init_alphapose()
         elif self.model_type == "yolov8":
             self._init_yolov8()
         else:
-            raise ValueError(f"Model type không được hỗ trợ: {self.model_type}")
+            raise ValueError(f"Model type không được hỗ trợ: {self.model_type}. Hỗ trợ: rtmpose/mmpose, alphapose, yolov8")
     
-    def _init_rtmpose(self):
-        """Khởi tạo RTMPose"""
+    def _init_mmpose(self):
+        """Khởi tạo MMPose (RTMPose hoặc các models khác từ MMPose)"""
         try:
             from mmpose.apis import MMPoseInferencer
             
-            model_name = config.POSE_CONFIG["rtmpose_model"]
-            device = config.POSE_CONFIG["device"]
+            # Lấy model name từ config, mặc định là RTMPose
+            model_name = config.POSE_CONFIG.get("mmpose_model", "rtmpose-m_8xb256-420e_coco-256x192")
+            device = config.POSE_CONFIG.get("device", "cpu")
             
+            # MMPoseInferencer tự động download model nếu chưa có
             self.model = MMPoseInferencer(
                 pose2d=model_name,
                 device=device
             )
-            print(f"Đã khởi tạo RTMPose: {model_name}")
+            print(f"✅ Đã khởi tạo MMPose: {model_name} trên {device}")
         except ImportError:
             raise ImportError(
-                "Cần cài đặt mmpose. Chạy: pip install mmpose mmcv mmengine"
+                "Cần cài đặt mmpose. Chạy: pip install openmim && mim install mmengine mmcv mmpose"
             )
+        except Exception as e:
+            raise RuntimeError(f"Lỗi khởi tạo MMPose: {e}")
+    
+    def _init_alphapose(self):
+        """Khởi tạo AlphaPose"""
+        try:
+            # AlphaPose có thể được sử dụng qua API hoặc trực tiếp
+            # Sử dụng thư viện alphapose nếu có, hoặc gọi qua API
+            import sys
+            import os
+            
+            # Kiểm tra xem có alphapose trong path không
+            alphapose_path = config.POSE_CONFIG.get("alphapose_path", None)
+            if alphapose_path and os.path.exists(alphapose_path):
+                sys.path.insert(0, alphapose_path)
+            
+            try:
+                from detector import YOLOv5Detector
+                from pose import YOLOv5PoseEstimator
+                
+                # Khởi tạo detector và pose estimator
+                detector_cfg = config.POSE_CONFIG.get("alphapose_detector", "yolov5s")
+                pose_cfg = config.POSE_CONFIG.get("alphapose_model", "fastpose_duc")
+                device = config.POSE_CONFIG.get("device", "cpu")
+                
+                self.detector = YOLOv5Detector(detector_cfg, device=device)
+                self.pose_estimator = YOLOv5PoseEstimator(pose_cfg, device=device)
+                self.model = {"detector": self.detector, "pose": self.pose_estimator}
+                
+                print(f"✅ Đã khởi tạo AlphaPose: detector={detector_cfg}, pose={pose_cfg}")
+            except ImportError:
+                # Fallback: Sử dụng API hoặc wrapper khác
+                # Có thể sử dụng thư viện alphapose-api hoặc gọi trực tiếp
+                raise ImportError(
+                    "AlphaPose chưa được cài đặt. Vui lòng cài đặt AlphaPose hoặc sử dụng MMPose."
+                )
+        except Exception as e:
+            raise RuntimeError(f"Lỗi khởi tạo AlphaPose: {e}. Gợi ý: Sử dụng MMPose (rtmpose) thay thế.")
     
     def _init_yolov8(self):
         """Khởi tạo YOLOv8-Pose"""
@@ -100,36 +142,159 @@ class PoseEstimator:
         Returns:
             List các keypoints, mỗi người là array [17, 3] với (x, y, confidence)
         """
-        if self.model_type == "rtmpose":
-            return self._predict_rtmpose(frame)
+        if self.model_type in ["rtmpose", "mmpose"]:
+            return self._predict_mmpose(frame)
+        elif self.model_type == "alphapose":
+            return self._predict_alphapose(frame)
         elif self.model_type == "yolov8":
             return self._predict_yolov8(frame)
     
-    def _predict_rtmpose(self, frame: np.ndarray) -> List[np.ndarray]:
-        """Dự đoán bằng RTMPose"""
-        results = list(self.model(frame))
-        
-        if not results or len(results) == 0:
-            return []
-        
-        # RTMPose trả về dict với key 'predictions'
-        result = results[0]
-        if isinstance(result, dict) and 'predictions' in result:
-            predictions = result['predictions']
-        else:
-            predictions = result
-        
-        keypoints_list = []
-        for pred in predictions:
-            if 'keypoints' in pred:
-                kpts = pred['keypoints']  # [17, 2] hoặc [17, 3]
+    def _predict_mmpose(self, frame: np.ndarray) -> List[np.ndarray]:
+        """Dự đoán bằng MMPose (RTMPose hoặc các models khác)"""
+        try:
+            results = list(self.model(frame))
+            
+            if not results or len(results) == 0:
+                return []
+            
+            # MMPose trả về dict với key 'predictions'
+            result = results[0]
+            if isinstance(result, dict):
+                if 'predictions' in result:
+                    predictions = result['predictions']
+                elif 'keypoints' in result:
+                    # Trường hợp trả về trực tiếp keypoints
+                    predictions = [result]
+                else:
+                    predictions = []
+            else:
+                predictions = [result] if result else []
+            
+            keypoints_list = []
+            conf_threshold = config.POSE_CONFIG.get("conf_threshold", 0.15)
+            kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.20)
+            min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 4)
+            max_persons = config.MULTI_PERSON_CONFIG.get("max_persons", 5)
+            
+            candidates = []
+            
+            for pred in predictions:
+                if isinstance(pred, dict):
+                    if 'keypoints' in pred:
+                        kpts = pred['keypoints']  # [17, 2] hoặc [17, 3]
+                        keypoint_scores = pred.get('keypoint_scores', None)
+                    elif 'pred_instances' in pred:
+                        # Format khác của MMPose
+                        instances = pred['pred_instances']
+                        kpts = instances.keypoints.cpu().numpy() if hasattr(instances, 'keypoints') else None
+                        keypoint_scores = instances.keypoint_scores.cpu().numpy() if hasattr(instances, 'keypoint_scores') else None
+                    else:
+                        continue
+                else:
+                    continue
+                
+                if kpts is None:
+                    continue
+                
+                # Chuyển đổi format về [17, 3]
                 if kpts.shape[1] == 2:
-                    # Thêm confidence = 1.0 nếu không có
-                    confidence = np.ones((kpts.shape[0], 1))
+                    # Chỉ có x, y, cần thêm confidence
+                    if keypoint_scores is not None:
+                        # Sử dụng keypoint_scores từ model
+                        confidence = keypoint_scores.reshape(-1, 1) if len(keypoint_scores.shape) == 1 else keypoint_scores
+                    else:
+                        # Mặc định confidence = 1.0
+                        confidence = np.ones((kpts.shape[0], 1))
                     kpts = np.concatenate([kpts, confidence], axis=1)
-                keypoints_list.append(kpts)
-        
-        return keypoints_list
+                elif kpts.shape[1] == 3:
+                    # Đã có confidence
+                    pass
+                else:
+                    continue
+                
+                # Đảm bảo có đúng 17 keypoints (COCO format)
+                if kpts.shape[0] != 17:
+                    # Nếu không đúng format, skip
+                    continue
+                
+                # Lọc theo confidence
+                valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
+                if valid_kpts < min_valid:
+                    continue
+                
+                # Tính score để ưu tiên
+                avg_conf = np.mean(kpts[kpts[:, 2] > kpt_conf_threshold, 2]) if valid_kpts > 0 else 0.0
+                candidates.append((avg_conf, kpts))
+            
+            # Sắp xếp và giới hạn số người
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            keypoints_list = [k for _, k in candidates[:max_persons]]
+            
+            return keypoints_list
+        except Exception as e:
+            print(f"⚠️ Lỗi trong _predict_mmpose: {e}")
+            return []
+    
+    def _predict_alphapose(self, frame: np.ndarray) -> List[np.ndarray]:
+        """Dự đoán bằng AlphaPose"""
+        try:
+            # AlphaPose workflow: detect -> pose estimation
+            if isinstance(self.model, dict) and "detector" in self.model and "pose" in self.model:
+                # Detect persons
+                detections = self.model["detector"].detect(frame)
+                
+                if len(detections) == 0:
+                    return []
+                
+                keypoints_list = []
+                conf_threshold = config.POSE_CONFIG.get("conf_threshold", 0.15)
+                kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.20)
+                min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 4)
+                max_persons = config.MULTI_PERSON_CONFIG.get("max_persons", 5)
+                
+                candidates = []
+                
+                for det in detections:
+                    # Lọc theo detection confidence
+                    if det.get("confidence", 0) < conf_threshold:
+                        continue
+                    
+                    # Estimate pose
+                    bbox = det.get("bbox", None)
+                    if bbox is None:
+                        continue
+                    
+                    kpts = self.model["pose"].estimate(frame, bbox)
+                    
+                    if kpts is None or kpts.shape[0] != 17:
+                        continue
+                    
+                    # Đảm bảo format [17, 3]
+                    if kpts.shape[1] == 2:
+                        # Thêm confidence
+                        confidence = np.ones((kpts.shape[0], 1))
+                        kpts = np.concatenate([kpts, confidence], axis=1)
+                    
+                    # Lọc theo keypoint confidence
+                    valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
+                    if valid_kpts < min_valid:
+                        continue
+                    
+                    # Tính score
+                    avg_conf = np.mean(kpts[kpts[:, 2] > kpt_conf_threshold, 2]) if valid_kpts > 0 else 0.0
+                    candidates.append((avg_conf, kpts))
+                
+                # Sắp xếp và giới hạn
+                candidates.sort(key=lambda x: x[0], reverse=True)
+                keypoints_list = [k for _, k in candidates[:max_persons]]
+                
+                return keypoints_list
+            else:
+                # Fallback: Nếu không có detector/pose riêng, thử API hoặc wrapper khác
+                raise NotImplementedError("AlphaPose chưa được cấu hình đúng. Vui lòng sử dụng MMPose.")
+        except Exception as e:
+            print(f"⚠️ Lỗi trong _predict_alphapose: {e}")
+            return []
     
     def _predict_yolov8(self, frame: np.ndarray) -> List[np.ndarray]:
         """Dự đoán bằng YOLOv8-Pose"""
@@ -188,8 +353,9 @@ class PoseEstimator:
         
         results = []
         
-        # Xử lý theo batch nếu model là YOLOv8
+        # Xử lý theo batch nếu model hỗ trợ
         if self.model_type == "yolov8" and batch_size > 1:
+            # YOLOv8 hỗ trợ batch processing tốt
             for i in range(0, len(frames), batch_size):
                 batch_frames = frames[i:i+batch_size]
                 batch_results = self.model(batch_frames, verbose=False, 
@@ -221,13 +387,93 @@ class PoseEstimator:
                         candidates.sort(key=lambda x: x[0], reverse=True)
                         keypoints_list = [k for _, k in candidates[:max_persons]]
                     results.append(keypoints_list)
+        elif self.model_type in ["rtmpose", "mmpose"] and batch_size > 1:
+            # MMPose có thể xử lý batch nhưng cần xử lý từng frame để đảm bảo format đúng
+            # Có thể optimize sau nếu cần
+            for i in range(0, len(frames), batch_size):
+                batch_frames = frames[i:i+batch_size]
+                # MMPoseInferencer có thể nhận list frames
+                batch_results = list(self.model(batch_frames))
+                
+                # Xử lý từng kết quả trong batch
+                for result in batch_results:
+                    keypoints = self._predict_mmpose_single_result(result)
+                    results.append(keypoints)
         else:
-            # Xử lý từng frame
+            # Xử lý từng frame (cho alphapose hoặc batch_size=1)
             for frame in frames:
                 keypoints = self.predict(frame)
                 results.append(keypoints)
         
         return results
+    
+    def _predict_mmpose_single_result(self, result) -> List[np.ndarray]:
+        """Helper method để xử lý một kết quả từ MMPose batch"""
+        if not result:
+            return []
+        
+        # Tương tự logic trong _predict_mmpose nhưng cho một result
+        if isinstance(result, dict):
+            if 'predictions' in result:
+                predictions = result['predictions']
+            elif 'keypoints' in result:
+                predictions = [result]
+            else:
+                predictions = []
+        else:
+            predictions = [result] if result else []
+        
+        keypoints_list = []
+        conf_threshold = config.POSE_CONFIG.get("conf_threshold", 0.15)
+        kpt_conf_threshold = config.POSE_CONFIG.get("keypoint_confidence_threshold", 0.20)
+        min_valid = config.POSE_CONFIG.get('min_valid_keypoints', 4)
+        max_persons = config.MULTI_PERSON_CONFIG.get("max_persons", 5)
+        
+        candidates = []
+        
+        for pred in predictions:
+            if isinstance(pred, dict):
+                if 'keypoints' in pred:
+                    kpts = pred['keypoints']
+                    keypoint_scores = pred.get('keypoint_scores', None)
+                elif 'pred_instances' in pred:
+                    instances = pred['pred_instances']
+                    kpts = instances.keypoints.cpu().numpy() if hasattr(instances, 'keypoints') else None
+                    keypoint_scores = instances.keypoint_scores.cpu().numpy() if hasattr(instances, 'keypoint_scores') else None
+                else:
+                    continue
+            else:
+                continue
+            
+            if kpts is None:
+                continue
+            
+            # Chuyển đổi format về [17, 3]
+            if kpts.shape[1] == 2:
+                if keypoint_scores is not None:
+                    confidence = keypoint_scores.reshape(-1, 1) if len(keypoint_scores.shape) == 1 else keypoint_scores
+                else:
+                    confidence = np.ones((kpts.shape[0], 1))
+                kpts = np.concatenate([kpts, confidence], axis=1)
+            elif kpts.shape[1] == 3:
+                pass
+            else:
+                continue
+            
+            if kpts.shape[0] != 17:
+                continue
+            
+            valid_kpts = np.sum(kpts[:, 2] > kpt_conf_threshold)
+            if valid_kpts < min_valid:
+                continue
+            
+            avg_conf = np.mean(kpts[kpts[:, 2] > kpt_conf_threshold, 2]) if valid_kpts > 0 else 0.0
+            candidates.append((avg_conf, kpts))
+        
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        keypoints_list = [k for _, k in candidates[:max_persons]]
+        
+        return keypoints_list
 
 
 def extract_skeleton_from_video(
@@ -239,7 +485,7 @@ def extract_skeleton_from_video(
     
     Args:
         video_path: Đường dẫn video
-        model_type: "rtmpose" hoặc "yolov8", None để dùng config
+        model_type: "rtmpose"/"mmpose", "alphapose", hoặc "yolov8", None để dùng config
         
     Returns:
         Tuple (skeletons, metadata):

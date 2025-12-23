@@ -160,6 +160,15 @@ class TrackValidator:
         prop_std = float(np.std(window))
         return prop_std <= self.max_proportion_std
 
+    def reset(self) -> None:
+        """
+        Reset toàn bộ lịch sử track.
+
+        Được gọi khi tracker được reset giữa các video, đảm bảo
+        không bị lẫn dữ liệu body_proportions của video trước.
+        """
+        self.tracks_history.clear()
+
 
 class STrack:
     """Single Track for ByteTrack"""
@@ -269,15 +278,18 @@ class STrack:
         self.score = new_track.score
         
         # Update keypoints if available and prediction enabled
-        if (hasattr(self.kalman, 'keypoint_prediction_enabled') and 
-            self.kalman.keypoint_prediction_enabled and 
-            new_track.keypoints is not None):
+        if (
+            hasattr(self.kalman, "keypoint_prediction_enabled")
+            and self.kalman.keypoint_prediction_enabled
+            and new_track.keypoints is not None
+        ):
             updated_keypoints = self.kalman.update_keypoints(new_track.keypoints)
             if updated_keypoints is not None:
                 self.keypoints = updated_keypoints
             else:
                 self.keypoints = new_track.keypoints
         else:
+            # No keypoint prediction or missing keypoints; take detection keypoints
             self.keypoints = new_track.keypoints
         
         # Update history
@@ -507,7 +519,7 @@ class ByteTrackService:
         for track in self.tracked_stracks + self.lost_stracks:
             # Sử dụng keypoints hiện tại của track (sau Kalman + update)
             self.track_validator.update_track(track.track_id, track.keypoints, self.frame_id)
-
+        
         # Remove dead tracks
         self.tracked_stracks = [t for t in self.tracked_stracks if t.state == 'tracked']
         self.lost_stracks = [t for t in self.lost_stracks if t.state == 'lost']

@@ -40,21 +40,34 @@ GOLDEN_TEMPLATE_CONFIG = {
 
 # Cấu hình pose estimation
 POSE_CONFIG = {
-    "model_type": "yolov8",  # rtmpose hoặc yolov8
-    "model_path": None,  # Đường dẫn model (None = tự động download)
+    # Model type: "mmpose" (hoặc "rtmpose"), "alphapose", "yolov8"
+    # Khuyến nghị: "mmpose" cho độ chính xác cao và dễ sử dụng
+    "model_type": os.getenv("POSE_MODEL_TYPE", "mmpose"),  # mmpose, alphapose, yolov8
+    
+    # MMPose/RTMPose configuration
+    "mmpose_model": os.getenv("MMPOSE_MODEL", "rtmpose-m_8xb256-420e_coco-256x192"),  # RTMPose medium
+    # Các model MMPose khác có thể dùng:
+    # - "rtmpose-s_8xb256-420e_coco-256x192" (small, nhanh hơn)
+    # - "rtmpose-l_8xb256-420e_coco-256x192" (large, chính xác hơn)
+    # - "rtmpose-x_8xb256-420e_coco-256x192" (xlarge, rất chính xác)
+    # - "rtmpose-m_8xb256-420e_coco-384x288" (medium với resolution cao hơn)
+    
+    # AlphaPose configuration (nếu sử dụng)
+    "alphapose_path": os.getenv("ALPHAPOSE_PATH", None),  # Đường dẫn đến thư mục AlphaPose
+    "alphapose_detector": os.getenv("ALPHAPOSE_DETECTOR", "yolov5s"),  # Detector cho AlphaPose
+    "alphapose_model": os.getenv("ALPHAPOSE_MODEL", "fastpose_duc"),  # Pose model cho AlphaPose
+    
+    # YOLOv8 configuration (legacy)
     "yolov8_model": "yolov8n-pose.pt",  # Tên model YOLOv8 (sẽ tự download)
+    
+    # Common settings
+    "model_path": None,  # Đường dẫn model (None = tự động download)
     "device": "cuda" if os.getenv("CUDA_VISIBLE_DEVICES") else "cpu",
     "conf_threshold": 0.15,  # Giảm từ 0.20 xuống 0.15 để phát hiện tốt hơn
     # Ngưỡng cho từng keypoint và số lượng keypoint tối thiểu để chấp nhận một người
     "keypoint_confidence_threshold": 0.20,  # Giảm từ 0.25 xuống 0.20
     "min_valid_keypoints": 4,  # Giảm từ 5 xuống 4 để linh hoạt hơn
-}
-
-# Cấu hình Confidence-Based Filtering - Lọc keypoints có confidence thấp
-CONFIDENCE_FILTERING_CONFIG = {
-    "enabled": True,  # Bật/tắt confidence filtering
-    "threshold": 0.5,  # Ngưỡng confidence tối thiểu để chấm lỗi (keypoints có confidence < threshold sẽ bị mask)
-    # Không chấm lỗi trên keypoints có confidence < threshold để tránh false positives
+    "batch_size": 1,  # Batch size cho batch processing
 }
 
 # Cấu hình Confidence-Based Filtering - Lọc keypoints có confidence thấp
